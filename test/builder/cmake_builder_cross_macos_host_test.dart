@@ -65,7 +65,6 @@ void main() {
 
       final cbuilder = CMakeBuilder.create(
         name: name,
-        assetName: name,
         sourceDir: 'test/builder/testfiles/add',
         buildMode: BuildMode.release,
       );
@@ -150,7 +149,6 @@ Future<Uri> buildLib(
 
   final cbuilder = CMakeBuilder.create(
     name: name,
-    assetName: name,
     sourceDir: 'test/builder/testfiles/add',
     buildMode: BuildMode.release,
   );

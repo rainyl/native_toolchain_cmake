@@ -86,7 +86,6 @@ void main() async {
 
         final cbuilder = CMakeBuilder.create(
           name: name,
-          assetName: name,
           sourceDir: 'test/builder/testfiles/add',
           buildMode: buildMode,
         );

@@ -249,7 +249,6 @@ class RunCMakeBuilder {
     if (codeConfig.targetOS != OS.windows) {
       return [];
     }
-    // TODO: add windows defines, support arm64
     final definesWindows = <String>[];
     definesWindows.add('-DCMAKE_SYSTEM_NAME=Windows');
 

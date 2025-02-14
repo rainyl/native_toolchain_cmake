@@ -21,6 +21,7 @@ void main() {
   const targets = [
     Architecture.arm64,
     Architecture.x64,
+    Architecture.riscv64,
   ];
 
   for (final linkMode in [DynamicLoadingBundled()]) {
@@ -56,7 +57,6 @@ void main() {
 
         final cbuilder = CMakeBuilder.create(
           name: name,
-          assetName: name,
           sourceDir: 'test/builder/testfiles/add',
           buildMode: BuildMode.release,
         );
