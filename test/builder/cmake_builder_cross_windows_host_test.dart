@@ -24,8 +24,7 @@ void main() async {
   }
 
   const targets = [
-    // TODO(https://github.com/dart-lang/native/issues/170): Support arm64.
-    // Architecture.arm64,
+    Architecture.arm64,
     Architecture.ia32,
     Architecture.x64,
   ];

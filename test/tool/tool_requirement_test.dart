@@ -10,8 +10,7 @@ import 'package:test/test.dart';
 
 void main() {
   test('toString', () {
-    final requirement =
-        ToolRequirement(Tool(name: 'clang'), minimumVersion: Version(10, 0, 0));
+    final requirement = ToolRequirement(Tool(name: 'clang'), minimumVersion: Version(10, 0, 0));
     expect(requirement.toString(), contains('clang'));
     expect(requirement.toString(), contains('10.0.0'));
   });

@@ -104,8 +104,7 @@ class RecognizerTest {
       'recognize ${tool.name}',
       () async {
         final recognizer_ = recognizer(toolInstance!.uri);
-        final toolInstanceAgain =
-            (await recognizer_.resolve(logger: logger)).first;
+        final toolInstanceAgain = (await recognizer_.resolve(logger: logger)).first;
         expect(toolInstanceAgain, toolInstance);
       },
     );

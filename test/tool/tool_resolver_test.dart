@@ -92,10 +92,8 @@ void main() {
     final bazExeName = OS.current.executableFileName('baz');
     final bazExeUri = tempUri.resolve(bazExeName);
     await File.fromUri(barExeUri).writeAsString('dummy');
-    final barResolver = InstallLocationResolver(
-        toolName: 'bar', paths: [barExeUri.toFilePath().unescape()]);
-    final bazResolver = InstallLocationResolver(
-        toolName: 'baz', paths: [bazExeUri.toFilePath().unescape()]);
+    final barResolver = InstallLocationResolver(toolName: 'bar', paths: [barExeUri.toFilePath().unescape()]);
+    final bazResolver = InstallLocationResolver(toolName: 'baz', paths: [bazExeUri.toFilePath().unescape()]);
     final barLogs = <String>[];
     final bazLogs = <String>[];
     await barResolver.resolve(logger: createCapturingLogger(barLogs));

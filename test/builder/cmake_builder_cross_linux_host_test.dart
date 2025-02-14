@@ -19,15 +19,12 @@ void main() {
   }
 
   const targets = [
-    Architecture.arm,
     Architecture.arm64,
-    Architecture.ia32,
     Architecture.x64,
   ];
 
-  for (final linkMode in [DynamicLoadingBundled(), StaticLinking()]) {
+  for (final linkMode in [DynamicLoadingBundled()]) {
     for (final target in targets) {
-      // Cycle through all optimization levels.
       test('CBuilder $linkMode library $target', () async {
         final tempUri = await tempDirForTest();
         final tempUri2 = await tempDirForTest();

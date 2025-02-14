@@ -85,6 +85,14 @@ class RunCMakeBuilder {
     return Future.value(toolUri);
   }
 
+  Future<Uri> linuxToolchainCmake() async => switch (codeConfig.targetArchitecture) {
+        Architecture.x64 => (await currentPackageRoot()).resolve('cmake/x86_64-linux-gnu.toolchain.cmake'),
+        Architecture.arm64 => (await currentPackageRoot()).resolve('cmake/aarch64-linux-gnu.toolchain.cmake'),
+        Architecture.riscv64 =>
+          (await currentPackageRoot()).resolve('cmake/riscv64-linux-gnu.toolchain.cmake'),
+        _ => throw UnimplementedError('Unsupported architecture: ${codeConfig.targetArchitecture} for Linux'),
+      };
+
   Future<Uri> iosSdk(IOSSdk iosSdk, {required Logger? logger}) async {
     if (iosSdk == IOSSdk.iPhoneOS) {
       return (await iPhoneOSSdk.defaultResolver!.resolve(logger: logger))
@@ -242,6 +250,14 @@ class RunCMakeBuilder {
       definesWindows.add('-DCMAKE_SYSTEM_PROCESSOR=ARM64');
       definesWindows.addAll(['-A', 'ARM64']);
     }
+    if (codeConfig.targetArchitecture == Architecture.x64) {
+      definesWindows.add('-DCMAKE_SYSTEM_PROCESSOR=AMD64');
+      definesWindows.addAll(['-A', 'x64']);
+    }
+    if (codeConfig.targetArchitecture == Architecture.ia32) {
+      definesWindows.add('-DCMAKE_SYSTEM_PROCESSOR=X86');
+      definesWindows.addAll(['-A', 'Win32']);
+    }
     return definesWindows;
   }
 
@@ -249,8 +265,11 @@ class RunCMakeBuilder {
     if (codeConfig.targetOS != OS.linux) {
       return [];
     }
-    // TODO: add linux defines, support arm64
-    return [];
+    final definesLinux = <String>[];
+    definesLinux.add('-DCMAKE_SYSTEM_NAME=Linux');
+    final toolchain = await linuxToolchainCmake();
+    definesLinux.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.toFilePath()}');
+    return definesLinux;
   }
 
   static const androidAbis = {
@@ -279,5 +298,11 @@ class RunCMakeBuilder {
     Architecture.arm64: 'arm64-pc-windows-msvc',
     Architecture.ia32: 'i386-pc-windows-msvc',
     Architecture.x64: 'x86_64-pc-windows-msvc',
+  };
+
+  static const cmakeLinuxToolchains = {
+    Architecture.arm64: 'arm64-linux-gnu',
+    Architecture.x64: 'x86_64-linux-gnu',
+    Architecture.riscv64: 'riscv64-linux-gnu',
   };
 }
