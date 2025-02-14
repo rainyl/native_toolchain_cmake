@@ -41,7 +41,7 @@ void main() {
         flutterAndroidNdkVersionLowestSupported,
         flutterAndroidNdkVersionHighestSupported,
       ]) {
-        test('CBuilder $linkMode library $target minSdkVersion $apiLevel', () async {
+        test('CMakeBuilder $linkMode library $target minSdkVersion $apiLevel', () async {
           final tempUri = await tempDirForTest();
           final libUri = await buildLib(
             tempUri,

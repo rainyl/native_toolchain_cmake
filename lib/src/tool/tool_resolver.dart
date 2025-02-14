@@ -186,7 +186,7 @@ class InstallLocationResolver implements ToolResolver {
     required this.paths,
   });
 
-  static const home = '\$HOME';
+  static const home = r'$HOME';
 
   @override
   Future<List<ToolInstance>> resolve({required Logger? logger}) async {
@@ -251,7 +251,7 @@ class RelativeToolResolver implements ToolResolver {
         'with $relativePath.');
     final globs = [
       for (final toolInstance in otherToolInstances)
-        Glob([Glob.quote(toolInstance.uri.resolve('.').toFilePath().replaceAll('\\', '/')), relativePath.path]
+        Glob([Glob.quote(toolInstance.uri.resolve('.').toFilePath().replaceAll(r'\', '/')), relativePath.path]
             .join())
     ];
     final fileSystemEntities = [

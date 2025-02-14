@@ -17,6 +17,7 @@ void main() {
     final messages = <String>[];
     await runProcess(
       executable: whichUri,
+      arguments: ['dart'],
       workingDirectory: tempUri,
       logger: createCapturingLogger(messages),
     );
@@ -27,6 +28,7 @@ void main() {
     final messages = <String>[];
     await runProcess(
       executable: whichUri,
+      arguments: ['dart'],
       environment: {'FOO': 'BAR'},
       logger: createCapturingLogger(messages),
     );

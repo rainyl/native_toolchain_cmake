@@ -15,4 +15,6 @@ class Generator {
   static const Generator vs2019 = Generator._('Visual Studio 16 2019');
 
   static const Generator vs2022 = Generator._('Visual Studio 17 2022');
+
+  static const Generator defaultGenerator = Generator._("default");
 }

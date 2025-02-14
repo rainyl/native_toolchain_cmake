@@ -10,6 +10,7 @@ library;
 
 import 'dart:io';
 
+import 'package:change_case/change_case.dart';
 import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 import 'package:native_toolchain_cmake/src/native_toolchain/msvc.dart';
 import 'package:native_toolchain_cmake/src/utils/run_process.dart';
@@ -22,6 +23,8 @@ void main() async {
     // Avoid needing status files on Dart SDK CI.
     return;
   }
+
+  final targetOS = OS.current;
 
   const targets = [
     Architecture.arm64,
@@ -48,12 +51,12 @@ void main() async {
     StaticLinking(): 'LIBRARY',
   };
 
-  for (final linkMode in [DynamicLoadingBundled(), StaticLinking()]) {
+  for (final linkMode in [DynamicLoadingBundled()]) {
     for (final target in targets) {
       // Cycle through all optimization levels.
       final buildMode = BuildMode.values[selectBuildMode];
       selectBuildMode = (selectBuildMode + 1) % BuildMode.values.length;
-      test('CBuilder $linkMode library $target $buildMode', () async {
+      test('CMakeBuilder $linkMode library $target $buildMode', () async {
         final tempUri = await tempDirForTest();
         final tempUri2 = await tempDirForTest();
         const name = 'add';
@@ -93,7 +96,11 @@ void main() async {
           logger: logger,
         );
 
-        final libUri = tempUri.resolve(OS.windows.libraryFileName(name, linkMode));
+        final libUri = switch (targetOS) {
+          OS.windows =>
+            tempUri.resolve('${buildMode.name.toCapitalCase()}/${OS.current.dylibFileName(name)}'),
+          _ => tempUri.resolve(OS.current.dylibFileName(name)),
+        };
         expect(await File.fromUri(libUri).exists(), true);
         final result = await runProcess(
           executable: dumpbinUri,

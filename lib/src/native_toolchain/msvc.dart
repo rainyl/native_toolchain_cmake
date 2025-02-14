@@ -2,6 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:glob/glob.dart';
@@ -23,14 +24,14 @@ final Tool vswhere = Tool(
     arguments: [],
     wrappedResolver: ToolResolvers(
       [
-        PathToolResolver(
-          toolName: 'Visual Studio Locator',
-          executableName: 'vswhere.exe',
-        ),
+        // PathToolResolver(
+        //   toolName: 'Visual Studio Locator',
+        //   executableName: 'vswhere.exe',
+        // ),
         InstallLocationResolver(
           toolName: 'Visual Studio Locator',
           paths: [
-            'C:/Program Files \\(x86\\)/Microsoft Visual Studio/Installer/vswhere.exe',
+            r'C:/Program Files \(x86\)/Microsoft Visual Studio/Installer/vswhere.exe',
             'C:/Program Files/Microsoft Visual Studio/Installer/vswhere.exe',
           ],
         ),
@@ -64,9 +65,9 @@ Tool vcvars(ToolInstance toolInstance) {
   assert(tool == cl || tool == msvcLink || tool == lib);
   final vcDir = toolInstance.uri.resolve('../../../../../../');
   final String fileName;
-  if (toolInstance.uri.toFilePath().contains('\\x86\\')) {
+  if (toolInstance.uri.toFilePath().contains(r'\x86\')) {
     fileName = 'vcvars32.bat';
-  } else if (toolInstance.uri.toFilePath().contains('\\arm64\\')) {
+  } else if (toolInstance.uri.toFilePath().contains(r'\arm64\')) {
     // TODO(https://github.com/dart-lang/native/issues/170): Support native
     // windows-arm64 MSVC toolchain.
     // vcvarsarm64 only works on native windows-arm64. In case of cross
@@ -82,7 +83,7 @@ Tool vcvars(ToolInstance toolInstance) {
     defaultResolver: InstallLocationResolver(
       toolName: fileName,
       paths: [
-        Glob.quote(batchScript.toFilePath().replaceAll('\\', '/')),
+        Glob.quote(batchScript.toFilePath().replaceAll(r'\', '/')),
       ],
     ),
   );
@@ -268,25 +269,24 @@ Tool _msvcTool({
 class VisualStudioResolver implements ToolResolver {
   @override
   Future<List<ToolInstance>> resolve({required Logger? logger}) async {
-    final vswhereInstances =
-        await vswhere.defaultResolver!.resolve(logger: logger);
+    final vswhereInstances = await vswhere.defaultResolver!.resolve(logger: logger);
 
     final result = <ToolInstance>[];
     for (final vswhereInstance in vswhereInstances.take(1)) {
       final vswhereResult = await runProcess(
         executable: vswhereInstance.uri,
-        arguments: ['-latest', '-products', '*'],
+        arguments: ['-format', 'json', '-utf8', '-latest', '-products', '*'],
         logger: logger,
       );
-      final toolInfos = vswhereResult.stdout.split(_newLine * 2).skip(1);
+      final toolInfos = json.decode(vswhereResult.stdout) as List;
       for (final toolInfo in toolInfos) {
-        final toolInfoParsed = parseToolInfo(toolInfo);
-        final dir = Directory(toolInfoParsed['installationPath']!);
+        final toolInfoParsed = toolInfo;
+        assert(toolInfoParsed['installationPath'] != null);
+        final dir = Directory(toolInfoParsed['installationPath'] as String);
         assert(await dir.exists());
         final uri = dir.uri;
-        final version = versionFromString(toolInfoParsed['installationName']!);
-        final instance =
-            ToolInstance(tool: visualStudio, uri: uri, version: version);
+        final version = versionFromString(toolInfoParsed['installationName'] as String);
+        final instance = ToolInstance(tool: visualStudio, uri: uri, version: version);
         logger?.fine('Found $instance.');
         result.add(instance);
       }

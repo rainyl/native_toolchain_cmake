@@ -44,7 +44,7 @@ void main() {
         continue;
       }
       final libName = OS.iOS.libraryFileName(name, DynamicLoadingBundled());
-      test('CBuilder library $targetIOSSdk $target'.trim(), () async {
+      test('CMakeBuilder library $targetIOSSdk $target'.trim(), () async {
         final tempUri = await tempDirForTest();
         final tempUri2 = await tempDirForTest();
 

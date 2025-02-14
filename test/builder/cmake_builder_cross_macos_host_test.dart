@@ -34,7 +34,7 @@ void main() {
   };
 
   for (final target in targets) {
-    test('CBuilder library $target', () async {
+    test('CMakeBuilder library $target', () async {
       final tempUri = await tempDirForTest();
       final tempUri2 = await tempDirForTest();
 

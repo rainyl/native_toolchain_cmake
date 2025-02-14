@@ -15,16 +15,15 @@ import 'package:logging/logging.dart';
 /// If [captureOutput], captures stdout and stderr.
 Future<RunProcessResult> runProcess({
   required Uri executable,
+  required Logger? logger,
   List<String> arguments = const [],
   Uri? workingDirectory,
   Map<String, String>? environment,
-  required Logger? logger,
   bool captureOutput = true,
   int expectedExitCode = 0,
   bool throwOnUnexpectedExitCode = false,
 }) async {
-  final printWorkingDir =
-      workingDirectory != null && workingDirectory != Directory.current.uri;
+  final printWorkingDir = workingDirectory != null && workingDirectory != Directory.current.uri;
   final commandString = [
     if (printWorkingDir) '(cd ${workingDirectory.toFilePath()};',
     ...?environment?.entries.map((entry) => '${entry.key}=${entry.value}'),
@@ -41,33 +40,39 @@ Future<RunProcessResult> runProcess({
     arguments,
     workingDirectory: workingDirectory?.toFilePath(),
     environment: environment,
-    runInShell: Platform.isWindows && workingDirectory != null,
+    runInShell: Platform.isWindows ,
   );
 
-  final stdoutSub = process.stdout
-      .transform(utf8.decoder)
-      .transform(const LineSplitter())
-      .listen(captureOutput
-          ? (s) {
-              logger?.fine(s);
-              stdoutBuffer.writeln(s);
-            }
-          : logger?.fine);
-  final stderrSub = process.stderr
-      .transform(utf8.decoder)
-      .transform(const LineSplitter())
-      .listen(captureOutput
-          ? (s) {
-              logger?.severe(s);
-              stderrBuffer.writeln(s);
-            }
-          : logger?.severe);
+  final stdoutSub = process.stdout.listen(
+    (List<int> data) {
+      try {
+        final decodedData = utf8.decode(data);
+        logger?.fine(decodedData);
+        stdoutBuffer.write(decodedData);
+      } catch (e) {
+        logger?.warning('Failed to decode stdout: $e');
+        stdoutBuffer.write('Failed to decode stdout: $e');
+      }
+    },
+  );
+  final stderrSub = process.stderr.listen(
+    (List<int> data) {
+      try {
+        final decodedData = utf8.decode(data);
+        logger?.severe(decodedData);
+        stderrBuffer.write(decodedData);
+      } catch (e) {
+        logger?.severe('Failed to decode stderr: $e');
+        stderrBuffer.write('Failed to decode stderr: $e');
+      }
+    },
+  );
 
-  final (exitCode, _, _) = await (
-    process.exitCode,
-    stdoutSub.asFuture<void>(),
-    stderrSub.asFuture<void>()
-  ).wait;
+  final (exitCode, _, _) =
+      await (process.exitCode, stdoutSub.asFuture<void>(), stderrSub.asFuture<void>()).wait;
+
+  await stdoutSub.cancel();
+  await stderrSub.cancel();
   final result = RunProcessResult(
     pid: process.pid,
     command: commandString,

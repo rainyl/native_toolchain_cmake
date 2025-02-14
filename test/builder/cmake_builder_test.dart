@@ -2,9 +2,10 @@
   'mac-os': Timeout.factor(2),
   'windows': Timeout.factor(10),
 })
-// import 'dart:ffi';
+import 'dart:ffi';
 import 'dart:io';
 
+import 'package:change_case/change_case.dart';
 import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 import 'package:native_toolchain_cmake/src/utils/run_process.dart';
 import 'package:test/test.dart';
@@ -65,6 +66,7 @@ void main() {
 
         final executableUri = switch (targetOS) {
           OS.macOS => tempUri.resolve('$name.app/Contents/MacOS/${OS.current.executableFileName(name)}'),
+          OS.windows => tempUri.resolve('${buildMode.name.toCapitalCase()}/$name.exe'),
           _ => tempUri.resolve(OS.current.executableFileName(name)),
         };
         expect(await File.fromUri(executableUri).exists(), true);
@@ -120,89 +122,95 @@ void main() {
       );
       await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
-      final dylibUri = tempUri.resolve(OS.current.dylibFileName(name));
-      expect(await File.fromUri(dylibUri).exists(), true);
-      // TODO: symbol not found
-      // final dylib = openDynamicLibraryForTest(dylibUri.toFilePath());
-      // final add = dylib.lookupFunction<Int32 Function(Int32, Int32), int Function(int, int)>('math_add');
-      // expect(add(1, 2), 3);
-    });
-
-    Future<void> testDefines({BuildMode buildMode = BuildMode.debug}) async {
-      final tempUri = await tempDirForTest();
-      final tempUri2 = await tempDirForTest();
-      const name = 'defines';
-
-      final targetOS = OS.current;
-      final buildInputBuilder = BuildInputBuilder()
-        ..setupShared(
-          packageName: name,
-          packageRoot: tempUri,
-          outputFile: tempUri.resolve('output.json'),
-          outputDirectory: tempUri,
-          outputDirectoryShared: tempUri2,
-        )
-        ..config.setupBuild(
-          linkingEnabled: false,
-          dryRun: false,
-        )
-        ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-        ..config.setupCode(
-          targetOS: targetOS,
-          macOS: targetOS == OS.macOS ? MacOSCodeConfig(targetVersion: defaultMacOSVersion) : null,
-          targetArchitecture: Architecture.current,
-          // Ignored by executables.
-          linkModePreference: LinkModePreference.dynamic,
-          cCompiler: cCompiler,
-        );
-
-      final buildInput = BuildInput(buildInputBuilder.json);
-      final buildOutput = BuildOutputBuilder();
-
-      final builder = CMakeBuilder.create(
-        name: name,
-        sourceDir: 'test/builder/testfiles/defines',
-        buildMode: buildMode,
-      );
-      await builder.run(
-        input: buildInput,
-        output: buildOutput,
-        logger: logger,
-      );
-
-      final executableUri = switch (targetOS) {
-        OS.macOS => tempUri.resolve('$name.app/Contents/MacOS/${OS.current.executableFileName(name)}'),
-        _ => tempUri.resolve(OS.current.executableFileName(name)),
+      final dylibUri = switch (targetOS) {
+        OS.windows => tempUri.resolve('${buildMode.name.toCapitalCase()}/${OS.current.dylibFileName(name)}'),
+        _ => tempUri.resolve(OS.current.dylibFileName(name)),
       };
-      expect(await File.fromUri(executableUri).exists(), true);
-      final result = await runProcess(
-        executable: executableUri,
-        logger: logger,
-      );
-      expect(result.exitCode, 0);
-
-      if (buildMode == BuildMode.release) {
-        expect(
-          result.stdout,
-          contains('Macro NDEBUG is defined: 1'),
-        );
-      } else {
-        expect(
-          result.stdout,
-          contains('Macro NDEBUG is undefined.'),
-        );
-        expect(
-          result.stdout,
-          contains('Macro DEBUG is defined: 1'),
-        );
+      expect(await File.fromUri(dylibUri).exists(), true);
+      // TODO: symbol not found on macos
+      if (targetOS != OS.macOS) {
+        final dylib = openDynamicLibraryForTest(dylibUri.toFilePath());
+        final add = dylib.lookupFunction<Int32 Function(Int32, Int32), int Function(int, int)>('math_add');
+        expect(add(1, 2), 3);
       }
-
-      expect(
-        result.stdout,
-        contains('Macro FOO is defined: BAR'),
-      );
-    }
+    });
 
     test('CBuilder define ${buildMode.name}', () => testDefines(buildMode: buildMode));
   }
+}
+
+Future<void> testDefines({BuildMode buildMode = BuildMode.debug}) async {
+  final tempUri = await tempDirForTest();
+  final tempUri2 = await tempDirForTest();
+  const name = 'defines';
+
+  final targetOS = OS.current;
+  final buildInputBuilder = BuildInputBuilder()
+    ..setupShared(
+      packageName: name,
+      packageRoot: tempUri,
+      outputFile: tempUri.resolve('output.json'),
+      outputDirectory: tempUri,
+      outputDirectoryShared: tempUri2,
+    )
+    ..config.setupBuild(
+      linkingEnabled: false,
+      dryRun: false,
+    )
+    ..config.setupShared(buildAssetTypes: [CodeAsset.type])
+    ..config.setupCode(
+      targetOS: targetOS,
+      macOS: targetOS == OS.macOS ? MacOSCodeConfig(targetVersion: defaultMacOSVersion) : null,
+      targetArchitecture: Architecture.current,
+      // Ignored by executables.
+      linkModePreference: LinkModePreference.dynamic,
+      cCompiler: cCompiler,
+    );
+
+  final buildInput = BuildInput(buildInputBuilder.json);
+  final buildOutput = BuildOutputBuilder();
+
+  final builder = CMakeBuilder.create(
+    name: name,
+    sourceDir: 'test/builder/testfiles/defines',
+    buildMode: buildMode,
+  );
+  await builder.run(
+    input: buildInput,
+    output: buildOutput,
+    logger: logger,
+  );
+
+  final executableUri = switch (targetOS) {
+    OS.macOS => tempUri.resolve('$name.app/Contents/MacOS/${OS.current.executableFileName(name)}'),
+    OS.windows => tempUri.resolve('${buildMode.name.toCapitalCase()}/$name.exe'),
+    _ => tempUri.resolve(OS.current.executableFileName(name)),
+  };
+  expect(await File.fromUri(executableUri).exists(), true);
+  final result = await runProcess(
+    executable: executableUri,
+    logger: logger,
+  );
+  expect(result.exitCode, 0);
+
+  if (buildMode == BuildMode.release) {
+    expect(
+      result.stdout,
+      contains('Macro NDEBUG is defined: 1'),
+    );
+  } else {
+    expect(
+      result.stdout,
+      contains('Macro NDEBUG is undefined.'),
+    );
+    expect(
+      result.stdout,
+      contains('Macro DEBUG is defined: 1'),
+    );
+  }
+
+  expect(
+    result.stdout,
+    contains('Macro FOO is defined: BAR'),
+  );
 }

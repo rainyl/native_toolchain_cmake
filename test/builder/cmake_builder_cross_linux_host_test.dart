@@ -25,7 +25,7 @@ void main() {
 
   for (final linkMode in [DynamicLoadingBundled()]) {
     for (final target in targets) {
-      test('CBuilder $linkMode library $target', () async {
+      test('CMakeBuilder $linkMode library $target', () async {
         final tempUri = await tempDirForTest();
         final tempUri2 = await tempDirForTest();
         const name = 'add';

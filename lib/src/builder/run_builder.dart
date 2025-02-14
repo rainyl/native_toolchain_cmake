@@ -30,8 +30,15 @@ class RunCMakeBuilder {
   final Uri outDir;
 
   final Map<String, String?> defines;
-  final Generator? generator;
   final BuildMode buildMode;
+  Generator? generator;
+  Generator get defaultGenerator => switch (codeConfig.targetOS) {
+        OS.android => Generator.ninja,
+        OS.linux => Generator.make,
+        OS.macOS => Generator.make,
+        OS.iOS => Generator.xcode,
+        _ => Generator.defaultGenerator,
+      };
 
   final List<String>? targets;
 
@@ -65,7 +72,9 @@ class RunCMakeBuilder {
     this.androidABI,
     this.androidArmNeon = true,
     this.androidSTL = 'c++_static',
-  }) : outDir = input.outputDirectory;
+  }) : outDir = input.outputDirectory {
+    generator ??= defaultGenerator;
+  }
 
   Future<Uri> cmakePath() async {
     final cmakeTools = await cmake.defaultResolver?.resolve(logger: logger);
@@ -134,7 +143,7 @@ class RunCMakeBuilder {
       ...androidDefs,
     ];
 
-    final _generator = generator == null ? <String>[] : ['-G', '"${generator!.name}"'];
+    final _generator = generator == Generator.defaultGenerator ? <String>[] : ['-G', generator!.name];
 
     defines.forEach((k, v) => _defines.add('-D$k=${v ?? "1"}'));
 
@@ -142,7 +151,7 @@ class RunCMakeBuilder {
       executable: await cmakePath(),
       arguments: [
         '-S',
-        sourceDir.toFilePath(windows: Platform.isWindows),
+        sourceDir.toFilePath(),
         '-B',
         outDir.toFilePath(windows: Platform.isWindows),
         ..._generator,
@@ -183,7 +192,6 @@ class RunCMakeBuilder {
     final platform = macosPlatforms[codeConfig.targetArchitecture];
     assert(platform != null, 'Unsupported macOS architecture: ${codeConfig.targetArchitecture}');
     definesMacos.add('-DPLATFORM=$platform');
-    // TODO: check the value of target MacOS version
     definesMacos.add('-DDEPLOYMENT_TARGET=${codeConfig.macOS.targetVersion}');
     definesMacos.add('-DENABLE_BITCODE=${enableBitcode ? "ON" : "OFF"}');
     definesMacos.add('-DENABLE_ARC=${enableArc ? "ON" : "OFF"}');
@@ -204,7 +212,6 @@ class RunCMakeBuilder {
     final platform = iosPlatforms[codeConfig.targetArchitecture]?[targetIosSdk];
     assert(platform != null, 'Unsupported iOS architecture: ${codeConfig.targetArchitecture}');
     definesIos.add('-DPLATFORM=$platform');
-    // TODO: check the value of target os version
     definesIos.add('-DDEPLOYMENT_TARGET=$targetIOSVersion');
     definesIos.add('-DENABLE_BITCODE=${enableBitcode ? "ON" : "OFF"}');
     definesIos.add('-DENABLE_ARC=${enableArc ? "ON" : "OFF"}');
