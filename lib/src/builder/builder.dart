@@ -26,13 +26,6 @@ class CMakeBuilder implements Builder {
   /// File will be placed in [LinkInput.outputDirectory].
   final String name;
 
-  /// Asset identifier.
-  ///
-  /// Used to output the [CodeAsset].
-  ///
-  /// If omitted, no asset will be added to the build output.
-  final String? assetName;
-
   /// Sources directory
   final String sourceDir;
 
@@ -55,7 +48,6 @@ class CMakeBuilder implements Builder {
   CMakeBuilder.create({
     required this.name,
     required this.sourceDir,
-    this.assetName,
     this.defines = const {},
     this.linkModePreference,
     this.buildMode = BuildMode.release,
@@ -72,11 +64,6 @@ class CMakeBuilder implements Builder {
     required BuildOutputBuilder output,
     required Logger? logger,
   }) async {
-    if (!input.config.buildCodeAssets) {
-      logger?.info('buildAssetTypes did not contain "${CodeAsset.type}", '
-          'skipping CodeAsset $assetName build.');
-      return;
-    }
     final outDir = input.outputDirectory;
     // final packageRoot = input.packageRoot;
     await Directory.fromUri(outDir).create(recursive: true);

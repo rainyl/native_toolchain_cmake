@@ -13,7 +13,6 @@ const name = 'example.dart';
 Future<void> runBuild(BuildInput input, BuildOutputBuilder output, String sourceDir) async {
   final builder = CMakeBuilder.create(
     name: name,
-    assetName: '$name.dart',
     sourceDir: sourceDir,
     defines: {
       'CMAKE_BUILD_TYPE': 'Release',
@@ -28,12 +27,21 @@ Future<void> runBuild(BuildInput input, BuildOutputBuilder output, String source
       ..level = Level.ALL
       ..onRecord.listen((record) => print(record.message)),
   );
+
+  final libPath = switch (input.config.code.targetOS) {
+    OS.linux => "install/lib/libadd.so",
+    OS.macOS => "install/lib/libadd.dylib",
+    OS.windows => "install/lib/add.dll",
+    OS.android => "install/lib/libadd.so",
+    OS.iOS => "install/lib/libadd.dylib",
+    _ => throw UnsupportedError("Unsupported OS")
+  };
   output.assets.code.add(CodeAsset(
     package: 'example',
     name: name,
     linkMode: DynamicLoadingBundled(),
     os: input.config.code.targetOS,
-    file: Directory(input.outputDirectory.toFilePath()).uri.resolve("install/lib/add.dll"),
+    file: Directory(input.outputDirectory.toFilePath()).uri.resolve(libPath),
     architecture: input.config.code.targetArchitecture,
   ));
 }
