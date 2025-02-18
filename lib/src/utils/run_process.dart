@@ -45,9 +45,11 @@ Future<RunProcessResult> runProcess({
   final stdoutSub = process.stdout.listen(
     (List<int> data) {
       try {
-        final decodedData = _systemEncoding.decode(data);
+        final decodedData = systemEncoding.decode(data);
         logger?.fine(decodedData);
-        stdoutBuffer.write(decodedData);
+        if (captureOutput) {
+          stdoutBuffer.write(decodedData);
+        }
       } catch (e) {
         logger?.warning('Failed to decode stdout: $e');
         stdoutBuffer.write('Failed to decode stdout: $e');
@@ -57,9 +59,11 @@ Future<RunProcessResult> runProcess({
   final stderrSub = process.stderr.listen(
     (List<int> data) {
       try {
-        final decodedData = _systemEncoding.decode(data);
+        final decodedData = systemEncoding.decode(data);
         logger?.severe(decodedData);
-        stderrBuffer.write(decodedData);
+        if (captureOutput) {
+          stderrBuffer.write(decodedData);
+        }
       } catch (e) {
         logger?.severe('Failed to decode stderr: $e');
         stderrBuffer.write('Failed to decode stderr: $e');
@@ -117,5 +121,3 @@ exitCode: $exitCode
 stdout: $stdout
 stderr: $stderr''';
 }
-
-const _systemEncoding = SystemEncoding();
