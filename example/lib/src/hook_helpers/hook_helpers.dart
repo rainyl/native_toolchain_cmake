@@ -10,7 +10,7 @@ import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 
 const name = 'example.dart';
 
-Future<void> runBuild(BuildInput input, BuildOutputBuilder output, String sourceDir) async {
+Future<void> runBuild(BuildInput input, BuildOutputBuilder output, Uri sourceDir) async {
   final builder = CMakeBuilder.create(
     name: name,
     sourceDir: sourceDir,

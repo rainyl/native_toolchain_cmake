@@ -57,7 +57,7 @@ void main() {
 
         final cbuilder = CMakeBuilder.create(
           name: name,
-          sourceDir: 'test/builder/testfiles/add',
+          sourceDir: Directory('test/builder/testfiles/add').uri,
           buildMode: BuildMode.release,
         );
         await cbuilder.run(

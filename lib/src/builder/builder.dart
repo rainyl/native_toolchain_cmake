@@ -27,7 +27,7 @@ class CMakeBuilder implements Builder {
   final String name;
 
   /// Sources directory
-  final String sourceDir;
+  final Uri sourceDir;
 
   /// Definitions of preprocessor macros.
   ///
@@ -71,7 +71,7 @@ class CMakeBuilder implements Builder {
       input: input,
       codeConfig: input.config.code,
       logger: logger,
-      sourceDir: Uri.parse(sourceDir),
+      sourceDir: sourceDir,
       generator: generator,
       buildMode: buildMode,
       defines: defines,

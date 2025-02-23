@@ -59,7 +59,7 @@ void main() {
 
         final builder = CMakeBuilder.create(
           name: name,
-          sourceDir: sourceDir,
+          sourceDir: Directory(sourceDir).uri,
           buildMode: buildMode,
         );
         await builder.run(input: buildInput, output: buildOutput, logger: logger);
@@ -117,7 +117,7 @@ void main() {
 
       final builder = CMakeBuilder.create(
         name: name,
-        sourceDir: 'test/builder/testfiles/add',
+        sourceDir: Directory('test/builder/testfiles/add').uri,
         buildMode: buildMode,
       );
       await builder.run(input: buildInput, output: buildOutput, logger: logger);
@@ -172,7 +172,7 @@ Future<void> testDefines({BuildMode buildMode = BuildMode.debug}) async {
 
   final builder = CMakeBuilder.create(
     name: name,
-    sourceDir: 'test/builder/testfiles/defines',
+    sourceDir: Directory('test/builder/testfiles/defines').uri,
     buildMode: buildMode,
   );
   await builder.run(
