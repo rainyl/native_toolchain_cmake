@@ -13,6 +13,7 @@ import 'package:native_assets_cli/code_assets_builder.dart';
 
 import 'build_mode.dart';
 import 'generator.dart';
+import 'log_level.dart';
 import 'run_builder.dart';
 
 /// Specification for building an artifact with a C compiler.
@@ -45,6 +46,9 @@ class CMakeBuilder implements Builder {
   final List<String>? targets;
   final Generator? generator;
 
+  /// log level of CMake
+  final LogLevel logLevel;
+
   CMakeBuilder.create({
     required this.name,
     required this.sourceDir,
@@ -53,6 +57,7 @@ class CMakeBuilder implements Builder {
     this.buildMode = BuildMode.release,
     this.targets,
     this.generator,
+    this.logLevel = LogLevel.STATUS,
   });
 
   /// Runs the C Compiler with on this C build spec.
@@ -76,6 +81,7 @@ class CMakeBuilder implements Builder {
       buildMode: buildMode,
       defines: defines,
       targets: targets,
+      logLevel: logLevel,
     );
     await task.run();
   }

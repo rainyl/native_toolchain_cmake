@@ -12,8 +12,8 @@ import 'dart:math';
 import 'package:change_case/change_case.dart';
 import 'package:logging/logging.dart';
 import 'package:native_assets_cli/code_assets.dart';
-import 'package:native_toolchain_cmake/src/native_toolchain/android_ndk.dart';
 
+import '../native_toolchain/android_ndk.dart';
 import '../native_toolchain/cmake.dart';
 import '../native_toolchain/xcode.dart';
 import '../tool/tool_instance.dart';
@@ -21,6 +21,7 @@ import '../utils/package_config_parser.dart';
 import '../utils/run_process.dart';
 import 'build_mode.dart';
 import 'generator.dart';
+import 'log_level.dart';
 
 class RunCMakeBuilder {
   final HookInput input;
@@ -55,6 +56,9 @@ class RunCMakeBuilder {
   String? androidSTL;
   final bool androidArmNeon;
 
+  /// log level of CMake
+  final LogLevel logLevel;
+
   RunCMakeBuilder({
     required this.input,
     required this.codeConfig,
@@ -72,6 +76,7 @@ class RunCMakeBuilder {
     this.androidABI,
     this.androidArmNeon = true,
     this.androidSTL = 'c++_static',
+    this.logLevel = LogLevel.STATUS,
   }) : outDir = input.outputDirectory {
     generator ??= defaultGenerator;
   }
@@ -150,6 +155,8 @@ class RunCMakeBuilder {
     await runProcess(
       executable: await cmakePath(),
       arguments: [
+        '--log-level',
+        logLevel.name,
         '-S',
         sourceDir.toFilePath(),
         '-B',
