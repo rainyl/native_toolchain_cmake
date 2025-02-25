@@ -1,0 +1,27 @@
+name: Native
+description: |
+  Native wrappers
+output:
+  bindings: lib/src/g/add.g.dart
+ffi-native:
+  asset-id: 'package:add/add.dart'
+compiler-opts: "-Isrc"
+sort: true
+include-unused-typedefs: true
+headers:
+  entry-points:
+    - src/src/add.h
+  include-directives:
+    - src/src/add.h
+
+preamble: |
+  // coverage:ignore-file
+  // libadd - example of native_toolchain_cmake
+  //    License: Apache-2.0
+  // Author: Rainyl
+  // License: Apache-2.0
+  // Date: 2025/2/14
+
+comments:
+  style: any
+  length: full

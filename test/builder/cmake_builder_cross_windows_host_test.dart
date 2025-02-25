@@ -10,7 +10,6 @@ library;
 
 import 'dart:io';
 
-import 'package:change_case/change_case.dart';
 import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 import 'package:native_toolchain_cmake/src/native_toolchain/msvc.dart';
 import 'package:native_toolchain_cmake/src/utils/run_process.dart';
@@ -23,8 +22,6 @@ void main() async {
     // Avoid needing status files on Dart SDK CI.
     return;
   }
-
-  final targetOS = OS.current;
 
   const targets = [
     Architecture.arm64,
@@ -88,6 +85,10 @@ void main() async {
           name: name,
           sourceDir: Directory('test/builder/testfiles/add').uri,
           buildMode: buildMode,
+          defines: {
+            'CMAKE_INSTALL_PREFIX': '${buildInput.outputDirectory.toFilePath()}/install',
+          },
+          targets: ['install'],
         );
         await cbuilder.run(
           input: buildInput,
@@ -95,11 +96,7 @@ void main() async {
           logger: logger,
         );
 
-        final libUri = switch (targetOS) {
-          OS.windows =>
-            tempUri.resolve('${buildMode.name.toCapitalCase()}/${OS.current.dylibFileName(name)}'),
-          _ => tempUri.resolve(OS.current.dylibFileName(name)),
-        };
+        final libUri = tempUri.resolve('install/lib/${OS.current.dylibFileName(name)}');
         expect(await File.fromUri(libUri).exists(), true);
         final result = await runProcess(
           executable: dumpbinUri,

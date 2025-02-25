@@ -1,0 +1,70 @@
+name: Publish to pub.dev and release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*' # tag pattern on pub.dev: 'v{{version}'
+
+jobs:
+  test-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "master"
+      - name: test
+        run: |
+          cd "${{github.workspace}}"
+          dart test
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "master"
+      - name: test
+        run: |
+          cd "${{github.workspace}}"
+          dart test
+  test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "master"
+      - name: test
+        run: |
+          cd "${{github.workspace}}"
+          dart test
+  publish:
+    name: Publish
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test-linux, test-windows, test-macos]
+    permissions:
+      id-token: write # Required for authentication using OIDC
+    runs-on: ubuntu-latest
+    environment: pub.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Install dependencies
+        run: dart pub get
+      - name: Publish
+        run: dart pub publish --force
+
+  release:
+    needs: [test-linux, test-windows, test-macos, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          draft: false
+          prerelease: false
+          generate_release_notes: true

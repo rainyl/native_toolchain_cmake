@@ -25,7 +25,7 @@ void main() {
   for (final buildMode in BuildMode.values) {
     for (final sourceDir in sourceDirs) {
       final name = sourceDir.split("/").last;
-      test('CMakeBuilder: executable: $name', () async {
+      test('CMakeBuilder-executable-$name-$buildMode', () async {
         final tempUri = await tempDirForTest();
         final tempUri2 = await tempDirForTest();
 
@@ -82,7 +82,7 @@ void main() {
       });
     }
 
-    test('CMakeBuilder: library', () async {
+    test('CMakeBuilder-library-$buildMode', () async {
       final tempUri = await tempDirForTest();
       final tempUri2 = await tempDirForTest();
 
@@ -119,23 +119,22 @@ void main() {
         name: name,
         sourceDir: Directory('test/builder/testfiles/add').uri,
         buildMode: buildMode,
+        enableVisibility: true,
+        defines: {
+          'CMAKE_INSTALL_PREFIX': '${buildInput.outputDirectory.toFilePath()}/install',
+        },
+        targets: ['install'],
       );
       await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
-      final dylibUri = switch (targetOS) {
-        OS.windows => tempUri.resolve('${buildMode.name.toCapitalCase()}/${OS.current.dylibFileName(name)}'),
-        _ => tempUri.resolve(OS.current.dylibFileName(name)),
-      };
+      final dylibUri = tempUri.resolve('install/lib/${OS.current.dylibFileName(name)}');
       expect(await File.fromUri(dylibUri).exists(), true);
-      // TODO: symbol not found on macos
-      if (targetOS != OS.macOS) {
-        final dylib = openDynamicLibraryForTest(dylibUri.toFilePath());
-        final add = dylib.lookupFunction<Int32 Function(Int32, Int32), int Function(int, int)>('math_add');
-        expect(add(1, 2), 3);
-      }
+      final dylib = openDynamicLibraryForTest(dylibUri.toFilePath());
+      final add = dylib.lookupFunction<Int32 Function(Int32, Int32), int Function(int, int)>('add');
+      expect(add(1, 2), 3);
     });
 
-    test('CBuilder define ${buildMode.name}', () => testDefines(buildMode: buildMode));
+    test('CBuilder define $buildMode', () => testDefines(buildMode: buildMode));
   }
 }
 

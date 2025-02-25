@@ -1,0 +1,24 @@
+on:
+  push:
+
+name: Format Code
+
+jobs:
+  build:
+    name: format code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "master"
+      - name: Format code
+        run: |
+          dart format
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "dart format ✅"
+          branch: ${{ github.head_ref }}

@@ -53,7 +53,7 @@ class RunCMakeBuilder {
   // android ndk
   int? androidAPI;
   String? androidABI;
-  String? androidSTL;
+  final String androidSTL;
   final bool androidArmNeon;
 
   /// log level of CMake
@@ -243,10 +243,7 @@ class RunCMakeBuilder {
     androidABI ??= androidAbis[codeConfig.targetArchitecture];
     definesAndroid.add('-DANDROID_PLATFORM=android-$androidAPI');
     definesAndroid.add('-DANDROID_ABI=${androidAbis[codeConfig.targetArchitecture]}');
-
-    if (androidSTL != null) {
-      definesAndroid.add('-DANDROID_STL=$androidSTL');
-    }
+    definesAndroid.add('-DANDROID_STL=$androidSTL');
     definesAndroid.add('-DANDROID_ARM_NEON=$androidArmNeon');
 
     return definesAndroid;
