@@ -33,13 +33,6 @@ class RunCMakeBuilder {
   final Map<String, String?> defines;
   final BuildMode buildMode;
   Generator? generator;
-  Generator get defaultGenerator => switch (codeConfig.targetOS) {
-        OS.android => Generator.ninja,
-        OS.linux => Generator.make,
-        OS.macOS => Generator.make,
-        OS.iOS => Generator.xcode,
-        _ => Generator.defaultGenerator,
-      };
 
   final List<String>? targets;
 
@@ -78,7 +71,7 @@ class RunCMakeBuilder {
     this.androidSTL = 'c++_static',
     this.logLevel = LogLevel.STATUS,
   }) : outDir = input.outputDirectory {
-    generator ??= defaultGenerator;
+    generator ??= Generator.defaultGenerator;
   }
 
   Future<Uri> cmakePath() async {

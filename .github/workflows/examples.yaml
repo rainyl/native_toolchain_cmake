@@ -8,7 +8,7 @@ on:
 jobs:
   windows:
     name: windows
-    runs-on: windows-latest
+    runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -16,11 +16,11 @@ jobs:
           channel: "master"
       - name: run dart-cli example
         run: |
-          cd "${{github.workspace}}/example/dart_cli"
+          cd ${{github.workspace}}\example\dart_cli
           dart --enable-experiment=native-assets run
       - name: run flutter example
         run: |
-          cd "${{github.workspace}}/example/flutter"
+          cd ${{github.workspace}}\example\flutter
           flutter config --enable-native-assets
           flutter build windows --release
   linux:
