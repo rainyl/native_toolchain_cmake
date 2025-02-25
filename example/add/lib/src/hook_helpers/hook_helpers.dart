@@ -23,8 +23,8 @@ Future<void> runBuild(BuildInput input, BuildOutputBuilder output, Uri sourceDir
   );
 
   final libPath = switch (input.config.code.targetOS) {
-    OS.linux => "install/libadd.so",
-    OS.macOS => "install/libadd.dylib",
+    OS.linux => "install/lib/libadd.so",
+    OS.macOS => "install/lib/libadd.dylib",
     OS.windows => "install/lib/add.dll",
     OS.android => "install/lib/libadd.so",
     OS.iOS => "install/lib/libadd.dylib",
