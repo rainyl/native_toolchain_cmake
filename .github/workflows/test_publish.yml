@@ -10,6 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: setup
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu \
+            gcc-arm-linux-gnueabihf gcc-i686-linux-gnu \
+            gcc-riscv64-linux-gnu ninja-build
+      - uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r27c
+          add-to-path: true
       - uses: subosito/flutter-action@v2
         with:
           channel: "master"
@@ -21,6 +32,11 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r27c
+          add-to-path: true
       - uses: subosito/flutter-action@v2
         with:
           channel: "master"
@@ -32,6 +48,11 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r27c
+          add-to-path: true
       - uses: subosito/flutter-action@v2
         with:
           channel: "master"

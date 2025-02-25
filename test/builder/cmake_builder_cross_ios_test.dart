@@ -79,7 +79,7 @@ void main() {
           name: name,
           sourceDir: Directory('test/builder/testfiles/add').uri,
           buildMode: BuildMode.release,
-          generator: Generator.ninja,
+          generator: Generator.make,
         );
         await cbuilder.run(
           input: buildInput,
@@ -202,7 +202,7 @@ Future<Uri> buildLib(
     name: name,
     sourceDir: Directory('test/builder/testfiles/add').uri,
     buildMode: BuildMode.release,
-    generator: Generator.ninja,
+    generator: Generator.make,
   );
   await cbuilder.run(
     input: buildInput,

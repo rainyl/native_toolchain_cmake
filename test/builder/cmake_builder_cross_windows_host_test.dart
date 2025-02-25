@@ -86,7 +86,7 @@ void main() async {
           sourceDir: Directory('test/builder/testfiles/add').uri,
           buildMode: buildMode,
           defines: {
-            'CMAKE_INSTALL_PREFIX': '${buildInput.outputDirectory.toFilePath()}/install',
+            'CMAKE_INSTALL_PREFIX': buildInput.outputDirectory.resolve('install').toFilePath(),
           },
           targets: ['install'],
         );
