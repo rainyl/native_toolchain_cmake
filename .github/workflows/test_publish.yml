@@ -32,6 +32,9 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: setup
+        run: |
+          choco install ninja
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
@@ -48,6 +51,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - name: setup
+        run: |
+          brew install ninja
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:

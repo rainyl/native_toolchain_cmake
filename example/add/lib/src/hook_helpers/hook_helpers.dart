@@ -10,7 +10,7 @@ Future<void> runBuild(BuildInput input, BuildOutputBuilder output, Uri sourceDir
     sourceDir: sourceDir,
     buildMode: BuildMode.release,
     defines: {
-      'CMAKE_INSTALL_PREFIX': '${input.outputDirectory.toFilePath()}/install',
+      'CMAKE_INSTALL_PREFIX': input.outputDirectory.resolve('install').toFilePath(),
     },
     targets: ['install'],
   );
