@@ -39,7 +39,7 @@ Future<RunProcessResult> runProcess({
     arguments,
     workingDirectory: workingDirectory?.toFilePath(),
     environment: environment,
-    runInShell: Platform.isWindows,
+    runInShell: Platform.isWindows && workingDirectory != null,
   );
 
   final stdoutSub = process.stdout.listen(

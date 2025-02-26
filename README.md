@@ -13,3 +13,7 @@ Refer to [example](https://github.com/rainyl/native_toolchain_cmake/tree/main/ex
 ## Acknowledgements
 
 - [native_toolchain_c](https://pub.dev/packages/native_toolchain_c)
+
+## License
+
+Apache-2.0 License

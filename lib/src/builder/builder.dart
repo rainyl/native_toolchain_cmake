@@ -46,6 +46,19 @@ class CMakeBuilder implements Builder {
   final List<String>? targets;
   final Generator? generator;
 
+  // ios.toolchain.cmake
+  // https://github.com/leetal/ios-cmake?tab=readme-ov-file#exposed-variables
+  final bool enableBitcode;
+  final bool enableArc;
+  final bool enableVisibility;
+  final bool enableStrictTryCompile;
+
+  // android ndk
+  int? androidAPI;
+  String? androidABI;
+  final String androidSTL;
+  final bool androidArmNeon;
+
   /// log level of CMake
   final LogLevel logLevel;
 
@@ -57,6 +70,14 @@ class CMakeBuilder implements Builder {
     this.buildMode = BuildMode.release,
     this.targets,
     this.generator,
+    this.enableBitcode = false,
+    this.enableArc = true,
+    this.enableVisibility = true, // necessary to expose symbols
+    this.enableStrictTryCompile = false,
+    this.androidAPI,
+    this.androidABI,
+    this.androidArmNeon = true,
+    this.androidSTL = 'c++_static',
     this.logLevel = LogLevel.STATUS,
   });
 
@@ -81,6 +102,14 @@ class CMakeBuilder implements Builder {
       buildMode: buildMode,
       defines: defines,
       targets: targets,
+      enableArc: enableArc,
+      enableBitcode: enableBitcode,
+      enableStrictTryCompile: enableStrictTryCompile,
+      enableVisibility: enableVisibility,
+      androidABI: androidABI,
+      androidAPI: androidAPI,
+      androidArmNeon: androidArmNeon,
+      androidSTL: androidSTL,
       logLevel: logLevel,
     );
     await task.run();
