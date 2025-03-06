@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:native_toolchain_cmake/src/utils/run_process.dart';
+import 'package:native_toolchain_cmake/src/native_toolchain/cmake.dart';
 import 'package:test/test.dart';
 
 import '../helpers.dart';
@@ -45,5 +46,28 @@ void main() {
     );
     expect(result.stderr, contains(filePath));
     expect(result.toString(), contains(filePath));
+  });
+
+  test('run cmake via runProcess', () async {
+    final messages = <String>[];
+    final logger = createCapturingLogger(messages);
+    final cm = (await cmake.defaultResolver?.resolve(logger: logger))?.first;
+    final srcDir = Directory("example/add/src");
+    final dstDir = Directory("example/add/build");
+    assert(cm != null);
+    final result = await runProcess(
+      executable: cm!.uri,
+      arguments: [
+        "-S",
+        srcDir.path,
+        "-B",
+        dstDir.path,
+        "-DCMAKE_INSTALL_PREFIX=install",
+      ],
+      logger: logger,
+      captureOutput: true,
+      throwOnUnexpectedExitCode: false,
+    );
+    expect(result.exitCode, 0);
   });
 }

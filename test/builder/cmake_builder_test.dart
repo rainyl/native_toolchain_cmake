@@ -121,7 +121,7 @@ void main() {
         buildMode: buildMode,
         enableVisibility: true,
         defines: {
-          'CMAKE_INSTALL_PREFIX': '${buildInput.outputDirectory.toFilePath()}/install',
+          'CMAKE_INSTALL_PREFIX': buildInput.outputDirectory.resolve('install').toFilePath(),
         },
         targets: ['install'],
       );

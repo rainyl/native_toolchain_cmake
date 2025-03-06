@@ -44,7 +44,8 @@ class CMakeBuilder implements Builder {
   final BuildMode buildMode;
 
   final List<String>? targets;
-  final Generator? generator;
+  final Generator generator;
+  final String? toolset;
 
   // ios.toolchain.cmake
   // https://github.com/leetal/ios-cmake?tab=readme-ov-file#exposed-variables
@@ -69,7 +70,8 @@ class CMakeBuilder implements Builder {
     this.linkModePreference,
     this.buildMode = BuildMode.release,
     this.targets,
-    this.generator,
+    this.generator = Generator.defaultGenerator,
+    this.toolset,
     this.enableBitcode = false,
     this.enableArc = true,
     this.enableVisibility = true, // necessary to expose symbols
