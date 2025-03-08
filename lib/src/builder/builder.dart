@@ -6,10 +6,12 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:native_assets_cli/code_assets_builder.dart';
+import 'package:native_toolchain_cmake/src/utils/run_process.dart';
 
 import 'build_mode.dart';
 import 'generator.dart';
@@ -28,7 +30,7 @@ class CMakeBuilder implements Builder {
   final String name;
 
   /// Sources directory
-  final Uri sourceDir;
+  Uri sourceDir;
 
   /// Definitions of preprocessor macros.
   ///
@@ -60,6 +62,8 @@ class CMakeBuilder implements Builder {
   final String androidSTL;
   final bool androidArmNeon;
 
+  final Logger? logger;
+
   /// log level of CMake
   final LogLevel logLevel;
 
@@ -81,7 +85,76 @@ class CMakeBuilder implements Builder {
     this.androidArmNeon = true,
     this.androidSTL = 'c++_static',
     this.logLevel = LogLevel.STATUS,
+    this.logger,
   });
+
+  CMakeBuilder.createFromGit({
+    required this.name,
+    required String gitUrl,
+    required this.sourceDir,
+    String gitBranch = 'main',
+    String gitCommit = 'HEAD',
+    String gitSubDir = '',
+    this.defines = const {},
+    this.linkModePreference,
+    this.buildMode = BuildMode.release,
+    this.targets,
+    this.generator,
+    this.logLevel = LogLevel.STATUS,
+    this.logger,
+  }) {
+    // Some platforms will error if directory does not exist, create it.
+    final newDir = Directory.fromUri(Uri.directory("$sourceDir/external/$name"))
+      ..createSync(recursive: true);
+    final dirPath = newDir.uri.toFilePath();
+    final initProcess = Process.runSync(
+      'git',
+      [
+        'init',
+      ],
+      workingDirectory: dirPath,
+    );
+    logger?.log(Level.INFO, 'git init: ${initProcess.stdout}');
+
+    final remoteAddProcess = Process.runSync(
+      'git',
+      [
+        'remote',
+        'add',
+        'origin',
+        gitUrl,
+      ],
+      workingDirectory: dirPath,
+    );
+    logger?.log(Level.INFO, 'git remote add: ${remoteAddProcess.stdout}');
+
+    final fetchProcess = Process.runSync(
+      'git',
+      [
+        'pull',
+        '--depth=1',
+        'origin',
+        gitBranch,
+      ],
+      workingDirectory: dirPath,
+    );
+    logger?.log(Level.INFO, 'git fetch: ${fetchProcess.stdout}');
+
+    final resetProcess = Process.runSync(
+      'git',
+      [
+        'reset',
+        '--hard',
+        gitCommit,
+      ],
+      workingDirectory: dirPath,
+    );
+    logger?.log(Level.INFO, 'git reset: ${resetProcess.stdout}');
+
+    if (gitSubDir.isNotEmpty) {
+      sourceDir = Uri.parse('${newDir.uri.toFilePath()}/$gitSubDir');
+    }
+  }
 
   /// Runs the C Compiler with on this C build spec.
   ///
@@ -90,8 +163,7 @@ class CMakeBuilder implements Builder {
   Future<void> run({
     required BuildInput input,
     required BuildOutputBuilder output,
-    required Logger? logger,
-    Map<String, String> environment = const {},
+    logger,
   }) async {
     final outDir = input.outputDirectory;
     await Directory.fromUri(outDir).create(recursive: true);

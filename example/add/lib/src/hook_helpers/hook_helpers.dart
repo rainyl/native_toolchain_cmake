@@ -4,22 +4,37 @@ import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 
 const name = 'add';
 
-Future<void> runBuild(BuildInput input, BuildOutputBuilder output, Uri sourceDir) async {
-  final builder = CMakeBuilder.create(
-    name: name,
-    sourceDir: sourceDir,
-    buildMode: BuildMode.release,
-    defines: {
-      'CMAKE_INSTALL_PREFIX': input.outputDirectory.resolve('install').toFilePath(),
-    },
-    targets: ['install'],
-  );
+Future<void> runBuild(
+    BuildInput input, BuildOutputBuilder output, Uri sourceDir) async {
+  //final builder = CMakeBuilder.create(
+  //  name: name,
+  //  sourceDir: sourceDir,
+  //  defines: {
+  //    'CMAKE_BUILD_TYPE': 'Release',
+  //    'CMAKE_INSTALL_PREFIX': '${input.outputDirectory.toFilePath()}/install',
+  //  },
+  //  targets: ['install'],
+  //);
+
+  final builder = CMakeBuilder.createFromGit(
+      gitUrl: "https://github.com/rainyl/native_toolchain_cmake.git",
+      sourceDir: sourceDir,
+      name: name,
+      gitSubDir: "example/add/src",
+      defines: {
+        'CMAKE_BUILD_TYPE': 'Release',
+        'CMAKE_INSTALL_PREFIX': '${input.outputDirectory.toFilePath()}/install',
+      },
+      targets: [
+        'install'
+      ]);
+
   await builder.run(
     input: input,
     output: output,
     logger: Logger('')
       ..level = Level.ALL
-      ..onRecord.listen((record) => print(record.message)),
+      ..onRecord.listen((record) => stderr.writeln(record)),
   );
 
   final libPath = switch (input.config.code.targetOS) {
