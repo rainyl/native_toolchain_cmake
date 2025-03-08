@@ -91,9 +91,9 @@ class CMakeBuilder implements Builder {
     required BuildInput input,
     required BuildOutputBuilder output,
     required Logger? logger,
+    Map<String, String> environment = const {},
   }) async {
     final outDir = input.outputDirectory;
-    // final packageRoot = input.packageRoot;
     await Directory.fromUri(outDir).create(recursive: true);
     final task = RunCMakeBuilder(
       input: input,
@@ -114,6 +114,18 @@ class CMakeBuilder implements Builder {
       androidSTL: androidSTL,
       logLevel: logLevel,
     );
-    await task.run();
+
+    final Map<String, String> envVars = Map.from(Platform.environment);
+    envVars.addAll(environment);
+    // TODO: patch environment variables for cmake
+    // may be error if system drive is not C:
+    // https://github.com/dart-lang/native/issues/2077
+    if (input.config.code.targetOS == OS.windows) {
+      envVars.addAll({
+        "WINDIR": r"C:\WINDOWS",
+        "SYSTEMDRIVE": "C:",
+      });
+    }
+    await task.run(environment: envVars);
   }
 }

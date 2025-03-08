@@ -6,7 +6,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'dart:io';
 import 'dart:math';
 
 import 'package:change_case/change_case.dart';
@@ -127,7 +126,7 @@ class RunCMakeBuilder {
   Uri androidSysroot(ToolInstance compiler) => compiler.uri.resolve('../sysroot/');
 
   Future<void> run({Map<String, String>? environment}) async {
-    final result = await _generate(environment: Platform.environment);
+    final result = await _generate(environment: environment);
     if (result.exitCode != 0) {
       throw Exception('Failed to generate CMake project: ${result.stderr}');
     }
