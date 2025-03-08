@@ -147,8 +147,8 @@ class RunCMakeBuilder {
     };
     final _defines = <String>[
       '-DCMAKE_BUILD_TYPE=${buildMode.name.toCapitalCase()}',
-      if (buildMode == BuildMode.debug) '-DCMAKE_C_FLAGS_DEBUG="-DDEBUG"',
-      if (buildMode == BuildMode.debug) '-DCMAKE_CXX_FLAGS_DEBUG="-DDEBUG"',
+      if (buildMode == BuildMode.debug) '-DCMAKE_C_FLAGS_DEBUG=-DDEBUG',
+      if (buildMode == BuildMode.debug) '-DCMAKE_CXX_FLAGS_DEBUG=-DDEBUG',
       ...defs,
     ];
     defines.forEach((k, v) => _defines.add('-D$k=${v ?? "1"}'));
