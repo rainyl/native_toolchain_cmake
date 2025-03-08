@@ -36,3 +36,6 @@ doc/api/
 
 # External directory
 **/external/**
+
+# Local Build directories
+**/build_*/
