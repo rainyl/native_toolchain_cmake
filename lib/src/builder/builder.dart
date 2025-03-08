@@ -44,7 +44,21 @@ class CMakeBuilder implements Builder {
   final BuildMode buildMode;
 
   final List<String>? targets;
-  final Generator? generator;
+  final Generator generator;
+  final String? toolset;
+
+  // ios.toolchain.cmake
+  // https://github.com/leetal/ios-cmake?tab=readme-ov-file#exposed-variables
+  final bool enableBitcode;
+  final bool enableArc;
+  final bool enableVisibility;
+  final bool enableStrictTryCompile;
+
+  // android ndk
+  int? androidAPI;
+  String? androidABI;
+  final String androidSTL;
+  final bool androidArmNeon;
 
   /// log level of CMake
   final LogLevel logLevel;
@@ -56,7 +70,16 @@ class CMakeBuilder implements Builder {
     this.linkModePreference,
     this.buildMode = BuildMode.release,
     this.targets,
-    this.generator,
+    this.generator = Generator.defaultGenerator,
+    this.toolset,
+    this.enableBitcode = false,
+    this.enableArc = true,
+    this.enableVisibility = true, // necessary to expose symbols
+    this.enableStrictTryCompile = false,
+    this.androidAPI,
+    this.androidABI,
+    this.androidArmNeon = true,
+    this.androidSTL = 'c++_static',
     this.logLevel = LogLevel.STATUS,
   });
 
@@ -68,9 +91,9 @@ class CMakeBuilder implements Builder {
     required BuildInput input,
     required BuildOutputBuilder output,
     required Logger? logger,
+    Map<String, String> environment = const {},
   }) async {
     final outDir = input.outputDirectory;
-    // final packageRoot = input.packageRoot;
     await Directory.fromUri(outDir).create(recursive: true);
     final task = RunCMakeBuilder(
       input: input,
@@ -81,8 +104,28 @@ class CMakeBuilder implements Builder {
       buildMode: buildMode,
       defines: defines,
       targets: targets,
+      enableArc: enableArc,
+      enableBitcode: enableBitcode,
+      enableStrictTryCompile: enableStrictTryCompile,
+      enableVisibility: enableVisibility,
+      androidABI: androidABI,
+      androidAPI: androidAPI,
+      androidArmNeon: androidArmNeon,
+      androidSTL: androidSTL,
       logLevel: logLevel,
     );
-    await task.run();
+
+    final Map<String, String> envVars = Map.from(Platform.environment);
+    envVars.addAll(environment);
+    // TODO: patch environment variables for cmake
+    // may be error if system drive is not C:
+    // https://github.com/dart-lang/native/issues/2077
+    if (input.config.code.targetOS == OS.windows) {
+      envVars.addAll({
+        "WINDIR": r"C:\WINDOWS",
+        "SYSTEMDRIVE": "C:",
+      });
+    }
+    await task.run(environment: envVars);
   }
 }

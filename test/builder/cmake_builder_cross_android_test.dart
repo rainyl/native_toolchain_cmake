@@ -130,8 +130,9 @@ Future<Uri> buildLib(
 
   final cbuilder = CMakeBuilder.create(
     name: name,
-    sourceDir: Directory('test/builder/testfiles/add').uri,
+    sourceDir: Directory('test/builder/testfiles/add').absolute.uri,
     buildMode: BuildMode.release,
+    generator: Generator.ninja,
   );
   await cbuilder.run(
     input: buildInput,

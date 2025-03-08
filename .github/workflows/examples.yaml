@@ -1,0 +1,108 @@
+name: Example
+on:
+  push:
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
+
+jobs:
+  windows:
+    name: windows
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "master"
+      - name: run dart-cli example
+        run: |
+          cd ${{github.workspace}}\example\dart_cli
+          dart --enable-experiment=native-assets run
+      - name: run flutter example
+        run: |
+          cd ${{github.workspace}}\example\flutter
+          flutter config --enable-native-assets
+          flutter build windows --release
+  linux:
+    name: linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: setup
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu \
+            gcc-arm-linux-gnueabihf gcc-i686-linux-gnu \
+            gcc-riscv64-linux-gnu ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev \
+            libstdc++-12-dev
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "master"
+      - name: run dart-cli example
+        run: |
+          cd "${{github.workspace}}/example/dart_cli"
+          dart --enable-experiment=native-assets run
+      - name: run flutter example
+        run: |
+          cd "${{github.workspace}}/example/flutter"
+          flutter config --enable-native-assets
+          flutter build linux --release
+  macos:
+    name: macos
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "master"
+      - name: run dart-cli example
+        run: |
+          cd "${{github.workspace}}/example/dart_cli"
+          dart --enable-experiment=native-assets run
+      - name: run flutter example
+        run: |
+          cd "${{github.workspace}}/example/flutter"
+          flutter config --enable-native-assets
+          flutter build macos --release
+  ios:
+    name: ios
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "master"
+      - name: flutter example
+        run: |
+          cd "${{github.workspace}}/example/flutter"
+          flutter config --enable-native-assets
+          flutter build ios --release --no-codesign
+  android:
+    name: android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: setup
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu \
+            gcc-arm-linux-gnueabihf gcc-i686-linux-gnu \
+            gcc-riscv64-linux-gnu ninja-build
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "master"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+      - uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r27c
+          add-to-path: true
+      - name: flutter example
+        run: |
+          cd "${{github.workspace}}/example/flutter"
+          flutter config --enable-native-assets
+          flutter build apk --release

@@ -77,9 +77,9 @@ void main() {
 
         final cbuilder = CMakeBuilder.create(
           name: name,
-          sourceDir: Directory('test/builder/testfiles/add').uri,
+          sourceDir: Directory('test/builder/testfiles/add').absolute.uri,
           buildMode: BuildMode.release,
-          generator: Generator.ninja,
+          generator: Generator.make,
         );
         await cbuilder.run(
           input: buildInput,
@@ -200,9 +200,9 @@ Future<Uri> buildLib(
 
   final cbuilder = CMakeBuilder.create(
     name: name,
-    sourceDir: Directory('test/builder/testfiles/add').uri,
+    sourceDir: Directory('test/builder/testfiles/add').absolute.uri,
     buildMode: BuildMode.release,
-    generator: Generator.ninja,
+    generator: Generator.make,
   );
   await cbuilder.run(
     input: buildInput,

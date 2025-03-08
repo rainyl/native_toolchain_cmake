@@ -6,7 +6,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'dart:io';
 import 'dart:math';
 
 import 'package:change_case/change_case.dart';
@@ -30,16 +29,17 @@ class RunCMakeBuilder {
   final Uri sourceDir;
   final Uri outDir;
 
+  /// -D
   final Map<String, String?> defines;
+
+  /// -DCMAKE_BUILD_TYPE
   final BuildMode buildMode;
-  Generator? generator;
-  Generator get defaultGenerator => switch (codeConfig.targetOS) {
-        OS.android => Generator.ninja,
-        OS.linux => Generator.make,
-        OS.macOS => Generator.make,
-        OS.iOS => Generator.xcode,
-        _ => Generator.defaultGenerator,
-      };
+
+  /// -G
+  final Generator generator;
+
+  /// -T
+  final String? toolset;
 
   final List<String>? targets;
 
@@ -53,7 +53,7 @@ class RunCMakeBuilder {
   // android ndk
   int? androidAPI;
   String? androidABI;
-  String? androidSTL;
+  final String androidSTL;
   final bool androidArmNeon;
 
   /// log level of CMake
@@ -65,7 +65,8 @@ class RunCMakeBuilder {
     required this.sourceDir,
     this.logger,
     this.defines = const {},
-    this.generator,
+    this.generator = Generator.defaultGenerator,
+    this.toolset,
     this.buildMode = BuildMode.release,
     this.targets,
     this.enableBitcode = false,
@@ -77,9 +78,7 @@ class RunCMakeBuilder {
     this.androidArmNeon = true,
     this.androidSTL = 'c++_static',
     this.logLevel = LogLevel.STATUS,
-  }) : outDir = input.outputDirectory {
-    generator ??= defaultGenerator;
-  }
+  }) : outDir = input.outputDirectory;
 
   Future<Uri> cmakePath() async {
     final cmakeTools = await cmake.defaultResolver?.resolve(logger: logger);
@@ -127,64 +126,69 @@ class RunCMakeBuilder {
   Uri androidSysroot(ToolInstance compiler) => compiler.uri.resolve('../sysroot/');
 
   Future<void> run({Map<String, String>? environment}) async {
-    await _generate(environment: environment);
-    await _build(environment: environment);
+    final result = await _generate(environment: environment);
+    if (result.exitCode != 0) {
+      throw Exception('Failed to generate CMake project: ${result.stderr}');
+    }
+    final result1 = await _build(environment: environment);
+    if (result1.exitCode != 0) {
+      throw Exception('Failed to build CMake project: ${result1.stderr}');
+    }
   }
 
-  Future<void> _generate({Map<String, String>? environment}) async {
-    final windowsDefs = await _generateWindowsDefines();
-    final linuxDefs = await _generateLinuxDefines();
-    final macosDefs = await _generateMacosDefines();
-    final iosDefs = await _generateIOSDefines();
-    final androidDefs = await _generateAndroidDefines();
+  Future<RunProcessResult> _generate({Map<String, String>? environment}) async {
+    final defs = switch (codeConfig.targetOS) {
+      OS.windows => await _generateWindowsDefines(),
+      OS.linux => await _generateLinuxDefines(),
+      OS.macOS => await _generateMacosDefines(),
+      OS.iOS => await _generateIOSDefines(),
+      OS.android => await _generateAndroidDefines(),
+      _ => throw UnimplementedError('Unsupported OS: ${codeConfig.targetOS}'),
+    };
     final _defines = <String>[
       '-DCMAKE_BUILD_TYPE=${buildMode.name.toCapitalCase()}',
-      if (buildMode == BuildMode.debug) '-DCMAKE_C_FLAGS_DEBUG="-DDEBUG"',
-      if (buildMode == BuildMode.debug) '-DCMAKE_CXX_FLAGS_DEBUG="-DDEBUG"',
-      ...windowsDefs,
-      ...linuxDefs,
-      ...macosDefs,
-      ...iosDefs,
-      ...androidDefs,
+      if (buildMode == BuildMode.debug) '-DCMAKE_C_FLAGS_DEBUG=-DDEBUG',
+      if (buildMode == BuildMode.debug) '-DCMAKE_CXX_FLAGS_DEBUG=-DDEBUG',
+      ...defs,
     ];
-
-    final _generator = generator == Generator.defaultGenerator ? <String>[] : ['-G', generator!.name];
-
     defines.forEach((k, v) => _defines.add('-D$k=${v ?? "1"}'));
 
-    await runProcess(
+    final _generator = generator.toArgs();
+
+    return runProcess(
       executable: await cmakePath(),
       arguments: [
-        '--log-level',
-        logLevel.name,
+        '--log-level=${logLevel.name}',
         '-S',
         sourceDir.toFilePath(),
-        '-B',
-        outDir.toFilePath(windows: Platform.isWindows),
+        if (toolset != null) '-T',
+        if (toolset != null) toolset!,
         ..._generator,
         ..._defines,
       ],
+      workingDirectory: outDir,
       logger: logger,
       captureOutput: true,
-      throwOnUnexpectedExitCode: true,
+      throwOnUnexpectedExitCode: false,
       environment: environment,
     );
   }
 
-  Future<void> _build({Map<String, String>? environment}) async {
-    await runProcess(
+  Future<RunProcessResult> _build({Map<String, String>? environment}) async {
+    return runProcess(
       executable: await cmakePath(),
       arguments: [
         '--build',
-        outDir.toFilePath(windows: Platform.isWindows),
+        outDir.toFilePath(),
         '--config',
         buildMode.name.toCapitalCase(),
         if (targets?.isNotEmpty ?? false) '--target',
         if (targets?.isNotEmpty ?? false) ...targets!,
       ],
       logger: logger,
+      workingDirectory: outDir,
       captureOutput: true,
-      throwOnUnexpectedExitCode: true,
+      throwOnUnexpectedExitCode: false,
       environment: environment,
     );
   }
@@ -243,10 +247,7 @@ class RunCMakeBuilder {
     androidABI ??= androidAbis[codeConfig.targetArchitecture];
     definesAndroid.add('-DANDROID_PLATFORM=android-$androidAPI');
     definesAndroid.add('-DANDROID_ABI=${androidAbis[codeConfig.targetArchitecture]}');
-
-    if (androidSTL != null) {
-      definesAndroid.add('-DANDROID_STL=$androidSTL');
-    }
+    definesAndroid.add('-DANDROID_STL=$androidSTL');
     definesAndroid.add('-DANDROID_ARM_NEON=$androidArmNeon');
 
     return definesAndroid;

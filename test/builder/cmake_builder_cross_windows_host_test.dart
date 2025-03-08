@@ -10,7 +10,6 @@ library;
 
 import 'dart:io';
 
-import 'package:change_case/change_case.dart';
 import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 import 'package:native_toolchain_cmake/src/native_toolchain/msvc.dart';
 import 'package:native_toolchain_cmake/src/utils/run_process.dart';
@@ -23,8 +22,6 @@ void main() async {
     // Avoid needing status files on Dart SDK CI.
     return;
   }
-
-  final targetOS = OS.current;
 
   const targets = [
     Architecture.arm64,
@@ -44,8 +41,6 @@ void main() async {
     Architecture.x64: 'x64',
   };
 
-  var selectBuildMode = 0;
-
   final dumpbinFileType = {
     DynamicLoadingBundled(): 'DLL',
     StaticLinking(): 'LIBRARY',
@@ -53,65 +48,65 @@ void main() async {
 
   for (final linkMode in [DynamicLoadingBundled()]) {
     for (final target in targets) {
-      // Cycle through all optimization levels.
-      final buildMode = BuildMode.values[selectBuildMode];
-      selectBuildMode = (selectBuildMode + 1) % BuildMode.values.length;
-      test('CMakeBuilder $linkMode library $target $buildMode', () async {
-        final tempUri = await tempDirForTest();
-        final tempUri2 = await tempDirForTest();
-        const name = 'add';
+      for (final buildMode in BuildMode.values) {
+        test('CMakeBuilder $linkMode library $target $buildMode', () async {
+          final tempUri = await tempDirForTest();
+          final tempUri2 = await tempDirForTest();
+          const name = 'add';
 
-        final buildInputBuilder = BuildInputBuilder()
-          ..setupShared(
-            packageName: name,
-            packageRoot: tempUri,
-            outputFile: tempUri.resolve('output.json'),
-            outputDirectory: tempUri,
-            outputDirectoryShared: tempUri2,
-          )
-          ..config.setupBuild(
-            linkingEnabled: false,
-            dryRun: false,
-          )
-          ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-          ..config.setupCode(
-            targetOS: OS.windows,
-            targetArchitecture: target,
-            linkModePreference:
-                linkMode == DynamicLoadingBundled() ? LinkModePreference.dynamic : LinkModePreference.static,
+          final buildInputBuilder = BuildInputBuilder()
+            ..setupShared(
+              packageName: name,
+              packageRoot: tempUri,
+              outputFile: tempUri.resolve('output.json'),
+              outputDirectory: tempUri,
+              outputDirectoryShared: tempUri2,
+            )
+            ..config.setupBuild(
+              linkingEnabled: false,
+              dryRun: false,
+            )
+            ..config.setupShared(buildAssetTypes: [CodeAsset.type])
+            ..config.setupCode(
+              targetOS: OS.windows,
+              targetArchitecture: target,
+              linkModePreference: linkMode == DynamicLoadingBundled()
+                  ? LinkModePreference.dynamic
+                  : LinkModePreference.static,
+            );
+
+          final buildInput = BuildInput(buildInputBuilder.json);
+          final buildOutput = BuildOutputBuilder();
+
+          final cbuilder = CMakeBuilder.create(
+            name: name,
+            sourceDir: Directory('test/builder/testfiles/add').absolute.uri,
+            buildMode: buildMode,
+            defines: {
+              'CMAKE_INSTALL_PREFIX': buildInput.outputDirectory.resolve('install').toFilePath(),
+            },
+            targets: ['install'],
+          );
+          await cbuilder.run(
+            input: buildInput,
+            output: buildOutput,
+            logger: logger,
           );
 
-        final buildInput = BuildInput(buildInputBuilder.json);
-        final buildOutput = BuildOutputBuilder();
-
-        final cbuilder = CMakeBuilder.create(
-          name: name,
-          sourceDir: Directory('test/builder/testfiles/add').uri,
-          buildMode: buildMode,
-        );
-        await cbuilder.run(
-          input: buildInput,
-          output: buildOutput,
-          logger: logger,
-        );
-
-        final libUri = switch (targetOS) {
-          OS.windows =>
-            tempUri.resolve('${buildMode.name.toCapitalCase()}/${OS.current.dylibFileName(name)}'),
-          _ => tempUri.resolve(OS.current.dylibFileName(name)),
-        };
-        expect(await File.fromUri(libUri).exists(), true);
-        final result = await runProcess(
-          executable: dumpbinUri,
-          arguments: ['/HEADERS', libUri.toFilePath()],
-          logger: logger,
-        );
-        expect(result.exitCode, 0);
-        final machine = result.stdout.split('\n').firstWhere((e) => e.contains('machine'));
-        expect(machine, contains(dumpbinMachine[target]));
-        final fileType = result.stdout.split('\n').firstWhere((e) => e.contains('File Type'));
-        expect(fileType, contains(dumpbinFileType[linkMode]));
-      });
+          final libUri = tempUri.resolve('install/lib/${OS.current.dylibFileName(name)}');
+          expect(await File.fromUri(libUri).exists(), true);
+          final result = await runProcess(
+            executable: dumpbinUri,
+            arguments: ['/HEADERS', libUri.toFilePath()],
+            logger: logger,
+          );
+          expect(result.exitCode, 0);
+          final machine = result.stdout.split('\n').firstWhere((e) => e.contains('machine'));
+          expect(machine, contains(dumpbinMachine[target]));
+          final fileType = result.stdout.split('\n').firstWhere((e) => e.contains('File Type'));
+          expect(fileType, contains(dumpbinFileType[linkMode]));
+        });
+      }
     }
   }
 }

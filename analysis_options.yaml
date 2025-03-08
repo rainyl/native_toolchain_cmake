@@ -40,6 +40,8 @@ analyzer:
     non_constant_identifier_names: ignore
     parameter_assignments: error
     prefer_if_elements_to_conditional_expressions: ignore
+formatter:
+  pagewidth: 110
 linter:
   rules:
     - always_declare_return_types

@@ -4,7 +4,7 @@
 
 #include "add.h"
 
-int32_t math_add(int32_t a, int32_t b) {
+int32_t add(int32_t a, int32_t b) {
 #ifdef DEBUG
   printf("Adding %i and %i.\n", a, b);
 #if _WIN32
