@@ -177,7 +177,7 @@ class CMakeBuilder implements Builder {
     required this.sourceDir,
     this.outDir,
     String gitBranch = 'main',
-    String gitCommit = 'HEAD',
+    String gitCommit = 'FETCH_HEAD',
     String gitSubDir = '',
     this.defines = const {},
     this.linkModePreference,
@@ -201,7 +201,6 @@ class CMakeBuilder implements Builder {
     final newDir = Directory.fromUri(
       Uri.directory("${sourceDir.toFilePath()}/external/$name"),
     )..createSync(recursive: true);
-    final dirPath = newDir.path;
 
     runProcessSync(
       executable: 'git',
@@ -211,35 +210,27 @@ class CMakeBuilder implements Builder {
       logger: logger,
     );
 
-    final remoteAddProcess = Process.runSync(
-      'git',
-      [
-        'remote',
-        'add',
-        'origin',
-        gitUrl,
-      ],
-      workingDirectory: dirPath,
+    runProcessSync(
+      executable: 'git',
+      arguments: ['remote', 'add', 'origin', gitUrl],
+      workingDirectory: newDir.uri,
+      throwOnUnexpectedExitCode: true,
+      logger: logger,
     );
-    logger?.log(Level.INFO, 'git remote add: ${remoteAddProcess.stdout}');
-
-    final fetchProcess = Process.runSync(
-      'git',
-      ['pull', '--depth=1', 'origin', gitBranch, gitCommit],
-      workingDirectory: dirPath,
+    runProcessSync(
+      executable: 'git',
+      arguments: ['fetch', 'origin', gitBranch],
+      workingDirectory: newDir.uri,
+      throwOnUnexpectedExitCode: true,
+      logger: logger,
     );
-    logger?.log(Level.INFO, 'git fetch: ${fetchProcess.stdout}');
-
-    final resetProcess = Process.runSync(
-      'git',
-      [
-        'reset',
-        '--hard',
-        gitCommit,
-      ],
-      workingDirectory: dirPath,
+    runProcessSync(
+      executable: 'git',
+      arguments: ['reset', '--hard', gitCommit],
+      workingDirectory: newDir.uri,
+      throwOnUnexpectedExitCode: true,
+      logger: logger,
     );
-    logger?.log(Level.INFO, 'git reset: ${resetProcess.stdout}');
 
     if (gitSubDir.isNotEmpty) {
       sourceDir = Uri.directory(

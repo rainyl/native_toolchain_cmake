@@ -61,6 +61,10 @@ Future<void> runBuildGit(
   BuildOutputBuilder output,
   Uri sourceDir,
 ) async {
+  final logger = Logger('')
+    ..level = Level.ALL
+    // temp fwd to stderr until process logs pass to stdout
+    ..onRecord.listen((record) => stderr.writeln(record));
   // From git url
   final builder = CMakeBuilder.fromGit(
     gitUrl: "https://github.com/rainyl/native_toolchain_cmake.git",
@@ -73,18 +77,13 @@ Future<void> runBuildGit(
     },
     targets: ['install'],
     buildLocal: true,
-    logger: Logger('')
-      ..level = Level.ALL
-      // temp fwd to stderr until process logs pass to stdout
-      ..onRecord.listen((record) => stderr.writeln(record)),
+    logger: logger,
   );
 
   await builder.run(
     input: input,
     output: output,
-    logger: Logger('')
-      ..level = Level.ALL
-      ..onRecord.listen((record) => stderr.writeln(record)),
+    logger: logger,
   );
 
   final libPath = switch (input.config.code.targetOS) {
