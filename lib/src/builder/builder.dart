@@ -228,6 +228,7 @@ class CMakeBuilder implements Builder {
       'git',
       [
         'pull',
+        '--depth=1',
         'origin',
         gitBranch,
       ],
@@ -267,7 +268,7 @@ class CMakeBuilder implements Builder {
     if (buildLocal) {
       final plat = input.config.code.targetOS.name.toLowerCase();
       final arch = input.config.code.targetArchitecture.name.toLowerCase();
-      outDir = sourceDir.resolve('build_${plat}_$arch');
+      outDir = sourceDir.resolve('build/$plat/$arch');
     }
 
     await Directory.fromUri(outDir ?? input.outputDirectory)
