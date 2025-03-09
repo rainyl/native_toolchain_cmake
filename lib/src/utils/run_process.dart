@@ -22,7 +22,8 @@ Future<RunProcessResult> runProcess({
   int expectedExitCode = 0,
   bool throwOnUnexpectedExitCode = false,
 }) async {
-  final printWorkingDir = workingDirectory != null && workingDirectory != Directory.current.uri;
+  final printWorkingDir =
+      workingDirectory != null && workingDirectory != Directory.current.uri;
   final commandString = [
     if (printWorkingDir) '(cd ${workingDirectory.toFilePath()};',
     ...?environment?.entries.map((entry) => '${entry.key}=${entry.value}'),
@@ -71,8 +72,11 @@ Future<RunProcessResult> runProcess({
     },
   );
 
-  final (exitCode, _, _) =
-      await (process.exitCode, stdoutSub.asFuture<void>(), stderrSub.asFuture<void>()).wait;
+  final (exitCode, _, _) = await (
+    process.exitCode,
+    stdoutSub.asFuture<void>(),
+    stderrSub.asFuture<void>()
+  ).wait;
 
   await stdoutSub.cancel();
   await stderrSub.cancel();
@@ -93,6 +97,63 @@ Future<RunProcessResult> runProcess({
     );
   }
   return result;
+}
+
+/// Process.runSync
+RunProcessResult runProcessSync({
+  required String executable,
+  required Logger? logger,
+  List<String> arguments = const [],
+  Uri? workingDirectory,
+  Map<String, String>? environment,
+  bool captureOutput = true,
+  int expectedExitCode = 0,
+  bool throwOnUnexpectedExitCode = false,
+}) {
+  final printWorkingDir =
+      workingDirectory != null && workingDirectory != Directory.current.uri;
+  final commandString = [
+    if (printWorkingDir) '(cd ${workingDirectory.toFilePath()};',
+    ...?environment?.entries.map((entry) => '${entry.key}=${entry.value}'),
+    executable,
+    ...arguments.map((a) => a.contains(' ') ? "'$a'" : a),
+    if (printWorkingDir) ')',
+  ].join(' ');
+  logger?.info('Running `$commandString`.');
+
+  final result = Process.runSync(
+    executable,
+    arguments,
+    workingDirectory: workingDirectory?.toFilePath(),
+    environment: environment,
+    runInShell: Platform.isWindows && workingDirectory != null,
+  );
+  final runResult = RunProcessResult(
+    pid: result.pid,
+    command: commandString,
+    exitCode: result.exitCode,
+    stdout: result.stdout.toString(),
+    stderr: result.stderr.toString(),
+  );
+
+  if (captureOutput) {
+    if (result.exitCode == expectedExitCode) {
+      logger?.info(result.stdout);
+    } else {
+      logger?.severe(result.stdout);
+    }
+  }
+
+  if (throwOnUnexpectedExitCode && expectedExitCode != exitCode) {
+    throw ProcessException(
+      executable,
+      arguments,
+      "Full command string: '$commandString'.\n"
+      "Exit code: '$exitCode'.\n"
+      'For the output of the process check the logger output.',
+    );
+  }
+  return runResult;
 }
 
 /// Drop in replacement of [ProcessResult].

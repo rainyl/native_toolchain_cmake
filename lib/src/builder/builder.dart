@@ -6,13 +6,12 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:native_assets_cli/code_assets_builder.dart';
-import 'package:native_toolchain_cmake/src/utils/run_process.dart';
 
+import '../utils/run_process.dart';
 import 'build_mode.dart';
 import 'generator.dart';
 import 'log_level.dart';
@@ -203,14 +202,14 @@ class CMakeBuilder implements Builder {
       Uri.directory("${sourceDir.toFilePath()}/external/$name"),
     )..createSync(recursive: true);
     final dirPath = newDir.path;
-    final initProcess = Process.runSync(
-      'git',
-      [
-        'init',
-      ],
-      workingDirectory: dirPath,
+
+    runProcessSync(
+      executable: 'git',
+      arguments: ['init'],
+      workingDirectory: newDir.uri,
+      throwOnUnexpectedExitCode: true,
+      logger: logger,
     );
-    logger?.log(Level.INFO, 'git init: ${initProcess.stdout}');
 
     final remoteAddProcess = Process.runSync(
       'git',
@@ -256,7 +255,7 @@ class CMakeBuilder implements Builder {
   Future<void> run({
     required BuildInput input,
     required BuildOutputBuilder output,
-    required Logger? logger,
+    Logger? logger,
   }) async {
     final _logger = logger ?? this.logger;
 
