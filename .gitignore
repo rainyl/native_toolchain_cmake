@@ -6,7 +6,7 @@
 # Files and directories created by pub
 .dart_tool/
 .packages
-build/
+**/build/**
 # If you're building an application, you may want to check-in your pubspec.lock
 pubspec.lock
 coverage/
@@ -36,6 +36,3 @@ doc/api/
 
 # External directory
 **/external/**
-
-# Local Build directories
-**/build_*/
