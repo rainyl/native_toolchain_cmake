@@ -226,12 +226,7 @@ class CMakeBuilder implements Builder {
 
     final fetchProcess = Process.runSync(
       'git',
-      [
-        'pull',
-        '--depth=1',
-        'origin',
-        gitBranch,
-      ],
+      ['pull', '--depth=1', 'origin', gitBranch, gitCommit],
       workingDirectory: dirPath,
     );
     logger?.log(Level.INFO, 'git fetch: ${fetchProcess.stdout}');
