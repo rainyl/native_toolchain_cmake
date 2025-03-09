@@ -228,7 +228,6 @@ class CMakeBuilder implements Builder {
       'git',
       [
         'pull',
-        '--depth=1',
         'origin',
         gitBranch,
       ],
@@ -263,7 +262,7 @@ class CMakeBuilder implements Builder {
     required BuildOutputBuilder output,
     required Logger? logger,
   }) async {
-    final _logger = logger ?? this.logger ?? Logger('');
+    final _logger = logger ?? this.logger;
 
     if (buildLocal) {
       final plat = input.config.code.targetOS.name.toLowerCase();
