@@ -63,12 +63,13 @@ void main() {
       final buildInput = BuildInput(buildInputBuilder.json);
       final buildOutput = BuildOutputBuilder();
 
-      final cbuilder = CMakeBuilder.create(
+      final builder = CMakeBuilder.create(
         name: name,
         sourceDir: Directory('test/builder/testfiles/add').absolute.uri,
         buildMode: BuildMode.release,
+        appleArgs: const AppleBuilderArgs(enableArc: false, enableBitcode: false, enableVisibility: true),
       );
-      await cbuilder.run(
+      await builder.run(
         input: buildInput,
         output: buildOutput,
         logger: logger,
@@ -147,12 +148,12 @@ Future<Uri> buildLib(
   final buildInput = BuildInput(buildInputBuilder.json);
   final buildOutput = BuildOutputBuilder();
 
-  final cbuilder = CMakeBuilder.create(
+  final builder = CMakeBuilder.create(
     name: name,
     sourceDir: Directory('test/builder/testfiles/add').absolute.uri,
     buildMode: BuildMode.release,
   );
-  await cbuilder.run(
+  await builder.run(
     input: buildInput,
     output: buildOutput,
     logger: logger,

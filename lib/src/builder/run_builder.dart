@@ -19,6 +19,7 @@ import '../tool/tool_instance.dart';
 import '../utils/package_config_parser.dart';
 import '../utils/run_process.dart';
 import 'build_mode.dart';
+import 'builder_args.dart';
 import 'generator.dart';
 import 'log_level.dart';
 
@@ -45,16 +46,10 @@ class RunCMakeBuilder {
 
   // ios.toolchain.cmake
   // https://github.com/leetal/ios-cmake?tab=readme-ov-file#exposed-variables
-  final bool enableBitcode;
-  final bool enableArc;
-  final bool enableVisibility;
-  final bool enableStrictTryCompile;
+  final AppleBuilderArgs appleArgs;
 
   // android ndk
-  int? androidAPI;
-  String? androidABI;
-  final String androidSTL;
-  final bool androidArmNeon;
+  final AndroidBuilderArgs androidArgs;
 
   /// log level of CMake
   final LogLevel logLevel;
@@ -70,14 +65,8 @@ class RunCMakeBuilder {
     this.toolset,
     this.buildMode = BuildMode.release,
     this.targets,
-    this.enableBitcode = false,
-    this.enableArc = true,
-    this.enableVisibility = false,
-    this.enableStrictTryCompile = false,
-    this.androidAPI,
-    this.androidABI,
-    this.androidArmNeon = true,
-    this.androidSTL = 'c++_static',
+    this.androidArgs = const AndroidBuilderArgs(),
+    this.appleArgs = const AppleBuilderArgs(),
     this.logLevel = LogLevel.STATUS,
   }) : outDir = outputDir ?? input.outputDirectory;
 
@@ -200,93 +189,93 @@ class RunCMakeBuilder {
     if (codeConfig.targetOS != OS.macOS) {
       return [];
     }
-    final definesMacos = <String>[];
+    final defs = <String>[];
     final toolchain = await iosToolchainCmake();
-    definesMacos.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
+    defs.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
     final platform = macosPlatforms[codeConfig.targetArchitecture];
     assert(platform != null, 'Unsupported macOS architecture: ${codeConfig.targetArchitecture}');
-    definesMacos.add('-DPLATFORM=$platform');
-    definesMacos.add('-DDEPLOYMENT_TARGET=${codeConfig.macOS.targetVersion}');
-    definesMacos.add('-DENABLE_BITCODE=${enableBitcode ? "ON" : "OFF"}');
-    definesMacos.add('-DENABLE_ARC=${enableArc ? "ON" : "OFF"}');
-    definesMacos.add('-DENABLE_VISIBILITY=${enableVisibility ? "ON" : "OFF"}');
-    definesMacos.add('-DENABLE_STRICT_TRY_COMPILE=${enableStrictTryCompile ? "ON" : "OFF"}');
-    return definesMacos;
+    defs.add('-DPLATFORM=$platform');
+    defs.add('-DDEPLOYMENT_TARGET=${codeConfig.macOS.targetVersion}');
+    defs.add('-DENABLE_BITCODE=${appleArgs.enableBitcode ? "ON" : "OFF"}');
+    defs.add('-DENABLE_ARC=${appleArgs.enableArc ? "ON" : "OFF"}');
+    defs.add('-DENABLE_VISIBILITY=${appleArgs.enableVisibility ? "ON" : "OFF"}');
+    defs.add('-DENABLE_STRICT_TRY_COMPILE=${appleArgs.enableStrictTryCompile ? "ON" : "OFF"}');
+    return defs;
   }
 
   Future<List<String>> _generateIOSDefines() async {
     if (codeConfig.targetOS != OS.iOS) {
       return [];
     }
-    final definesIos = <String>[];
+    final defs = <String>[];
     final targetIosSdk = codeConfig.iOS.targetSdk;
     final targetIOSVersion = codeConfig.iOS.targetVersion;
     final toolchain = await iosToolchainCmake();
-    definesIos.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
+    defs.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
     final platform = iosPlatforms[codeConfig.targetArchitecture]?[targetIosSdk];
     assert(platform != null, 'Unsupported iOS architecture: ${codeConfig.targetArchitecture}');
-    definesIos.add('-DPLATFORM=$platform');
-    definesIos.add('-DDEPLOYMENT_TARGET=$targetIOSVersion');
-    definesIos.add('-DENABLE_BITCODE=${enableBitcode ? "ON" : "OFF"}');
-    definesIos.add('-DENABLE_ARC=${enableArc ? "ON" : "OFF"}');
-    definesIos.add('-DENABLE_VISIBILITY=${enableVisibility ? "ON" : "OFF"}');
-    definesIos.add('-DENABLE_STRICT_TRY_COMPILE=${enableStrictTryCompile ? "ON" : "OFF"}');
-    return definesIos;
+    defs.add('-DPLATFORM=$platform');
+    defs.add('-DDEPLOYMENT_TARGET=$targetIOSVersion');
+    defs.add('-DENABLE_BITCODE=${appleArgs.enableBitcode ? "ON" : "OFF"}');
+    defs.add('-DENABLE_ARC=${appleArgs.enableArc ? "ON" : "OFF"}');
+    defs.add('-DENABLE_VISIBILITY=${appleArgs.enableVisibility ? "ON" : "OFF"}');
+    defs.add('-DENABLE_STRICT_TRY_COMPILE=${appleArgs.enableStrictTryCompile ? "ON" : "OFF"}');
+    return defs;
   }
 
   Future<List<String>> _generateAndroidDefines() async {
     if (codeConfig.targetOS != OS.android) {
       return [];
     }
-    final definesAndroid = <String>[];
+    final defs = <String>[];
     final toolchain = await androidToolchainCmake();
-    definesAndroid.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
+    defs.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
 
     // The Android Gradle plugin does not honor API level 19 and 20 when
     // invoking clang. Mimic that behavior here.
     // See https://github.com/dart-lang/native/issues/171.
     final minimumApi = codeConfig.targetArchitecture == Architecture.riscv64 ? 35 : 21;
-    androidAPI ??= max(codeConfig.android.targetNdkApi, minimumApi);
-    androidABI ??= androidAbis[codeConfig.targetArchitecture];
-    definesAndroid.add('-DANDROID_PLATFORM=android-$androidAPI');
-    definesAndroid.add('-DANDROID_ABI=${androidAbis[codeConfig.targetArchitecture]}');
-    definesAndroid.add('-DANDROID_STL=$androidSTL');
-    definesAndroid.add('-DANDROID_ARM_NEON=$androidArmNeon');
+    final _androidAPI = androidArgs.androidAPI ?? max(codeConfig.android.targetNdkApi, minimumApi);
+    final _androidABI = androidArgs.androidABI ?? androidAbis[codeConfig.targetArchitecture];
+    defs.add('-DANDROID_PLATFORM=android-$_androidAPI');
+    defs.add('-DANDROID_ABI=$_androidABI');
+    defs.add('-DANDROID_STL=${androidArgs.androidSTL}');
+    defs.add('-DANDROID_ARM_NEON=${androidArgs.androidArmNeon}');
 
-    return definesAndroid;
+    return defs;
   }
 
   Future<List<String>> _generateWindowsDefines() async {
     if (codeConfig.targetOS != OS.windows) {
       return [];
     }
-    final definesWindows = <String>[];
-    definesWindows.add('-DCMAKE_SYSTEM_NAME=Windows');
+    final defs = <String>[];
+    defs.add('-DCMAKE_SYSTEM_NAME=Windows');
 
     if (codeConfig.targetArchitecture == Architecture.arm64) {
-      definesWindows.add('-DCMAKE_SYSTEM_PROCESSOR=ARM64');
-      definesWindows.addAll(['-A', 'ARM64']);
+      defs.add('-DCMAKE_SYSTEM_PROCESSOR=ARM64');
+      defs.addAll(['-A', 'ARM64']);
     }
     if (codeConfig.targetArchitecture == Architecture.x64) {
-      definesWindows.add('-DCMAKE_SYSTEM_PROCESSOR=AMD64');
-      definesWindows.addAll(['-A', 'x64']);
+      defs.add('-DCMAKE_SYSTEM_PROCESSOR=AMD64');
+      defs.addAll(['-A', 'x64']);
     }
     if (codeConfig.targetArchitecture == Architecture.ia32) {
-      definesWindows.add('-DCMAKE_SYSTEM_PROCESSOR=X86');
-      definesWindows.addAll(['-A', 'Win32']);
+      defs.add('-DCMAKE_SYSTEM_PROCESSOR=X86');
+      defs.addAll(['-A', 'Win32']);
     }
-    return definesWindows;
+    return defs;
   }
 
   Future<List<String>> _generateLinuxDefines() async {
     if (codeConfig.targetOS != OS.linux) {
       return [];
     }
-    final definesLinux = <String>[];
-    definesLinux.add('-DCMAKE_SYSTEM_NAME=Linux');
+    final defs = <String>[];
+    defs.add('-DCMAKE_SYSTEM_NAME=Linux');
     final toolchain = await linuxToolchainCmake();
-    definesLinux.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
-    return definesLinux;
+    defs.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
+    return defs;
   }
 
   static const androidAbis = {
@@ -309,17 +298,5 @@ class RunCMakeBuilder {
     Architecture.x64: {
       IOSSdk.iPhoneSimulator: 'SIMULATOR64',
     },
-  };
-
-  static const clangWindowsTargetFlags = {
-    Architecture.arm64: 'arm64-pc-windows-msvc',
-    Architecture.ia32: 'i386-pc-windows-msvc',
-    Architecture.x64: 'x86_64-pc-windows-msvc',
-  };
-
-  static const cmakeLinuxToolchains = {
-    Architecture.arm64: 'arm64-linux-gnu',
-    Architecture.x64: 'x86_64-linux-gnu',
-    Architecture.riscv64: 'riscv64-linux-gnu',
   };
 }

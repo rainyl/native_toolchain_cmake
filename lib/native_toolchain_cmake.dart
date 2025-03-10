@@ -6,6 +6,7 @@ library;
 
 export 'src/builder/build_mode.dart';
 export 'src/builder/builder.dart' show CMakeBuilder;
+export 'src/builder/builder_args.dart';
 export 'src/builder/generator.dart';
 export 'src/builder/log_level.dart';
 export 'src/utils/env_from_bat.dart';

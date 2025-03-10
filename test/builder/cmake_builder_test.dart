@@ -61,6 +61,8 @@ void main() {
           name: name,
           sourceDir: Directory(sourceDir).absolute.uri,
           buildMode: buildMode,
+          androidArgs: const AndroidBuilderArgs(),
+          appleArgs: const AppleBuilderArgs(),
         );
         await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
@@ -119,11 +121,12 @@ void main() {
         name: name,
         sourceDir: Directory('test/builder/testfiles/add').absolute.uri,
         buildMode: buildMode,
-        enableVisibility: true,
         defines: {
           'CMAKE_INSTALL_PREFIX': buildInput.outputDirectory.resolve('install').toFilePath(),
         },
         targets: ['install'],
+        androidArgs: const AndroidBuilderArgs(),
+        appleArgs: const AppleBuilderArgs(),
       );
       await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
@@ -134,7 +137,7 @@ void main() {
       expect(add(1, 2), 3);
     });
 
-    test('CBuilder define $buildMode', () => testDefines(buildMode: buildMode));
+    test('CMakeBuilder define $buildMode', () => testDefines(buildMode: buildMode));
   }
 }
 
@@ -173,6 +176,8 @@ Future<void> testDefines({BuildMode buildMode = BuildMode.debug}) async {
     name: name,
     sourceDir: Directory('test/builder/testfiles/defines').absolute.uri,
     buildMode: buildMode,
+    androidArgs: const AndroidBuilderArgs(),
+    appleArgs: const AppleBuilderArgs(),
   );
   await builder.run(
     input: buildInput,
