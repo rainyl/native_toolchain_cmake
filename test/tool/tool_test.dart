@@ -15,7 +15,7 @@ void main() {
     final resolver = PathToolResolver(toolName: 'cmake', executableName: 'cmake');
     final tools = await resolver.resolve(logger: null);
     expect(tools.length, greaterThan(0));
-    expect(await Directory.fromUri(tools.first.uri).exists(), true);
+    expect(File.fromUri(tools.first.uri).existsSync(), true);
   });
 
   test('equals and hashCode', () async {
