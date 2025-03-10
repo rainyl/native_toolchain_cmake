@@ -28,8 +28,7 @@ class ToolRequirement implements Requirement {
   });
 
   @override
-  String toString() =>
-      'ToolRequirement(${tool.name}, minimumVersion: $minimumVersion)';
+  String toString() => 'ToolRequirement(${tool.name}, minimumVersion: $minimumVersion)';
 
   @override
   List<ToolInstance>? satisfy(List<ToolInstance> availableToolInstances) {

@@ -28,10 +28,17 @@ class CMakeBuilder implements Builder {
   /// File will be placed in [LinkInput.outputDirectory].
   final String name;
 
-  /// Sources directory
-  Uri sourceDir;
+  /// Sources directory, for [CMakeBuilder.create], it should be the directory containing
+  /// the `CMakeLists.txt`, for [CMakeBuilder.fromGit], it should be the directory where the
+  /// repository will be cloned, and the repository will be cloned to [sourceDir]/external/[name].
+  final Uri sourceDir;
 
-  /// Output directory
+  /// internel use, point to the directory containing `CMakeLists.txt`.
+  Uri cmakeListsDir;
+
+  /// Output directory, if not provided:
+  ///   - if [buildLocal] is true, it will be `{sourceDir}/build/{platform}/{arch}`.
+  ///   - else it will be derived from the build hook's `input.outputDirectory`.
   Uri? outDir;
 
   /// Definitions of preprocessor macros.
@@ -69,7 +76,7 @@ class CMakeBuilder implements Builder {
   /// log level of CMake
   final LogLevel logLevel;
 
-  /// If true, a build will be performed in the local directory.
+  /// If true, a build will be performed in `{sourceDir}/build/{platform}/{arch}`.
   final bool buildLocal;
 
   /// This constructor initializes a new build config from [sourceDir].
@@ -127,7 +134,7 @@ class CMakeBuilder implements Builder {
     this.logLevel = LogLevel.STATUS,
     this.logger,
     this.buildLocal = false,
-  });
+  }) : cmakeListsDir = sourceDir;
 
   /// This constructor initializes a new build config by cloning the
   /// repository from [gitUrl] into a subdirectory under [sourceDir].
@@ -138,7 +145,7 @@ class CMakeBuilder implements Builder {
   ///   conventions.
   /// - [gitUrl]: The URL of the Git repository to clone.
   ///   e.x. https://github.com/rainyl/native_toolchain_cmake.git
-  /// - [sourceDir]: The base directory URI where the repository will be cloned.
+  /// - [sourceDir]: The base directory URI, the repository will be cloned to [sourceDir]/external/[name].
   /// - [outDir]: (Optional) The output directory URI. If not provided,
   ///    will be derived from the build hook's input.outputDirectory.
   /// - [gitBranch]: The branch name to clone; defaults to `'main'`.
@@ -196,16 +203,15 @@ class CMakeBuilder implements Builder {
     this.logLevel = LogLevel.STATUS,
     this.logger,
     this.buildLocal = false,
-  }) {
+  }) : cmakeListsDir = sourceDir {
     // Some platforms will error if directory does not exist, create it.
-    final newDir = Directory.fromUri(
-      Uri.directory("${sourceDir.toFilePath()}/external/$name"),
-    )..createSync(recursive: true);
+    cmakeListsDir = sourceDir.resolve('external/$name/').normalizePath();
+    Directory.fromUri(cmakeListsDir).createSync(recursive: true);
 
     runProcessSync(
       executable: 'git',
       arguments: ['init'],
-      workingDirectory: newDir.uri,
+      workingDirectory: cmakeListsDir,
       throwOnUnexpectedExitCode: true,
       logger: logger,
     );
@@ -213,33 +219,29 @@ class CMakeBuilder implements Builder {
     runProcessSync(
       executable: 'git',
       arguments: ['remote', 'add', 'origin', gitUrl],
-      workingDirectory: newDir.uri,
+      workingDirectory: cmakeListsDir,
       throwOnUnexpectedExitCode: true,
       logger: logger,
     );
     runProcessSync(
       executable: 'git',
       arguments: ['fetch', 'origin', gitBranch],
-      workingDirectory: newDir.uri,
+      workingDirectory: cmakeListsDir,
       throwOnUnexpectedExitCode: true,
       logger: logger,
     );
     runProcessSync(
       executable: 'git',
       arguments: ['reset', '--hard', gitCommit],
-      workingDirectory: newDir.uri,
+      workingDirectory: cmakeListsDir,
       throwOnUnexpectedExitCode: true,
       logger: logger,
     );
 
-    if (gitSubDir.isNotEmpty) {
-      sourceDir = Uri.directory(
-        "${sourceDir.toFilePath()}/external/$name/$gitSubDir",
-      );
-    }
+    cmakeListsDir = cmakeListsDir.resolve(gitSubDir).normalizePath();
   }
 
-  /// Runs the C Compiler with on this C build spec.
+  /// Runs the CMake genetate and build process.
   ///
   /// Completes with an error if the build fails.
   @override
@@ -248,22 +250,19 @@ class CMakeBuilder implements Builder {
     required BuildOutputBuilder output,
     Logger? logger,
   }) async {
-    final _logger = logger ?? this.logger;
-
     if (buildLocal) {
       final plat = input.config.code.targetOS.name.toLowerCase();
       final arch = input.config.code.targetArchitecture.name.toLowerCase();
-      outDir = sourceDir.resolve('build/$plat/$arch');
+      outDir = sourceDir.resolve('build/').resolve(plat).resolve(arch).normalizePath();
     }
+    await Directory.fromUri(outDir ?? input.outputDirectory).create(recursive: true);
 
-    await Directory.fromUri(outDir ?? input.outputDirectory)
-        .create(recursive: true);
     final task = RunCMakeBuilder(
       input: input,
-      outputDir: outDir ?? input.outputDirectory,
+      outputDir: outDir,
       codeConfig: input.config.code,
-      logger: _logger,
-      sourceDir: sourceDir,
+      logger: logger ?? this.logger,
+      sourceDir: cmakeListsDir,
       generator: generator,
       buildMode: buildMode,
       defines: defines,

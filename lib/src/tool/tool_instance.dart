@@ -68,10 +68,7 @@ class ToolInstance implements Comparable<ToolInstance> {
 
   @override
   bool operator ==(Object other) =>
-      other is ToolInstance &&
-      tool == other.tool &&
-      uri == other.uri &&
-      version == other.version;
+      other is ToolInstance && tool == other.tool && uri == other.uri && version == other.version;
 
   @override
   int get hashCode => Object.hash(tool, uri, version);

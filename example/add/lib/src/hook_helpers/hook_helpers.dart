@@ -28,13 +28,7 @@ Future<void> runBuild(
       ..onRecord.listen((record) => stderr.writeln(record)),
   );
 
-  await builder.run(
-    input: input,
-    output: output,
-    logger: Logger('')
-      ..level = Level.ALL
-      ..onRecord.listen((record) => stderr.writeln(record)),
-  );
+  await builder.run(input: input, output: output);
 
   final libPath = switch (input.config.code.targetOS) {
     OS.linux => "install/lib/libadd.so",

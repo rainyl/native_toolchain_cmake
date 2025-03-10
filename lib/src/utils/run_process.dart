@@ -22,8 +22,7 @@ Future<RunProcessResult> runProcess({
   int expectedExitCode = 0,
   bool throwOnUnexpectedExitCode = false,
 }) async {
-  final printWorkingDir =
-      workingDirectory != null && workingDirectory != Directory.current.uri;
+  final printWorkingDir = workingDirectory != null && workingDirectory != Directory.current.uri;
   final commandString = [
     if (printWorkingDir) '(cd ${workingDirectory.toFilePath()};',
     ...?environment?.entries.map((entry) => '${entry.key}=${entry.value}'),
@@ -72,11 +71,8 @@ Future<RunProcessResult> runProcess({
     },
   );
 
-  final (exitCode, _, _) = await (
-    process.exitCode,
-    stdoutSub.asFuture<void>(),
-    stderrSub.asFuture<void>()
-  ).wait;
+  final (exitCode, _, _) =
+      await (process.exitCode, stdoutSub.asFuture<void>(), stderrSub.asFuture<void>()).wait;
 
   await stdoutSub.cancel();
   await stderrSub.cancel();
@@ -110,8 +106,7 @@ RunProcessResult runProcessSync({
   int expectedExitCode = 0,
   bool throwOnUnexpectedExitCode = false,
 }) {
-  final printWorkingDir =
-      workingDirectory != null && workingDirectory != Directory.current.uri;
+  final printWorkingDir = workingDirectory != null && workingDirectory != Directory.current.uri;
   final commandString = [
     if (printWorkingDir) '(cd ${workingDirectory.toFilePath()};',
     ...?environment?.entries.map((entry) => '${entry.key}=${entry.value}'),

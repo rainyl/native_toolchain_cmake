@@ -88,30 +88,23 @@ class RunCMakeBuilder {
     return Future.value(path);
   }
 
-  Future<Uri> currentPackageRoot() async =>
-      Uri.directory(await getPackagePath("native_toolchain_cmake"));
+  Future<Uri> currentPackageRoot() async => Uri.directory(await getPackagePath("native_toolchain_cmake"));
 
-  Future<Uri> iosToolchainCmake() async =>
-      (await currentPackageRoot()).resolve('cmake/ios.toolchain.cmake');
+  Future<Uri> iosToolchainCmake() async => (await currentPackageRoot()).resolve('cmake/ios.toolchain.cmake');
 
   Future<Uri> androidToolchainCmake() async {
     final tool = await androidNdk.defaultResolver?.resolve(logger: logger);
-    final toolUri =
-        tool?.first.uri.resolve('build/cmake/android.toolchain.cmake');
+    final toolUri = tool?.first.uri.resolve('build/cmake/android.toolchain.cmake');
     assert(toolUri != null);
     return Future.value(toolUri);
   }
 
-  Future<Uri> linuxToolchainCmake() async =>
-      switch (codeConfig.targetArchitecture) {
-        Architecture.x64 => (await currentPackageRoot())
-            .resolve('cmake/x86_64-linux-gnu.toolchain.cmake'),
-        Architecture.arm64 => (await currentPackageRoot())
-            .resolve('cmake/aarch64-linux-gnu.toolchain.cmake'),
-        Architecture.riscv64 => (await currentPackageRoot())
-            .resolve('cmake/riscv64-linux-gnu.toolchain.cmake'),
-        _ => throw UnimplementedError(
-            'Unsupported architecture: ${codeConfig.targetArchitecture} for Linux'),
+  Future<Uri> linuxToolchainCmake() async => switch (codeConfig.targetArchitecture) {
+        Architecture.x64 => (await currentPackageRoot()).resolve('cmake/x86_64-linux-gnu.toolchain.cmake'),
+        Architecture.arm64 => (await currentPackageRoot()).resolve('cmake/aarch64-linux-gnu.toolchain.cmake'),
+        Architecture.riscv64 =>
+          (await currentPackageRoot()).resolve('cmake/riscv64-linux-gnu.toolchain.cmake'),
+        _ => throw UnimplementedError('Unsupported architecture: ${codeConfig.targetArchitecture} for Linux'),
       };
 
   Future<Uri> iosSdk(IOSSdk iosSdk, {required Logger? logger}) async {
@@ -129,13 +122,9 @@ class RunCMakeBuilder {
   }
 
   Future<Uri> macosSdk({required Logger? logger}) async =>
-      (await macosxSdk.defaultResolver!.resolve(logger: logger))
-          .where((i) => i.tool == macosxSdk)
-          .first
-          .uri;
+      (await macosxSdk.defaultResolver!.resolve(logger: logger)).where((i) => i.tool == macosxSdk).first.uri;
 
-  Uri androidSysroot(ToolInstance compiler) =>
-      compiler.uri.resolve('../sysroot/');
+  Uri androidSysroot(ToolInstance compiler) => compiler.uri.resolve('../sysroot/');
 
   Future<void> run({Map<String, String>? environment}) async {
     final result = await _generate(environment: environment);
@@ -172,9 +161,9 @@ class RunCMakeBuilder {
       arguments: [
         '--log-level=${logLevel.name}',
         '-S',
-        sourceDir.toFilePath(),
+        sourceDir.normalizePath().toFilePath(),
         '-B',
-        outDir.toFilePath(),
+        outDir.normalizePath().toFilePath(),
         if (toolset != null) '-T',
         if (toolset != null) toolset!,
         ..._generator,
@@ -193,7 +182,7 @@ class RunCMakeBuilder {
       executable: await cmakePath(),
       arguments: [
         '--build',
-        outDir.toFilePath(),
+        outDir.normalizePath().toFilePath(),
         '--config',
         buildMode.name.toCapitalCase(),
         if (targets?.isNotEmpty ?? false) '--target',
@@ -213,17 +202,15 @@ class RunCMakeBuilder {
     }
     final definesMacos = <String>[];
     final toolchain = await iosToolchainCmake();
-    definesMacos.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.toFilePath()}');
+    definesMacos.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
     final platform = macosPlatforms[codeConfig.targetArchitecture];
-    assert(platform != null,
-        'Unsupported macOS architecture: ${codeConfig.targetArchitecture}');
+    assert(platform != null, 'Unsupported macOS architecture: ${codeConfig.targetArchitecture}');
     definesMacos.add('-DPLATFORM=$platform');
     definesMacos.add('-DDEPLOYMENT_TARGET=${codeConfig.macOS.targetVersion}');
     definesMacos.add('-DENABLE_BITCODE=${enableBitcode ? "ON" : "OFF"}');
     definesMacos.add('-DENABLE_ARC=${enableArc ? "ON" : "OFF"}');
     definesMacos.add('-DENABLE_VISIBILITY=${enableVisibility ? "ON" : "OFF"}');
-    definesMacos.add(
-        '-DENABLE_STRICT_TRY_COMPILE=${enableStrictTryCompile ? "ON" : "OFF"}');
+    definesMacos.add('-DENABLE_STRICT_TRY_COMPILE=${enableStrictTryCompile ? "ON" : "OFF"}');
     return definesMacos;
   }
 
@@ -235,17 +222,15 @@ class RunCMakeBuilder {
     final targetIosSdk = codeConfig.iOS.targetSdk;
     final targetIOSVersion = codeConfig.iOS.targetVersion;
     final toolchain = await iosToolchainCmake();
-    definesIos.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.toFilePath()}');
+    definesIos.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
     final platform = iosPlatforms[codeConfig.targetArchitecture]?[targetIosSdk];
-    assert(platform != null,
-        'Unsupported iOS architecture: ${codeConfig.targetArchitecture}');
+    assert(platform != null, 'Unsupported iOS architecture: ${codeConfig.targetArchitecture}');
     definesIos.add('-DPLATFORM=$platform');
     definesIos.add('-DDEPLOYMENT_TARGET=$targetIOSVersion');
     definesIos.add('-DENABLE_BITCODE=${enableBitcode ? "ON" : "OFF"}');
     definesIos.add('-DENABLE_ARC=${enableArc ? "ON" : "OFF"}');
     definesIos.add('-DENABLE_VISIBILITY=${enableVisibility ? "ON" : "OFF"}');
-    definesIos.add(
-        '-DENABLE_STRICT_TRY_COMPILE=${enableStrictTryCompile ? "ON" : "OFF"}');
+    definesIos.add('-DENABLE_STRICT_TRY_COMPILE=${enableStrictTryCompile ? "ON" : "OFF"}');
     return definesIos;
   }
 
@@ -255,18 +240,16 @@ class RunCMakeBuilder {
     }
     final definesAndroid = <String>[];
     final toolchain = await androidToolchainCmake();
-    definesAndroid.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.toFilePath()}');
+    definesAndroid.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
 
     // The Android Gradle plugin does not honor API level 19 and 20 when
     // invoking clang. Mimic that behavior here.
     // See https://github.com/dart-lang/native/issues/171.
-    final minimumApi =
-        codeConfig.targetArchitecture == Architecture.riscv64 ? 35 : 21;
+    final minimumApi = codeConfig.targetArchitecture == Architecture.riscv64 ? 35 : 21;
     androidAPI ??= max(codeConfig.android.targetNdkApi, minimumApi);
     androidABI ??= androidAbis[codeConfig.targetArchitecture];
     definesAndroid.add('-DANDROID_PLATFORM=android-$androidAPI');
-    definesAndroid
-        .add('-DANDROID_ABI=${androidAbis[codeConfig.targetArchitecture]}');
+    definesAndroid.add('-DANDROID_ABI=${androidAbis[codeConfig.targetArchitecture]}');
     definesAndroid.add('-DANDROID_STL=$androidSTL');
     definesAndroid.add('-DANDROID_ARM_NEON=$androidArmNeon');
 
@@ -302,7 +285,7 @@ class RunCMakeBuilder {
     final definesLinux = <String>[];
     definesLinux.add('-DCMAKE_SYSTEM_NAME=Linux');
     final toolchain = await linuxToolchainCmake();
-    definesLinux.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.toFilePath()}');
+    definesLinux.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
     return definesLinux;
   }
 
