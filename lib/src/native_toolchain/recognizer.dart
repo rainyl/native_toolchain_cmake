@@ -27,8 +27,7 @@ class CompilerRecognizer implements ToolResolver {
     if (filePath.contains('-gcc')) {
       tool = gcc;
     } else if (filePath.endsWith(os.executableFileName('clang'))) {
-      final stdout = await CliFilter.executeCli(uri,
-          arguments: ['--version'], logger: logger);
+      final stdout = await CliFilter.executeCli(uri, arguments: ['--version'], logger: logger);
       if (stdout.contains('Apple clang')) {
         tool = appleClang;
       } else {

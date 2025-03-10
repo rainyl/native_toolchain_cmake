@@ -63,6 +63,7 @@ class RunCMakeBuilder {
     required this.input,
     required this.codeConfig,
     required this.sourceDir,
+    Uri? outputDir,
     this.logger,
     this.defines = const {},
     this.generator = Generator.defaultGenerator,
@@ -78,7 +79,7 @@ class RunCMakeBuilder {
     this.androidArmNeon = true,
     this.androidSTL = 'c++_static',
     this.logLevel = LogLevel.STATUS,
-  }) : outDir = input.outputDirectory;
+  }) : outDir = outputDir ?? input.outputDirectory;
 
   Future<Uri> cmakePath() async {
     final cmakeTools = await cmake.defaultResolver?.resolve(logger: logger);
@@ -160,7 +161,9 @@ class RunCMakeBuilder {
       arguments: [
         '--log-level=${logLevel.name}',
         '-S',
-        sourceDir.toFilePath(),
+        sourceDir.normalizePath().toFilePath(),
+        '-B',
+        outDir.normalizePath().toFilePath(),
         if (toolset != null) '-T',
         if (toolset != null) toolset!,
         ..._generator,
@@ -179,7 +182,7 @@ class RunCMakeBuilder {
       executable: await cmakePath(),
       arguments: [
         '--build',
-        outDir.toFilePath(),
+        outDir.normalizePath().toFilePath(),
         '--config',
         buildMode.name.toCapitalCase(),
         if (targets?.isNotEmpty ?? false) '--target',
@@ -199,7 +202,7 @@ class RunCMakeBuilder {
     }
     final definesMacos = <String>[];
     final toolchain = await iosToolchainCmake();
-    definesMacos.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.toFilePath()}');
+    definesMacos.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
     final platform = macosPlatforms[codeConfig.targetArchitecture];
     assert(platform != null, 'Unsupported macOS architecture: ${codeConfig.targetArchitecture}');
     definesMacos.add('-DPLATFORM=$platform');
@@ -219,7 +222,7 @@ class RunCMakeBuilder {
     final targetIosSdk = codeConfig.iOS.targetSdk;
     final targetIOSVersion = codeConfig.iOS.targetVersion;
     final toolchain = await iosToolchainCmake();
-    definesIos.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.toFilePath()}');
+    definesIos.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
     final platform = iosPlatforms[codeConfig.targetArchitecture]?[targetIosSdk];
     assert(platform != null, 'Unsupported iOS architecture: ${codeConfig.targetArchitecture}');
     definesIos.add('-DPLATFORM=$platform');
@@ -237,7 +240,7 @@ class RunCMakeBuilder {
     }
     final definesAndroid = <String>[];
     final toolchain = await androidToolchainCmake();
-    definesAndroid.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.toFilePath()}');
+    definesAndroid.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
 
     // The Android Gradle plugin does not honor API level 19 and 20 when
     // invoking clang. Mimic that behavior here.
@@ -282,7 +285,7 @@ class RunCMakeBuilder {
     final definesLinux = <String>[];
     definesLinux.add('-DCMAKE_SYSTEM_NAME=Linux');
     final toolchain = await linuxToolchainCmake();
-    definesLinux.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.toFilePath()}');
+    definesLinux.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
     return definesLinux;
   }
 
