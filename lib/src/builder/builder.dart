@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:logging/logging.dart';
 import 'package:native_assets_cli/code_assets_builder.dart';
 
+import '../utils/run_process.dart';
 import 'build_mode.dart';
 import 'generator.dart';
 import 'log_level.dart';
@@ -27,8 +28,18 @@ class CMakeBuilder implements Builder {
   /// File will be placed in [LinkInput.outputDirectory].
   final String name;
 
-  /// Sources directory
+  /// Sources directory, for [CMakeBuilder.create], it should be the directory containing
+  /// the `CMakeLists.txt`, for [CMakeBuilder.fromGit], it should be the directory where the
+  /// repository will be cloned, and the repository will be cloned to [sourceDir]/external/[name].
   final Uri sourceDir;
+
+  /// internel use, point to the directory containing `CMakeLists.txt`.
+  Uri cmakeListsDir;
+
+  /// Output directory, if not provided:
+  ///   - if [buildLocal] is true, it will be `{sourceDir}/build/{platform}/{arch}`.
+  ///   - else it will be derived from the build hook's `input.outputDirectory`.
+  Uri? outDir;
 
   /// Definitions of preprocessor macros.
   ///
@@ -60,12 +71,52 @@ class CMakeBuilder implements Builder {
   final String androidSTL;
   final bool androidArmNeon;
 
+  final Logger? logger;
+
   /// log level of CMake
   final LogLevel logLevel;
 
+  /// If true, a build will be performed in `{sourceDir}/build/{platform}/{arch}`.
+  final bool buildLocal;
+
+  /// This constructor initializes a new build config from [sourceDir].
+  ///
+  /// Parameters:
+  /// - [name]: The name of the library or executable to build or link.
+  ///   This determines the final file name according to target OS naming
+  ///   conventions.
+  /// - [sourceDir]: The base directory URI where the repository will be cloned.
+  /// - [outDir]: (Optional) The output directory URI. If not provided,
+  ///    will be derived from the build hook's input.outputDirectory.
+  ///   containing the source files. [sourceDir] will be updated to include it.
+  /// - [defines]: A map specifying CMake preprocessor macros and their values.
+  /// - [linkModePreference]: Preferences for linking the built asset.
+  ///   [LinkModePreference.dynamic] or [LinkModePreference.static].
+  /// - [buildMode]: The build mode to use. Defaults to [BuildMode.release].
+  /// - [targets]: An optional list with the target to install.
+  /// - [generator]: The CMake generator to use.
+  ///   Defaults to [Generator.defaultGenerator].
+  /// - [toolset]: An optional toolset string for CMake.
+  /// - [enableBitcode]: Flag to enable Bitcode; defaults to `false`.
+  /// - [enableArc]: Flag to enable ARC; defaults to `true`.
+  /// - [enableVisibility]: Flag to enable visibility, necessary to expose
+  ///   symbols; defaults to `true`.
+  /// - [enableStrictTryCompile]: Flag to enable strict try-compile mode;
+  ///    defaults to `false`.
+  /// - [androidAPI]: (Optional) The Android API level.
+  /// - [androidABI]: (Optional) The Android ABI specification.
+  /// - [androidArmNeon]: Flag that indicates whether ARM NEON is enabled;
+  ///    defaults to `true`.
+  /// - [androidSTL]: The Android STL type; defaults to `'c++_static'`.
+  /// - [logLevel]: The verbosity level for CMake logging;
+  ///    defaults to [LogLevel.STATUS].
+  /// - [logger]: (Optional) A [Logger] for outputting log messages.
+  /// - [buildLocal]: Flag indicating if the build should be performed locally;
+  ///   defaults to `false`.
   CMakeBuilder.create({
     required this.name,
     required this.sourceDir,
+    this.outDir,
     this.defines = const {},
     this.linkModePreference,
     this.buildMode = BuildMode.release,
@@ -81,25 +132,137 @@ class CMakeBuilder implements Builder {
     this.androidArmNeon = true,
     this.androidSTL = 'c++_static',
     this.logLevel = LogLevel.STATUS,
-  });
+    this.logger,
+    this.buildLocal = false,
+  }) : cmakeListsDir = sourceDir;
 
-  /// Runs the C Compiler with on this C build spec.
+  /// This constructor initializes a new build config by cloning the
+  /// repository from [gitUrl] into a subdirectory under [sourceDir].
+  ///
+  /// Parameters:
+  /// - [name]: The name of the library or executable to build or link.
+  ///   This determines the final file name according to target OS naming
+  ///   conventions.
+  /// - [gitUrl]: The URL of the Git repository to clone.
+  ///   e.x. https://github.com/rainyl/native_toolchain_cmake.git
+  /// - [sourceDir]: The base directory URI, the repository will be cloned to [sourceDir]/external/[name].
+  /// - [outDir]: (Optional) The output directory URI. If not provided,
+  ///    will be derived from the build hook's input.outputDirectory.
+  /// - [gitBranch]: The branch name to clone; defaults to `'main'`.
+  /// - [gitCommit]: The commit hash to reset to after cloning;
+  ///   defaults to `'HEAD'`. When `'HEAD'` is provided, the latest commit
+  ///   from the shallow clone is used.
+  /// - [gitSubDir]: (Optional) A subdirectory within the cloned repository
+  ///   containing the source files. [sourceDir] will be updated to include it.
+  /// - [defines]: A map specifying CMake preprocessor macros and their values.
+  /// - [linkModePreference]: Preferences for linking the built asset.
+  ///   [LinkModePreference.dynamic] or [LinkModePreference.static].
+  /// - [buildMode]: The build mode to use. Defaults to [BuildMode.release].
+  /// - [targets]: An optional list with the target to install.
+  /// - [generator]: The CMake generator to use.
+  ///   Defaults to [Generator.defaultGenerator].
+  /// - [toolset]: An optional toolset string for CMake.
+  /// - [enableBitcode]: Flag to enable Bitcode; defaults to `false`.
+  /// - [enableArc]: Flag to enable ARC; defaults to `true`.
+  /// - [enableVisibility]: Flag to enable visibility, necessary to expose
+  ///   symbols; defaults to `true`.
+  /// - [enableStrictTryCompile]: Flag to enable strict try-compile mode;
+  ///    defaults to `false`.
+  /// - [androidAPI]: (Optional) The Android API level.
+  /// - [androidABI]: (Optional) The Android ABI specification.
+  /// - [androidArmNeon]: Flag that indicates whether ARM NEON is enabled;
+  ///    defaults to `true`.
+  /// - [androidSTL]: The Android STL type; defaults to `'c++_static'`.
+  /// - [logLevel]: The verbosity level for CMake logging;
+  ///    defaults to [LogLevel.STATUS].
+  /// - [logger]: (Optional) A [Logger] for outputting log messages.
+  /// - [buildLocal]: Flag indicating if the build should be performed locally;
+  ///   defaults to `false`.
+  CMakeBuilder.fromGit({
+    required this.name,
+    required String gitUrl,
+    required this.sourceDir,
+    this.outDir,
+    String gitBranch = 'main',
+    String gitCommit = 'FETCH_HEAD',
+    String gitSubDir = '',
+    this.defines = const {},
+    this.linkModePreference,
+    this.buildMode = BuildMode.release,
+    this.targets,
+    this.generator = Generator.defaultGenerator,
+    this.toolset,
+    this.enableBitcode = false,
+    this.enableArc = true,
+    this.enableVisibility = true, // necessary to expose symbols
+    this.enableStrictTryCompile = false,
+    this.androidAPI,
+    this.androidABI,
+    this.androidArmNeon = true,
+    this.androidSTL = 'c++_static',
+    this.logLevel = LogLevel.STATUS,
+    this.logger,
+    this.buildLocal = false,
+  }) : cmakeListsDir = sourceDir {
+    // Some platforms will error if directory does not exist, create it.
+    cmakeListsDir = sourceDir.resolve('external/$name/').normalizePath();
+    Directory.fromUri(cmakeListsDir).createSync(recursive: true);
+
+    runProcessSync(
+      executable: 'git',
+      arguments: ['init'],
+      workingDirectory: cmakeListsDir,
+      throwOnUnexpectedExitCode: true,
+      logger: logger,
+    );
+
+    runProcessSync(
+      executable: 'git',
+      arguments: ['remote', 'add', 'origin', gitUrl],
+      workingDirectory: cmakeListsDir,
+      throwOnUnexpectedExitCode: true,
+      logger: logger,
+    );
+    runProcessSync(
+      executable: 'git',
+      arguments: ['fetch', 'origin', gitBranch],
+      workingDirectory: cmakeListsDir,
+      throwOnUnexpectedExitCode: true,
+      logger: logger,
+    );
+    runProcessSync(
+      executable: 'git',
+      arguments: ['reset', '--hard', gitCommit],
+      workingDirectory: cmakeListsDir,
+      throwOnUnexpectedExitCode: true,
+      logger: logger,
+    );
+
+    cmakeListsDir = cmakeListsDir.resolve(gitSubDir).normalizePath();
+  }
+
+  /// Runs the CMake genetate and build process.
   ///
   /// Completes with an error if the build fails.
   @override
   Future<void> run({
     required BuildInput input,
     required BuildOutputBuilder output,
-    required Logger? logger,
-    Map<String, String> environment = const {},
+    Logger? logger,
   }) async {
-    final outDir = input.outputDirectory;
-    await Directory.fromUri(outDir).create(recursive: true);
+    if (buildLocal) {
+      final plat = input.config.code.targetOS.name.toLowerCase();
+      final arch = input.config.code.targetArchitecture.name.toLowerCase();
+      outDir = sourceDir.resolve('build/').resolve(plat).resolve(arch).normalizePath();
+    }
+    await Directory.fromUri(outDir ?? input.outputDirectory).create(recursive: true);
+
     final task = RunCMakeBuilder(
       input: input,
+      outputDir: outDir,
       codeConfig: input.config.code,
-      logger: logger,
-      sourceDir: sourceDir,
+      logger: logger ?? this.logger,
+      sourceDir: cmakeListsDir,
       generator: generator,
       buildMode: buildMode,
       defines: defines,
@@ -116,7 +279,6 @@ class CMakeBuilder implements Builder {
     );
 
     final Map<String, String> envVars = Map.from(Platform.environment);
-    envVars.addAll(environment);
     // TODO: patch environment variables for cmake
     // may be error if system drive is not C:
     // https://github.com/dart-lang/native/issues/2077

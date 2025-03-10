@@ -2,6 +2,8 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import 'dart:io';
+
 import 'package:native_toolchain_cmake/src/native_toolchain/android_ndk.dart';
 import 'package:native_toolchain_cmake/src/native_toolchain/clang.dart';
 import 'package:native_toolchain_cmake/src/tool/tool.dart';
@@ -13,7 +15,7 @@ void main() {
     final resolver = PathToolResolver(toolName: 'cmake', executableName: 'cmake');
     final tools = await resolver.resolve(logger: null);
     expect(tools.length, greaterThan(0));
-    print(tools.first.uri.toFilePath());
+    expect(File.fromUri(tools.first.uri).existsSync(), true);
   });
 
   test('equals and hashCode', () async {

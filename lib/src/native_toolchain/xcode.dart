@@ -91,8 +91,7 @@ class XCodeSdkResolver implements ToolResolver {
     assert(result.exitCode == 0);
     final uriSymbolic = Uri.directory(result.stdout.trim());
     logger?.fine('Found $sdk at ${uriSymbolic.toFilePath()}');
-    final uri = Uri.directory(
-        await Directory.fromUri(uriSymbolic).resolveSymbolicLinks());
+    final uri = Uri.directory(await Directory.fromUri(uriSymbolic).resolveSymbolicLinks());
     if (uriSymbolic != uri) {
       logger?.fine('Found $sdk at ${uri.toFilePath()}');
     }
