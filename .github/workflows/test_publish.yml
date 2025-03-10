@@ -2,6 +2,9 @@ name: test + publish + release
 
 on:
   push:
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
     # tags:
     #   - 'v[0-9]+.[0-9]+.[0-9]+*' # tag pattern on pub.dev: 'v{{version}'
   pull_request:

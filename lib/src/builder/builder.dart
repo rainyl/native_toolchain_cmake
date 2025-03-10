@@ -13,6 +13,7 @@ import 'package:native_assets_cli/code_assets_builder.dart';
 
 import '../utils/run_process.dart';
 import 'build_mode.dart';
+import 'builder_args.dart';
 import 'generator.dart';
 import 'log_level.dart';
 import 'run_builder.dart';
@@ -46,12 +47,6 @@ class CMakeBuilder implements Builder {
   /// When the value is `null`, the macro is defined without a value.
   final Map<String, String?> defines;
 
-  /// If the code asset should be a dynamic or static library.
-  ///
-  /// This determines whether to produce a dynamic or static library. If null,
-  /// the value is instead retrieved from the [LinkInput].
-  final LinkModePreference? linkModePreference;
-
   final BuildMode buildMode;
 
   final List<String>? targets;
@@ -59,17 +54,10 @@ class CMakeBuilder implements Builder {
   final String? toolset;
 
   // ios.toolchain.cmake
-  // https://github.com/leetal/ios-cmake?tab=readme-ov-file#exposed-variables
-  final bool enableBitcode;
-  final bool enableArc;
-  final bool enableVisibility;
-  final bool enableStrictTryCompile;
+  final AppleBuilderArgs appleArgs;
 
   // android ndk
-  int? androidAPI;
-  String? androidABI;
-  final String androidSTL;
-  final bool androidArmNeon;
+  final AndroidBuilderArgs androidArgs;
 
   final Logger? logger;
 
@@ -90,24 +78,11 @@ class CMakeBuilder implements Builder {
   ///    will be derived from the build hook's input.outputDirectory.
   ///   containing the source files. [sourceDir] will be updated to include it.
   /// - [defines]: A map specifying CMake preprocessor macros and their values.
-  /// - [linkModePreference]: Preferences for linking the built asset.
-  ///   [LinkModePreference.dynamic] or [LinkModePreference.static].
   /// - [buildMode]: The build mode to use. Defaults to [BuildMode.release].
   /// - [targets]: An optional list with the target to install.
   /// - [generator]: The CMake generator to use.
   ///   Defaults to [Generator.defaultGenerator].
   /// - [toolset]: An optional toolset string for CMake.
-  /// - [enableBitcode]: Flag to enable Bitcode; defaults to `false`.
-  /// - [enableArc]: Flag to enable ARC; defaults to `true`.
-  /// - [enableVisibility]: Flag to enable visibility, necessary to expose
-  ///   symbols; defaults to `true`.
-  /// - [enableStrictTryCompile]: Flag to enable strict try-compile mode;
-  ///    defaults to `false`.
-  /// - [androidAPI]: (Optional) The Android API level.
-  /// - [androidABI]: (Optional) The Android ABI specification.
-  /// - [androidArmNeon]: Flag that indicates whether ARM NEON is enabled;
-  ///    defaults to `true`.
-  /// - [androidSTL]: The Android STL type; defaults to `'c++_static'`.
   /// - [logLevel]: The verbosity level for CMake logging;
   ///    defaults to [LogLevel.STATUS].
   /// - [logger]: (Optional) A [Logger] for outputting log messages.
@@ -118,22 +93,15 @@ class CMakeBuilder implements Builder {
     required this.sourceDir,
     this.outDir,
     this.defines = const {},
-    this.linkModePreference,
     this.buildMode = BuildMode.release,
     this.targets,
     this.generator = Generator.defaultGenerator,
     this.toolset,
-    this.enableBitcode = false,
-    this.enableArc = true,
-    this.enableVisibility = true, // necessary to expose symbols
-    this.enableStrictTryCompile = false,
-    this.androidAPI,
-    this.androidABI,
-    this.androidArmNeon = true,
-    this.androidSTL = 'c++_static',
     this.logLevel = LogLevel.STATUS,
     this.logger,
     this.buildLocal = false,
+    this.androidArgs = const AndroidBuilderArgs(),
+    this.appleArgs = const AppleBuilderArgs(),
   }) : cmakeListsDir = sourceDir;
 
   /// This constructor initializes a new build config by cloning the
@@ -155,24 +123,11 @@ class CMakeBuilder implements Builder {
   /// - [gitSubDir]: (Optional) A subdirectory within the cloned repository
   ///   containing the source files. [sourceDir] will be updated to include it.
   /// - [defines]: A map specifying CMake preprocessor macros and their values.
-  /// - [linkModePreference]: Preferences for linking the built asset.
-  ///   [LinkModePreference.dynamic] or [LinkModePreference.static].
   /// - [buildMode]: The build mode to use. Defaults to [BuildMode.release].
   /// - [targets]: An optional list with the target to install.
   /// - [generator]: The CMake generator to use.
   ///   Defaults to [Generator.defaultGenerator].
   /// - [toolset]: An optional toolset string for CMake.
-  /// - [enableBitcode]: Flag to enable Bitcode; defaults to `false`.
-  /// - [enableArc]: Flag to enable ARC; defaults to `true`.
-  /// - [enableVisibility]: Flag to enable visibility, necessary to expose
-  ///   symbols; defaults to `true`.
-  /// - [enableStrictTryCompile]: Flag to enable strict try-compile mode;
-  ///    defaults to `false`.
-  /// - [androidAPI]: (Optional) The Android API level.
-  /// - [androidABI]: (Optional) The Android ABI specification.
-  /// - [androidArmNeon]: Flag that indicates whether ARM NEON is enabled;
-  ///    defaults to `true`.
-  /// - [androidSTL]: The Android STL type; defaults to `'c++_static'`.
   /// - [logLevel]: The verbosity level for CMake logging;
   ///    defaults to [LogLevel.STATUS].
   /// - [logger]: (Optional) A [Logger] for outputting log messages.
@@ -187,22 +142,15 @@ class CMakeBuilder implements Builder {
     String gitCommit = 'FETCH_HEAD',
     String gitSubDir = '',
     this.defines = const {},
-    this.linkModePreference,
     this.buildMode = BuildMode.release,
     this.targets,
     this.generator = Generator.defaultGenerator,
     this.toolset,
-    this.enableBitcode = false,
-    this.enableArc = true,
-    this.enableVisibility = true, // necessary to expose symbols
-    this.enableStrictTryCompile = false,
-    this.androidAPI,
-    this.androidABI,
-    this.androidArmNeon = true,
-    this.androidSTL = 'c++_static',
     this.logLevel = LogLevel.STATUS,
     this.logger,
     this.buildLocal = false,
+    this.androidArgs = const AndroidBuilderArgs(),
+    this.appleArgs = const AppleBuilderArgs(),
   }) : cmakeListsDir = sourceDir {
     // Some platforms will error if directory does not exist, create it.
     cmakeListsDir = sourceDir.resolve('external/$name/').normalizePath();
@@ -250,7 +198,8 @@ class CMakeBuilder implements Builder {
     required BuildOutputBuilder output,
     Logger? logger,
   }) async {
-    if (buildLocal) {
+    // do not override user specified output directory if they also set buildLocal to true
+    if (outDir == null && buildLocal) {
       final plat = input.config.code.targetOS.name.toLowerCase();
       final arch = input.config.code.targetArchitecture.name.toLowerCase();
       outDir = sourceDir.resolve('build/').resolve(plat).resolve(arch).normalizePath();
@@ -267,14 +216,8 @@ class CMakeBuilder implements Builder {
       buildMode: buildMode,
       defines: defines,
       targets: targets,
-      enableArc: enableArc,
-      enableBitcode: enableBitcode,
-      enableStrictTryCompile: enableStrictTryCompile,
-      enableVisibility: enableVisibility,
-      androidABI: androidABI,
-      androidAPI: androidAPI,
-      androidArmNeon: androidArmNeon,
-      androidSTL: androidSTL,
+      appleArgs: appleArgs,
+      androidArgs: androidArgs,
       logLevel: logLevel,
     );
 
