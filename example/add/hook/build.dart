@@ -2,7 +2,6 @@
 import 'dart:io';
 
 import 'package:add/src/hook_helpers/hook_helpers.dart';
-import 'package:native_assets_cli/code_assets_builder.dart';
 import 'package:native_assets_cli/native_assets_cli.dart';
 import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 

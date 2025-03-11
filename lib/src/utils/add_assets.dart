@@ -5,8 +5,10 @@ import 'package:logging/logging.dart';
 import 'package:native_assets_cli/code_assets_builder.dart';
 import 'package:native_assets_cli/data_assets.dart';
 
+import '../builder/linkmode.dart';
+
 /// Searches recursively through [outDir] (or [input.outputDirectory] if [outDir]
-/// is null) for library files matching the given [dynLibNames] and [staticLibNames].
+/// is null) for library files matching the given [patternMap].
 ///
 /// For each file found that matches the expected filename (as determined by
 /// [input.config.code.targetOS.libraryFileName]), a [CodeAsset] is added to
@@ -15,11 +17,11 @@ import 'package:native_assets_cli/data_assets.dart';
 /// based on the link mode preference, as follows:
 ///
 ///   - If [input.config.code.linkModePreference] implements [DynamicLoading],
-///     then [DynamicLoadingBundled] will be used and only libraries from
-///     [dynLibNames] are searched.
+///     then [DynamicLoadingBundled] will be used.
 ///   - If [input.config.code.linkModePreference] implements [StaticLinking],
-///     then [StaticLinking] will be used and only libraries from [staticLibNames]
-///     are searched.
+///     then [StaticLinking] will be used.
+///
+/// [patternMap] is a [Map] with [RegExp] as keys and code asset name as values,
 ///
 /// Returns a list of URIs corresponding to the added code assets.
 ///
@@ -29,76 +31,74 @@ import 'package:native_assets_cli/data_assets.dart';
 ///
 /// Example:
 /// ```dart
-/// final foundUris = await addLibraries(
+/// final foundUris = await addCodeAssets(
 ///   input,
 ///   output,
 ///   outDir: myOutputUri,
 ///   packageName: 'my_package',
-///   staticLibNames: ['mylib_static'],
-///   dynLibNames: ['mylib_dynamic'],
+///   patternMap: {
+///     RegExp(r'(lib)add\.(so|dylib|dll)'): 'add',
+///     RegExp(r'(lib)sub\.(so|dylib|dll)'): 'sub',
+///   },
 /// );
 /// ```
-Future<List<Uri>> addLibraries(
+Future<List<Uri>> addCodeAssets(
   BuildInput input,
-  BuildOutputBuilder output,
-  Uri? outDir, {
+  BuildOutputBuilder output, {
   required String packageName,
-  required List<String> staticLibNames,
-  required List<String> dynLibNames,
+  required Map<RegExp, String> patternMap,
+  Uri? outDir,
   Logger? logger,
 }) async {
   final preferredMode = input.config.code.linkModePreference;
-  final directory = outDir ?? input.outputDirectory;
+  final searchDir = Directory.fromUri(outDir ?? input.outputDirectory);
+  final linkMode = getLinkMode(preferredMode);
   final List<Uri> foundFiles = [];
-
-  final searchDir = Directory(directory.toFilePath());
 
   logger?.info('Searching for libraries in ${searchDir.path}');
   logger?.info('Preferred link mode: $preferredMode');
 
-  // Map the link mode preference by LinkModePreference.name
-  LinkMode linkMode;
-  List<String> libNames;
-  if (preferredMode.name == 'dynamic') {
-    logger?.info('Using dynamic link mode');
-    linkMode = DynamicLoadingBundled();
-    libNames = dynLibNames;
-  } else if (preferredMode.name == 'static') {
-    logger?.info('Using static link mode');
-    linkMode = StaticLinking();
-    libNames = staticLibNames;
-  } else {
-    throw UnsupportedError('Unsupported link mode preference: $preferredMode');
-  }
-
-  for (final libName in libNames) {
-    final fileName = input.config.code.targetOS.libraryFileName(libName, linkMode);
-    await for (final entity in searchDir.list(recursive: true, followLinks: false)) {
-      if (entity is File) {
-        final path = entity.path;
-        if (path.endsWith(fileName) && !foundFiles.any((uri) => uri.toFilePath() == path)) {
-          final uri = Uri.file(path);
-          logger?.info('Adding library as Code Asset: $uri');
-          output.assets.code.add(
-            CodeAsset(
-              package: packageName,
-              name: "$libName.dart",
-              linkMode: linkMode,
-              os: input.config.code.targetOS,
-              file: uri,
-              architecture: input.config.code.targetArchitecture,
-            ),
-          );
-          foundFiles.add(uri);
-        }
+  await for (final entity in searchDir.list(recursive: true, followLinks: false)) {
+    if (entity is! File) continue;
+    for (final pattern in patternMap.entries) {
+      assert(pattern.value.isNotEmpty, 'pattern.value is used to identify a library and must be provided!');
+      if (pattern.key.hasMatch(entity.path)) {
+        logger?.info('Found library file: ${entity.path}');
+        output.assets.code.add(
+          CodeAsset(
+            package: packageName,
+            name: '${pattern.value}.dart',
+            // TODO: the implementation of linkMode is not perfect
+            //
+            // The problem is, if user provides `libadd.a`, it should likely to be static,
+            // but the linkmode here is fixed (decided by BuildInput) and may not exactly
+            // match the type of found library (e.g., found libadd.a but linkmode is dynamic).
+            // However, the `getLinkMode` function copied from `native_toolchain_c` also
+            // returns `dynamic` if `linkModePreference` is `preferDynamic` (may be static)
+            //
+            // Maybe a better solution is inferring according to file extension, e.g.,
+            // libadd.(so|dylib|dll) -> dynamic
+            // libadd.(a|lib) -> static
+            //
+            // However, although not standard, a dynamic lib may also ends with '.a' and vice versa
+            // since on unix-like OS, file type is decided by file header, maybe we can warn
+            // users about this.
+            linkMode: linkMode,
+            os: input.config.code.targetOS,
+            file: entity.uri,
+            architecture: input.config.code.targetArchitecture,
+          ),
+        );
+        foundFiles.add(entity.uri);
+        break;
       }
     }
   }
-  logger?.info('Found libraries: $foundFiles');
   return foundFiles;
 }
 
-/// ** DataAsset not enabled yet by native_assets**
+/// **DataAsset not enabled yet by native_assets**
+///
 /// Searches recursively through [outDir] (or [input.outputDirectory] if [outDir] is null)
 /// for files matching the given asset names.
 ///
@@ -112,7 +112,7 @@ Future<List<Uri>> addLibraries(
 ///
 /// Example:
 /// ```dart
-/// final foundUris = await addAssets(
+/// final foundUris = await addDataAssets(
 ///   input,
 ///   output,
 ///   outDir: myOutputUri,
@@ -120,36 +120,34 @@ Future<List<Uri>> addLibraries(
 ///   assetNames: ['lib.js', 'data.json', 'lib.h'],
 /// );
 /// ```
-Future<List<Uri>> addAssets(
+Future<List<Uri>> addDataAssets(
   BuildInput input,
-  BuildOutputBuilder output,
-  Uri? outDir, {
+  BuildOutputBuilder output, {
   required String packageName,
   required List<String> assetNames,
+  Uri? outDir,
   Logger? logger,
 }) async {
-  final directory = outDir ?? input.outputDirectory;
   final List<Uri> foundFiles = [];
-  final searchDir = Directory(directory.toFilePath());
+  final searchDir = Directory.fromUri(outDir ?? input.outputDirectory);
 
   logger?.info('Searching for assets in ${searchDir.path}');
 
-  for (final assetName in assetNames) {
-    await for (final entity in searchDir.list(recursive: true, followLinks: false)) {
-      if (entity is File) {
-        final path = entity.path;
-        if (path.endsWith(assetName) && !foundFiles.any((uri) => uri.toFilePath() == path)) {
-          final uri = Uri.file(path);
-          logger?.info('Adding asset file: $uri');
-          output.assets.data.add(
-            DataAsset(
-              package: packageName,
-              name: assetName,
-              file: uri,
-            ),
-          );
-          foundFiles.add(uri);
-        }
+  await for (final entity in searchDir.list(recursive: true, followLinks: false)) {
+    for (final assetName in assetNames) {
+      if (entity is! File) continue;
+      final path = entity.path;
+      if (path.endsWith(assetName) && !foundFiles.any((uri) => uri.toFilePath() == path)) {
+        final uri = Uri.file(path);
+        logger?.info('Adding asset file: $uri');
+        output.assets.data.add(
+          DataAsset(
+            package: packageName,
+            name: assetName,
+            file: uri,
+          ),
+        );
+        foundFiles.add(uri);
       }
     }
   }
@@ -157,7 +155,8 @@ Future<List<Uri>> addAssets(
   return foundFiles;
 }
 
-///** DataAsset not enabled yet by native_assets**
+///**DataAsset not enabled yet by native_assets**
+///
 /// Recursively searches through each directory in [searchDirs].
 /// For each file found, the relative path is computed by removing the base directory’s
 /// path from the file’s full path. A [DataAsset] is then added to [output.assets.data].
@@ -190,25 +189,24 @@ Future<List<Uri>> addDirectories(
     logger?.info('Searching directory: $basePath');
 
     await for (final entity in baseDir.list(recursive: true, followLinks: false)) {
-      if (entity is File) {
-        final filePath = entity.path;
-        // Ensure the file path starts with the base directory path
-        if (!filePath.startsWith(basePath)) {
-          continue;
-        }
-        final relativePath = filePath.substring(basePath.length);
-        final fileUri = Uri.file(filePath);
-        logger?.info('Adding file: $fileUri with relative path: $relativePath');
-
-        output.assets.data.add(
-          DataAsset(
-            package: packageName,
-            name: relativePath,
-            file: fileUri,
-          ),
-        );
-        foundFiles.add(fileUri);
+      if (entity is! File) continue;
+      final filePath = entity.path;
+      // Ensure the file path starts with the base directory path
+      if (!filePath.startsWith(basePath)) {
+        continue;
       }
+      final relativePath = filePath.substring(basePath.length);
+      final fileUri = Uri.file(filePath);
+      logger?.info('Adding file: $fileUri with relative path: $relativePath');
+
+      output.assets.data.add(
+        DataAsset(
+          package: packageName,
+          name: relativePath,
+          file: fileUri,
+        ),
+      );
+      foundFiles.add(fileUri);
     }
   }
 

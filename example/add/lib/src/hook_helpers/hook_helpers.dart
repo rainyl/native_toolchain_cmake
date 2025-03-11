@@ -31,17 +31,20 @@ Future<void> runBuild(
 
   await builder.run(input: input, output: output, logger: _logger);
 
-  final outLibs = await addLibraries(
+  // automatically search and add libraries
+  final outLibs = await addCodeAssets(
     input,
     output,
-    Uri.file("${input.outputDirectory.toFilePath()}/install"),
+    outDir: input.outputDirectory.resolve('install'),
     packageName: name,
-    staticLibNames: [name],
-    dynLibNames: [name],
+    patternMap: {
+      RegExp(r'(lib)add\.(so|dylib|dll)'): 'add',
+    },
     logger: _logger,
   );
 
   // Do something else with outLibs uris
+  _logger.info('Found libs: $outLibs');
 }
 
 Future<void> runBuildGit(
@@ -74,6 +77,7 @@ Future<void> runBuildGit(
     logger: logger,
   );
 
+  // manually add assets
   final libPath = switch (input.config.code.targetOS) {
     OS.linux => "install/lib/libadd.so",
     OS.macOS => "install/lib/libadd.dylib",
