@@ -37,8 +37,8 @@ import '../builder/linkmode.dart';
 ///   outDir: myOutputUri,
 ///   packageName: 'my_package',
 ///   patternMap: {
-///     RegExp(r'(lib)add\.(so|dylib|dll)'): 'add',
-///     RegExp(r'(lib)sub\.(so|dylib|dll)'): 'sub',
+///     RegExp(r'(lib)?add\.(so|dylib|dll)'): 'add',
+///     RegExp(r'(lib)?sub\.(so|dylib|dll)'): 'sub',
 ///   },
 /// );
 /// ```

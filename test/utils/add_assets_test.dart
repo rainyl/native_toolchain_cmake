@@ -162,7 +162,7 @@ void main() {
         outDir: baseDir,
         packageName: 'add',
         patternMap: {
-          RegExp(r'(lib)add\.(so|dylib|dll)'): 'add',
+          RegExp(r'(lib)?add\.(so|dylib|dll)'): 'add',
         },
         logger: logger,
       );

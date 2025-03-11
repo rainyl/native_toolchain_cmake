@@ -38,7 +38,7 @@ Future<void> runBuild(
     outDir: input.outputDirectory.resolve('install'),
     packageName: name,
     patternMap: {
-      RegExp(r'(lib)add\.(so|dylib|dll)'): 'add',
+      RegExp(r'(lib)?add\.(so|dylib|dll)'): 'add',
     },
     logger: _logger,
   );
