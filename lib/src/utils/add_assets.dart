@@ -86,6 +86,7 @@ Future<List<Uri>> addLibraries(
               linkMode: linkMode,
               os: input.config.code.targetOS,
               file: uri,
+              architecture: input.config.code.targetArchitecture,
             ),
           );
           foundFiles.add(uri);
