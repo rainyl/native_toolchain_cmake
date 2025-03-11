@@ -31,7 +31,7 @@ Future<void> runBuild(
 
   await builder.run(input: input, output: output, logger: _logger);
 
-  final outLibs = await findLibraries(
+  final outLibs = await addLibraries(
     input,
     output,
     Uri.file("${input.outputDirectory.toFilePath()}/install"),

@@ -9,6 +9,7 @@ endif()
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/add.txt" "This is a data asset!")
 
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/assets")
+
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/assets/asset1.txt" "asset1")
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/assets/asset2.txt" "asset2")
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/assets/asset3.txt" "asset3")

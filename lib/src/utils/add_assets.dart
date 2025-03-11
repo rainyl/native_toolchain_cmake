@@ -29,7 +29,7 @@ import 'package:native_assets_cli/data_assets.dart';
 ///
 /// Example:
 /// ```dart
-/// final foundUris = await findLibraries(
+/// final foundUris = await addLibraries(
 ///   input,
 ///   output,
 ///   outDir: myOutputUri,
@@ -38,7 +38,7 @@ import 'package:native_assets_cli/data_assets.dart';
 ///   dynLibNames: ['mylib_dynamic'],
 /// );
 /// ```
-Future<List<Uri>> findLibraries(
+Future<List<Uri>> addLibraries(
   BuildInput input,
   BuildOutputBuilder output,
   Uri? outDir, {
@@ -110,7 +110,7 @@ Future<List<Uri>> findLibraries(
 ///
 /// Example:
 /// ```dart
-/// final foundUris = await findAsset(
+/// final foundUris = await addAssets(
 ///   input,
 ///   output,
 ///   outDir: myOutputUri,
@@ -118,7 +118,7 @@ Future<List<Uri>> findLibraries(
 ///   assetNames: ['lib.js', 'data.json', 'lib.h'],
 /// );
 /// ```
-Future<List<Uri>> findAssets(
+Future<List<Uri>> addAssets(
   BuildInput input,
   BuildOutputBuilder output,
   Uri? outDir, {
@@ -163,14 +163,14 @@ Future<List<Uri>> findAssets(
 ///
 /// Example:
 /// ```dart
-/// final foundUris = await findDirectories(
+/// final foundUris = await addDirectories(
 ///   input,
 ///   output,
 ///   [Uri.directory('assets/images/'), Uri.directory('assets/sounds/')],
 ///   packageName: 'my_package',
 /// );
 /// ```
-Future<List<Uri>> findDirectories(
+Future<List<Uri>> addDirectories(
   BuildInput input,
   BuildOutputBuilder output,
   List<Uri> searchDirs, {

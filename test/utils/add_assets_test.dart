@@ -4,7 +4,7 @@ import 'package:logging/logging.dart';
 import 'package:native_assets_cli/data_assets.dart';
 import 'package:native_assets_cli/code_assets_builder.dart';
 import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
-import 'package:native_toolchain_cmake/src/utils/find_assets.dart';
+import 'package:native_toolchain_cmake/src/utils/add_assets.dart';
 
 void main() {
   final logger = Logger('FindAssetsTest');
@@ -40,7 +40,7 @@ void main() {
       final buildInput = BuildInput(buildInputBuilder.json);
       final buildOutput = BuildOutputBuilder();
 
-      final found = await findDirectories(
+      final found = await addDirectories(
         buildInput,
         buildOutput,
         [baseDir.uri],
@@ -103,7 +103,7 @@ void main() {
       final buildInput = BuildInput(buildInputBuilder.json);
       final buildOutput = BuildOutputBuilder();
 
-      final found = await findAssets(
+      final found = await addAssets(
         buildInput,
         buildOutput,
         baseDir.uri,
@@ -163,7 +163,7 @@ void main() {
       final buildOutput = BuildOutputBuilder();
 
       // Call findLibraries with the provided dynamic library names.
-      final found = await findLibraries(
+      final found = await addLibraries(
         buildInput,
         buildOutput,
         baseDir.uri,
