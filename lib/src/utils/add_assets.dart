@@ -97,6 +97,7 @@ Future<List<Uri>> addLibraries(
   return foundFiles;
 }
 
+/// ** DataAsset not enabled yet by native_assets**
 /// Searches recursively through [outDir] (or [input.outputDirectory] if [outDir] is null)
 /// for files matching the given asset names.
 ///
@@ -155,6 +156,7 @@ Future<List<Uri>> addAssets(
   return foundFiles;
 }
 
+///** DataAsset not enabled yet by native_assets**
 /// Recursively searches through each directory in [searchDirs].
 /// For each file found, the relative path is computed by removing the base directory’s
 /// path from the file’s full path. A [DataAsset] is then added to [output.assets.data].
