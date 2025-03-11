@@ -185,8 +185,7 @@ Future<List<Uri>> addDirectories(
   for (final dirUri in searchDirs) {
     // Create a Directory using the URI.
     final baseDir = Directory.fromUri(dirUri);
-    final basePath =
-        baseDir.path.endsWith(Platform.pathSeparator) ? baseDir.path : baseDir.path + Platform.pathSeparator;
+    final basePath = dirUri.toFilePath();
 
     logger?.info('Searching directory: $basePath');
 

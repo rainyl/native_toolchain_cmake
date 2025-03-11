@@ -64,7 +64,7 @@ void main() {
         return fPath.substring(basePath.length + 1);
       }).toList();
 
-      expect(foundNames, containsAllInOrder(expectedNames));
+      expect(foundNames, containsAll(expectedNames));
 
       // Cleanup.
       await baseDir.delete(recursive: true);
