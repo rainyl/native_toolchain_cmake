@@ -46,7 +46,7 @@ Future<List<Uri>> addCodeAssets(
   BuildInput input,
   BuildOutputBuilder output, {
   required String packageName,
-  required Map<RegExp, String> patternMap,
+  required List<String> names,
   Uri? outDir,
   Logger? logger,
 }) async {
@@ -60,29 +60,15 @@ Future<List<Uri>> addCodeAssets(
 
   await for (final entity in searchDir.list(recursive: true, followLinks: false)) {
     if (entity is! File) continue;
-    for (final pattern in patternMap.entries) {
-      assert(pattern.value.isNotEmpty, 'pattern.value is used to identify a library and must be provided!');
-      if (pattern.key.hasMatch(entity.path)) {
+    for (final name in names) {
+      final libName = OS.current.libraryFileName(name, linkMode);
+      if (entity.path.endsWith(libName)) {
+        // this can be more elegant
         logger?.info('Found library file: ${entity.path}');
         output.assets.code.add(
           CodeAsset(
             package: packageName,
-            name: '${pattern.value}.dart',
-            // TODO: the implementation of linkMode is not perfect
-            //
-            // The problem is, if user provides `libadd.a`, it should likely to be static,
-            // but the linkmode here is fixed (decided by BuildInput) and may not exactly
-            // match the type of found library (e.g., found libadd.a but linkmode is dynamic).
-            // However, the `getLinkMode` function copied from `native_toolchain_c` also
-            // returns `dynamic` if `linkModePreference` is `preferDynamic` (may be static)
-            //
-            // Maybe a better solution is inferring according to file extension, e.g.,
-            // libadd.(so|dylib|dll) -> dynamic
-            // libadd.(a|lib) -> static
-            //
-            // However, although not standard, a dynamic lib may also ends with '.a' and vice versa
-            // since on unix-like OS, file type is decided by file header, maybe we can warn
-            // users about this.
+            name: '$name.dart',
             linkMode: linkMode,
             os: input.config.code.targetOS,
             file: entity.uri,
