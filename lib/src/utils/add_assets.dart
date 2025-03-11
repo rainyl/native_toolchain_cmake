@@ -93,7 +93,7 @@ Future<List<Uri>> addCodeAssets(
 ///   output,
 ///   outDir: myOutputUri,
 ///   packageName: 'my_package',
-///   assetNames: ['lib.js', 'data.json', 'lib.h'],
+///   assetNames: ['lib.js', 'data.json', 'index.html', lib.h],
 /// );
 /// ```
 Future<List<Uri>> addDataAssets(
