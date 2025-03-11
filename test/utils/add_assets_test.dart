@@ -7,10 +7,10 @@ import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 import 'package:native_toolchain_cmake/src/utils/add_assets.dart';
 
 void main() {
-  final logger = Logger('FindAssetsTest');
+  final logger = Logger('AddAssetsTest');
 
-  group('findDirectories', () {
-    test('finds files recursively and computes relative paths', () async {
+  group('AddDirectories', () {
+    test('finds and adds files recursively and computes relative paths', () async {
       // Create temporary directories for packageRoot, outputFile, and outputDirectoryShared.
       final baseDir = await Directory.systemTemp.createTemp('find_directories_test_');
       final sharedDir = await Directory.systemTemp.createTemp('shared_');
@@ -72,8 +72,8 @@ void main() {
     });
   });
 
-  group('findAssets', () {
-    test('finds only files matching provided asset names', () async {
+  group('addAssets', () {
+    test('finds and adds only files matching provided asset names', () async {
       // Create temporary directories as URIs.
       final baseDir = await Directory.systemTemp.createTemp('find_assets_test_');
       final sharedDir = await Directory.systemTemp.createTemp('shared_');
@@ -127,8 +127,8 @@ void main() {
     });
   });
 
-  group('findLibraries', () {
-    test('finds library files matching expected names', () async {
+  group('addLibraries', () {
+    test('finds and adds library files matching expected names', () async {
       // Create temporary directories as URIs.
       final baseDir = await Directory.systemTemp.createTemp('find_libraries_test_');
       final sharedDir = await Directory.systemTemp.createTemp('shared_');
@@ -162,7 +162,7 @@ void main() {
       final buildInput = BuildInput(buildInputBuilder.json);
       final buildOutput = BuildOutputBuilder();
 
-      // Call findLibraries with the provided dynamic library names.
+      // Call addLibraries with the provided dynamic library names.
       final found = await addLibraries(
         buildInput,
         buildOutput,
