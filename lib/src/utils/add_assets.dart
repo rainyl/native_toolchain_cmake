@@ -7,27 +7,19 @@ import 'package:native_assets_cli/data_assets.dart';
 
 import '../builder/linkmode.dart';
 
-/// Searches recursively through [outDir] (or [input.outputDirectory] if [outDir]
-/// is null) for library files matching the given [patternMap].
+/// Searches recursively through the provided [outDir] (or [input.outputDirectory]
+/// if [outDir] is null) for native library files that match the expected
+/// target filename pattern.
 ///
-/// For each file found that matches the expected filename (as determined by
-/// [input.config.code.targetOS.libraryFileName]), a [CodeAsset] is added to
-/// [output.assets.code] if it has not been added already (tracked via an internal set
-/// of file paths). The candidate file name is computed using a concrete [LinkMode]
-/// based on the link mode preference, as follows:
+/// The expected filename is computed using the current operating system's naming conventions
+/// combined with a concrete [LinkMode] derived from [input.config.code.linkModePreference].
+/// For each file that ends with the computed library filename for one of the provided [names],
+/// a [CodeAsset] is created and added to [output.assets.code] if it hasn't already been added.
 ///
-///   - If [input.config.code.linkModePreference] implements [DynamicLoading],
-///     then [DynamicLoadingBundled] will be used.
-///   - If [input.config.code.linkModePreference] implements [StaticLinking],
-///     then [StaticLinking] will be used.
+/// Duplicate assets are avoided by tracking previously added file paths internally
+/// as [output.assets] is not iterable.
 ///
-/// [patternMap] is a [Map] with [RegExp] as keys and code asset name as values,
-///
-/// Returns a list of URIs corresponding to the added code assets.
-///
-/// See also:
-///   - [CodeAsset], which represents the native code asset.
-///   - [BuildInput] and [BuildOutputBuilder] for context on asset building.
+/// Returns a list of URIs corresponding to all the added code assets.
 ///
 /// Example:
 /// ```dart
@@ -36,10 +28,7 @@ import '../builder/linkmode.dart';
 ///   output,
 ///   outDir: myOutputUri,
 ///   packageName: 'my_package',
-///   patternMap: {
-///     RegExp(r'(lib)?add\.(so|dylib|dll)'): 'add',
-///     RegExp(r'(lib)?sub\.(so|dylib|dll)'): 'sub',
-///   },
+///   names: ['add'],
 /// );
 /// ```
 Future<List<Uri>> addCodeAssets(
@@ -91,8 +80,9 @@ Future<List<Uri>> addCodeAssets(
 /// The [assetNames] are expected to include the full filename with its extension.
 /// For each file found whose path ends with one of the provided asset names, a
 /// [DataAsset] is added to [output.assets.data] if it has not already been added
-/// (tracked via an internal collection of file URIs). The asset is created using
-/// [packageName], [assetName] as the asset name, and the discovered file URI.
+/// (tracked via an internal collection of file URIs since [output.assets] is not iterable).
+/// The asset is created using [packageName], [assetName] as the asset name,
+/// and the discovered file URI.
 ///
 /// Returns a list of URIs corresponding to the added data assets.
 ///
@@ -114,6 +104,7 @@ Future<List<Uri>> addDataAssets(
   Uri? outDir,
   Logger? logger,
 }) async {
+  // TODO: Use output.assets when/if it becomes iterable.
   final List<Uri> foundFiles = [];
   final searchDir = Directory.fromUri(outDir ?? input.outputDirectory);
 
@@ -144,8 +135,7 @@ Future<List<Uri>> addDataAssets(
 ///**DataAsset not enabled yet by native_assets**
 ///
 /// Recursively searches through each directory in [searchDirs].
-/// For each file found, the relative path is computed by removing the base directory’s
-/// path from the file’s full path. A [DataAsset] is then added to [output.assets.data].
+/// For each file found, a [DataAsset] is then added to [output.assets.data].
 ///
 /// Returns a combined list of URIs corresponding to all the added files.
 ///
