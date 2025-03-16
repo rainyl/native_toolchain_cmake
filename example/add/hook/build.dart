@@ -9,7 +9,6 @@ void main(List<String> args) async {
   await build(args, (input, output) async {
     final sourceDir = Directory(await getPackagePath('add')).uri.resolve('src');
     const exampleGit = false;
-
     if (!exampleGit) {
       await runBuild(input, output, sourceDir);
     } else {
