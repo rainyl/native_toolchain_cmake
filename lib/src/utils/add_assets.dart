@@ -7,9 +7,14 @@ import 'package:native_assets_cli/data_assets.dart';
 
 import '../builder/linkmode.dart';
 
+/// Library names must be without prefix and extensions.
 /// Searches recursively through the provided [outDir] (or [input.outputDirectory]
-/// if [outDir] is null) for native library files that match the expected
-/// target filename pattern.
+/// if [outDir] is null) for native library files that match the given [names]
+/// and adds them to [output.assets.code].
+///
+/// [names] is used to map a found library file to a foreign function interface
+/// in Dart. For example, foo_windows_x64.dll needing to map to the native_foo
+/// FFI interface would map {'foo_windows_x64': 'native_foo.dart'}.
 ///
 /// The expected filename is computed using the current operating system's naming conventions
 /// combined with a concrete [LinkMode] derived from [input.config.code.linkModePreference].
@@ -27,15 +32,13 @@ import '../builder/linkmode.dart';
 ///   input,
 ///   output,
 ///   outDir: myOutputUri,
-///   packageName: 'my_package',
 ///   names: ['add'],
 /// );
 /// ```
-Future<List<Uri>> addCodeAssets(
+Future<List<Uri>> addFoundCodeAssets(
   BuildInput input,
   BuildOutputBuilder output, {
-  required String packageName,
-  required List<String> names,
+  required Map<String, String> names, // key: search library name, value: dart ffi name
   Uri? outDir,
   Logger? logger,
 }) async {
@@ -49,15 +52,16 @@ Future<List<Uri>> addCodeAssets(
 
   await for (final entity in searchDir.list(recursive: true, followLinks: false)) {
     if (entity is! File) continue;
-    for (final name in names) {
-      final libName = OS.current.libraryFileName(name, linkMode);
+    for (final entry in names.entries) {
+      final searchKey = entry.key;
+      final assetFilename = entry.value;
+      final libName = OS.current.libraryFileName(searchKey, linkMode);
       if (entity.path.endsWith(libName)) {
-        // this can be more elegant
         logger?.info('Found library file: ${entity.path}');
         output.assets.code.add(
           CodeAsset(
-            package: packageName,
-            name: '$name.dart',
+            package: input.packageName,
+            name: assetFilename,
             linkMode: linkMode,
             os: input.config.code.targetOS,
             file: entity.uri,
@@ -69,123 +73,5 @@ Future<List<Uri>> addCodeAssets(
       }
     }
   }
-  return foundFiles;
-}
-
-/// **DataAsset not enabled yet by native_assets**
-///
-/// Searches recursively through [outDir] (or [input.outputDirectory] if [outDir] is null)
-/// for files matching the given asset names.
-///
-/// The [assetNames] are expected to include the full filename with its extension.
-/// For each file found whose path ends with one of the provided asset names, a
-/// [DataAsset] is added to [output.assets.data] if it has not already been added
-/// (tracked via an internal collection of file URIs since [output.assets] is not iterable).
-/// The asset is created using [packageName], [assetName] as the asset name,
-/// and the discovered file URI.
-///
-/// Returns a list of URIs corresponding to the added data assets.
-///
-/// Example:
-/// ```dart
-/// final foundUris = await addDataAssets(
-///   input,
-///   output,
-///   outDir: myOutputUri,
-///   packageName: 'my_package',
-///   assetNames: ['lib.js', 'data.json', 'index.html', lib.h],
-/// );
-/// ```
-Future<List<Uri>> addDataAssets(
-  BuildInput input,
-  BuildOutputBuilder output, {
-  required String packageName,
-  required List<String> assetNames,
-  Uri? outDir,
-  Logger? logger,
-}) async {
-  // TODO: Use output.assets when/if it becomes iterable.
-  final List<Uri> foundFiles = [];
-  final searchDir = Directory.fromUri(outDir ?? input.outputDirectory);
-
-  logger?.info('Searching for assets in ${searchDir.path}');
-
-  await for (final entity in searchDir.list(recursive: true, followLinks: false)) {
-    for (final assetName in assetNames) {
-      if (entity is! File) continue;
-      final path = entity.path;
-      if (path.endsWith(assetName) && !foundFiles.any((uri) => uri.toFilePath() == path)) {
-        final uri = Uri.file(path);
-        logger?.info('Adding asset file: $uri');
-        output.assets.data.add(
-          DataAsset(
-            package: packageName,
-            name: assetName,
-            file: uri,
-          ),
-        );
-        foundFiles.add(uri);
-      }
-    }
-  }
-  logger?.info('Found assets: $foundFiles');
-  return foundFiles;
-}
-
-///**DataAsset not enabled yet by native_assets**
-///
-/// Recursively searches through each directory in [searchDirs].
-/// For each file found, a [DataAsset] is then added to [output.assets.data].
-///
-/// Returns a combined list of URIs corresponding to all the added files.
-///
-/// Example:
-/// ```dart
-/// final foundUris = await addDirectories(
-///   input,
-///   output,
-///   [Uri.directory('assets/images/'), Uri.directory('assets/sounds/')],
-///   packageName: 'my_package',
-/// );
-/// ```
-Future<List<Uri>> addDirectories(
-  BuildInput input,
-  BuildOutputBuilder output,
-  List<Uri> searchDirs, {
-  required String packageName,
-  Logger? logger,
-}) async {
-  final List<Uri> foundFiles = [];
-
-  for (final dirUri in searchDirs) {
-    // Create a Directory using the URI.
-    final baseDir = Directory.fromUri(dirUri);
-    final basePath = dirUri.toFilePath();
-
-    logger?.info('Searching directory: $basePath');
-
-    await for (final entity in baseDir.list(recursive: true, followLinks: false)) {
-      if (entity is! File) continue;
-      final filePath = entity.path;
-      // Ensure the file path starts with the base directory path
-      if (!filePath.startsWith(basePath)) {
-        continue;
-      }
-      final relativePath = filePath.substring(basePath.length);
-      final fileUri = Uri.file(filePath);
-      logger?.info('Adding file: $fileUri with relative path: $relativePath');
-
-      output.assets.data.add(
-        DataAsset(
-          package: packageName,
-          name: relativePath,
-          file: fileUri,
-        ),
-      );
-      foundFiles.add(fileUri);
-    }
-  }
-
-  logger?.info('Found files: $foundFiles');
   return foundFiles;
 }

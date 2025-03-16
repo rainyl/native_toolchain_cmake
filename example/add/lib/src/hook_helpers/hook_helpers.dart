@@ -31,13 +31,15 @@ Future<void> runBuild(
 
   await builder.run(input: input, output: output, logger: _logger);
 
+  final buildjson = input.config.json;
+  _logger.info('Build output: $buildjson');
+
   // automatically search and add libraries
-  final outLibs = await addCodeAssets(
+  final outLibs = await addFoundCodeAssets(
     input,
     output,
     outDir: input.outputDirectory.resolve('install'),
-    packageName: name,
-    names: [name],
+    names: {'add': 'add.dart'},
     logger: _logger,
   );
 
