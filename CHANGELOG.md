@@ -4,7 +4,7 @@
 
 - new: add `CMakeBuilder.fromGit` constructor to create a builder from a remote repository.
 - new: add `buildLocal` optional parameter to build out of `.dart_tool`.
-- new: add `AddFoundCodeAssets` to find and add code assets from an output directory and map them to the    expected dart FFI.
+- new: add `AddFoundCodeAssets`, `BuildOutputBuilder.findAndAddCodeAssets` to find and add code assets.
 - breaking change: move android and `ios.toolchain.cmake` related args of `CMakeBuilder` to separate `AndroidBuilderArgs` and `AppleBuilderArgs`.
 
 ## 0.0.2

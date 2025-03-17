@@ -35,12 +35,12 @@ Future<void> runBuild(
   _logger.info('Build output: $buildjson');
 
   // automatically search and add libraries
-  final outLibs = await addFoundCodeAssets(
+  final outLibs = await output.findAndAddCodeAssets(
     input,
-    output,
+    names: {r'(lib)?add\.(dll|so|dylib)': 'add.dart'},
     outDir: input.outputDirectory.resolve('install'),
-    names: {'add': 'add.dart'},
     logger: _logger,
+    regExp: true,
   );
 
   // Do something else with outLibs uris
