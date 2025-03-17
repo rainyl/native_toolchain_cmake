@@ -1,3 +1,4 @@
+//  ignore_for_file: dead_code
 import 'dart:io';
 
 import 'package:add/src/hook_helpers/hook_helpers.dart';
