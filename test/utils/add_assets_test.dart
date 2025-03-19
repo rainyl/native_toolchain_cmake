@@ -42,26 +42,27 @@ void main() {
         );
 
       final buildInput = BuildInput(buildInputBuilder.json);
-      final buildOutput = BuildOutputBuilder();
 
       {
+        final buildOutput = BuildOutputBuilder();
         // Call addLibraries with the provided dynamic library names.
-        final found = await buildOutput.findAndAddCodeAssets(
+        final added = await buildOutput.findAndAddCodeAssets(
           buildInput,
           outDir: baseDir,
           names: {'add': 'add.dart'},
           logger: logger,
         );
 
-        // Validate that one library file was found.
-        expect(found.length, equals(1));
+        // Validate that one library file was added.
+        expect(added.length, equals(1));
         // The file should reside in a "lib" subdirectory.
-        expect(found.first.toFilePath(), equals(libFile.absolute.path));
+        expect(added.first.file?.toFilePath(), equals(libFile.absolute.path));
       }
 
       {
+        final buildOutput = BuildOutputBuilder();
         // Call addLibraries with the provided dynamic library names.
-        final found = await buildOutput.findAndAddCodeAssets(
+        final added = await buildOutput.findAndAddCodeAssets(
           buildInput,
           outDir: baseDir,
           names: {r'(lib)?add\.(dll|so|dylib)': 'add.dart'},
@@ -69,10 +70,10 @@ void main() {
           regExp: true,
         );
 
-        // Validate that one library file was found.
-        expect(found.length, equals(1));
+        // Validate that one library file was added.
+        expect(added.length, equals(1));
         // The file should reside in a "lib" subdirectory.
-        expect(found.first.toFilePath(), equals(libFile.absolute.path));
+        expect(added.first.file?.toFilePath(), equals(libFile.absolute.path));
       }
     });
   });
@@ -110,22 +111,23 @@ void main() {
     final buildOutput = BuildOutputBuilder();
 
     // First call should add the asset.
-    final foundFirst = await buildOutput.findAndAddCodeAssets(
+    final addedFirst = await buildOutput.findAndAddCodeAssets(
       buildInput,
       outDir: baseDir,
       names: {'add': 'add.dart'},
       logger: logger,
     );
-    expect(foundFirst.length, equals(1));
+    expect(addedFirst.length, equals(1));
 
     // Second call should not add the asset again since it's already added.
-    final foundSecond = await buildOutput.findAndAddCodeAssets(
+    final addedSecond = await buildOutput.findAndAddCodeAssets(
       buildInput,
       outDir: baseDir,
       names: {'add': 'add.dart'},
       logger: logger,
     );
-    expect(foundSecond.length, equals(1));
+    // No assets should be added.
+    expect(addedSecond.length, equals(0));
   });
 
   test('does not add duplicate asset when libraries exist in nested directories', () async {
@@ -171,13 +173,13 @@ void main() {
     final buildOutput = BuildOutputBuilder();
 
     // The call should find matching library files but add only one asset.
-    final found = await buildOutput.findAndAddCodeAssets(
+    final added = await buildOutput.findAndAddCodeAssets(
       buildInput,
       outDir: baseDir,
       names: {'add': 'add.dart'},
       logger: logger,
     );
 
-    expect(found.length, equals(1));
+    expect(added.length, equals(1));
   });
 }
