@@ -37,7 +37,7 @@ class RunCMakeBuilder {
   final BuildMode buildMode;
 
   /// -G
-  final Generator generator;
+  Generator generator;
 
   /// -T
   final String? toolset;
@@ -228,8 +228,8 @@ class RunCMakeBuilder {
       return [];
     }
     final defs = <String>[];
-    final toolchain = await androidToolchainCmake();
-    defs.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
+
+    generator == Generator.defaultGenerator ? generator = Generator.ninja : generator = generator;
 
     // The Android Gradle plugin does not honor API level 19 and 20 when
     // invoking clang. Mimic that behavior here.
@@ -268,6 +268,7 @@ class RunCMakeBuilder {
   }
 
   Future<List<String>> _generateLinuxDefines() async {
+    generator == Generator.defaultGenerator ? generator = Generator.ninja : generator = generator;
     if (codeConfig.targetOS != OS.linux) {
       return [];
     }
