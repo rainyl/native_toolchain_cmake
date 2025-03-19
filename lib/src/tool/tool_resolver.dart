@@ -207,8 +207,9 @@ class InstallLocationResolver implements ToolResolver {
     String pathNew = path;
     if (path.startsWith(home)) {
       final homeDir_ = homeDir;
-      assert(homeDir_ != null);
-      pathNew = path.replaceAll('$home/', homeDir!.toFilePath().replaceAll(r'\', '/'));
+      if (homeDir_ != null) {
+        pathNew = path.replaceAll('$home/', homeDir!.toFilePath().replaceAll(r'\', '/'));
+      }
     }
 
     final result = <Uri>[];

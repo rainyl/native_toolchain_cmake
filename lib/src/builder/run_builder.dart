@@ -228,6 +228,8 @@ class RunCMakeBuilder {
       return [];
     }
     final defs = <String>[];
+    final toolchain = await androidToolchainCmake();
+    defs.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
 
     generator == Generator.defaultGenerator ? generator = Generator.ninja : generator = generator;
 
