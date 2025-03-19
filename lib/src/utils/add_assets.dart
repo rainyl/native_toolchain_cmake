@@ -74,7 +74,7 @@ Future<List<Uri>> addFoundCodeAssets(
       // e.g., when using mingw64, so allow using RegExp matching if regExp=true.
       final found = regExp
           ? RegExp(key).hasMatch(p.basename(entity.path))
-          : entity.path.endsWith(OS.current.libraryFileName(key, linkMode));
+          : entity.path.endsWith(input.config.code.targetOS.libraryFileName(key, linkMode));
       if (!found) continue;
       logger?.info('Found library file: ${entity.path}');
       output.addCodeAsset(
