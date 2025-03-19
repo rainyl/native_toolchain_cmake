@@ -1,5 +1,10 @@
 # native_toolchain_cmake
 
+## 0.0.4
+
+- new: add extension methods `BuildOutputBuilder.findCodeAssets`, `BuildOutputBuilder.addAllCodeAssets`
+- breaking change: `BuildOutputBuilder.findAndAddCodeAssets` now returns `List<CodeAsset>`
+
 ## 0.0.3
 
 - new: add `CMakeBuilder.fromGit` constructor to create a builder from a remote repository.
