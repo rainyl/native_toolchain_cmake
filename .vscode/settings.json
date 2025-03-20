@@ -3,5 +3,4 @@
   "dart.vmAdditionalArgs": [
     "--enable-experiment=native-assets"
   ],
-  "cmake.sourceDirectory": "D:/Code/git/forks/native_toolchain_cmake/example/add/src"
 }
