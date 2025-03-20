@@ -202,7 +202,7 @@ class CMakeBuilder implements Builder {
     if (outDir == null && buildLocal) {
       final plat = input.config.code.targetOS.name.toLowerCase();
       final arch = input.config.code.targetArchitecture.name.toLowerCase();
-      outDir = sourceDir.resolve('build/').resolve(plat).resolve(arch).normalizePath();
+      outDir = sourceDir.resolve('build/').resolve('$plat/').resolve(arch).normalizePath();
     }
     await Directory.fromUri(outDir ?? input.outputDirectory).create(recursive: true);
 

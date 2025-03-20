@@ -2,6 +2,10 @@
 
 ## 0.0.4
 
+- fix: android should use Ninja for android builds
+- fix: fixed a uri resolution issue for the local build folder
+- fix: use the input's target OS instead of current.OS
+- fix: null value in tool resolution
 - new: add extension methods `BuildOutputBuilder.findCodeAssets`, `BuildOutputBuilder.addAllCodeAssets`
 - breaking change: `BuildOutputBuilder.findAndAddCodeAssets` now returns `List<CodeAsset>`
 

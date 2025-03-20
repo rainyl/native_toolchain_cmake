@@ -22,7 +22,9 @@ void main() {
           gitUrl: 'https://github.com/rainyl/native_toolchain_cmake.git',
           sourceDir: tempDir,
           gitSubDir: subdir,
-          logger: Logger('')..level = Level.ALL..onRecord.listen((record) => stderr.writeln(record)),
+          logger: Logger('')
+            ..level = Level.ALL
+            ..onRecord.listen((record) => stderr.writeln(record)),
         );
 
         // The builder constructor creates a directory at sourceDir/external/<name>
@@ -87,7 +89,8 @@ void main() {
         final osName = input.config.code.targetOS.name.toLowerCase();
         final archName = input.config.code.targetArchitecture.name.toLowerCase();
         final buildDir = buildLocal
-            ? Directory.fromUri(tempDir.resolve('build/').resolve(osName).resolve(archName).normalizePath())
+            ? Directory.fromUri(
+                tempDir.resolve('build/').resolve("$osName/").resolve(archName).normalizePath())
             : Directory.fromUri(input.outputDirectory);
         expect(
           buildDir.existsSync(),

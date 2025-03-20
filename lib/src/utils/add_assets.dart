@@ -108,7 +108,7 @@ extension BuildOutputBuilderCodeAssets on BuildOutputBuilder {
       for (final MapEntry(:key, value: assetName) in names.entries) {
         final found = regExp
             ? RegExp(key).hasMatch(p.basename(entity.path))
-            : entity.path.endsWith(OS.current.libraryFileName(key, linkMode));
+            : entity.path.endsWith(input.config.code.targetOS.libraryFileName(key, linkMode));
         if (!found) continue;
         logger?.info('Found library file: ${entity.path}');
         final asset = CodeAsset(
