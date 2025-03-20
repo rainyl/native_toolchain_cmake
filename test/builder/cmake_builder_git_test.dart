@@ -1,6 +1,7 @@
 import 'dart:ffi';
 import 'dart:io';
 
+import 'package:logging/logging.dart';
 import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 import 'package:native_toolchain_cmake/src/builder/builder.dart';
 import 'package:test/test.dart';
@@ -21,7 +22,7 @@ void main() {
           gitUrl: 'https://github.com/rainyl/native_toolchain_cmake.git',
           sourceDir: tempDir,
           gitSubDir: subdir,
-          // logger: Logger('')..level = Level.ALL..onRecord.listen((record) => stderr.writeln(record)),
+          logger: Logger('')..level = Level.ALL..onRecord.listen((record) => stderr.writeln(record)),
         );
 
         // The builder constructor creates a directory at sourceDir/external/<name>
