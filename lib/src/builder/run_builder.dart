@@ -270,7 +270,6 @@ class RunCMakeBuilder {
   }
 
   Future<List<String>> _generateLinuxDefines() async {
-    generator == Generator.defaultGenerator ? generator = Generator.ninja : generator = generator;
     if (codeConfig.targetOS != OS.linux) {
       return [];
     }
