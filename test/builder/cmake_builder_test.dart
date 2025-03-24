@@ -40,10 +40,7 @@ void main() {
             outputDirectory: tempUri,
             outputDirectoryShared: tempUri2,
           )
-          ..config.setupBuild(
-            linkingEnabled: false,
-            dryRun: false,
-          )
+          ..config.setupBuild(linkingEnabled: false)
           ..config.setupShared(buildAssetTypes: [CodeAsset.type])
           ..config.setupCode(
             targetOS: targetOS,
@@ -100,10 +97,7 @@ void main() {
           outputDirectory: tempUri,
           outputDirectoryShared: tempUri2,
         )
-        ..config.setupBuild(
-          linkingEnabled: false,
-          dryRun: false,
-        )
+        ..config.setupBuild(linkingEnabled: false)
         ..config.setupShared(buildAssetTypes: [CodeAsset.type])
         ..config.setupCode(
           targetOS: targetOS,
@@ -155,10 +149,7 @@ Future<void> testDefines({BuildMode buildMode = BuildMode.debug}) async {
       outputDirectory: tempUri,
       outputDirectoryShared: tempUri2,
     )
-    ..config.setupBuild(
-      linkingEnabled: false,
-      dryRun: false,
-    )
+    ..config.setupBuild(linkingEnabled: false)
     ..config.setupShared(buildAssetTypes: [CodeAsset.type])
     ..config.setupCode(
       targetOS: targetOS,
