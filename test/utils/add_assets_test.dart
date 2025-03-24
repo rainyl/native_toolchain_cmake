@@ -33,7 +33,7 @@ void main() {
           outputDirectory: baseDir,
           outputDirectoryShared: sharedDir,
         )
-        ..config.setupBuild(linkingEnabled: true, dryRun: false)
+        ..config.setupBuild(linkingEnabled: true)
         ..config.setupShared(buildAssetTypes: [CodeAsset.type])
         ..config.setupCode(
           targetOS: OS.current,
@@ -100,7 +100,7 @@ void main() {
         outputDirectory: baseDir,
         outputDirectoryShared: sharedDir,
       )
-      ..config.setupBuild(linkingEnabled: true, dryRun: false)
+      ..config.setupBuild(linkingEnabled: true)
       ..config.setupShared(buildAssetTypes: [CodeAsset.type])
       ..config.setupCode(
         targetOS: OS.current,
@@ -162,7 +162,7 @@ void main() {
         outputDirectory: baseDir,
         outputDirectoryShared: sharedDir,
       )
-      ..config.setupBuild(linkingEnabled: true, dryRun: false)
+      ..config.setupBuild(linkingEnabled: true)
       ..config.setupShared(buildAssetTypes: [CodeAsset.type])
       ..config.setupCode(
         targetOS: OS.current,

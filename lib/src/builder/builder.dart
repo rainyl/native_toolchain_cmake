@@ -221,16 +221,8 @@ class CMakeBuilder implements Builder {
       logLevel: logLevel,
     );
 
+    // Do not remove this line for potential extra variables in the future
     final Map<String, String> envVars = Map.from(Platform.environment);
-    // TODO: patch environment variables for cmake
-    // may be error if system drive is not C:
-    // https://github.com/dart-lang/native/issues/2077
-    if (input.config.code.targetOS == OS.windows) {
-      envVars.addAll({
-        "WINDIR": r"C:\WINDOWS",
-        "SYSTEMDRIVE": "C:",
-      });
-    }
     await task.run(environment: envVars);
   }
 }

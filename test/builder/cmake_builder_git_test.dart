@@ -22,9 +22,8 @@ void main() {
           gitUrl: 'https://github.com/rainyl/native_toolchain_cmake.git',
           sourceDir: tempDir,
           gitSubDir: subdir,
-          logger: Logger('')
-            ..level = Level.ALL
-            ..onRecord.listen((record) => stderr.writeln(record)),
+          logger: Logger('')..level = Level.ALL,
+          // ..onRecord.listen((record) => stderr.writeln(record)),
         );
 
         // The builder constructor creates a directory at sourceDir/external/<name>
@@ -66,10 +65,7 @@ void main() {
             outputDirectory: tempDir,
             outputDirectoryShared: tempDir,
           )
-          ..config.setupBuild(
-            linkingEnabled: false,
-            dryRun: false,
-          )
+          ..config.setupBuild(linkingEnabled: false)
           ..config.setupShared(
             buildAssetTypes: [CodeAsset.type],
           )
