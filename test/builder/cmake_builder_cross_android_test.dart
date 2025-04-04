@@ -139,6 +139,6 @@ Future<Uri> buildLib(
     logger: logger,
   );
 
-  final libUri = tempUri.resolve(OS.android.libraryFileName(name, linkMode));
+  final libUri = buildInput.outputDirectory.resolve(OS.android.libraryFileName(name, linkMode));
   return libUri;
 }

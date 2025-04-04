@@ -85,7 +85,7 @@ void main() {
           logger: logger,
         );
 
-        final libUri = tempUri.resolve(libName);
+        final libUri = buildInput.outputDirectory.resolve(libName);
         final objdumpResult = await runProcess(
           executable: Uri.file('objdump'),
           arguments: ['-t', libUri.path],
@@ -206,6 +206,6 @@ Future<Uri> buildLib(
     logger: logger,
   );
 
-  final libUri = tempUri.resolve(OS.iOS.libraryFileName(name, linkMode));
+  final libUri = buildInput.outputDirectory.resolve(OS.iOS.libraryFileName(name, linkMode));
   return libUri;
 }

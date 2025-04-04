@@ -65,7 +65,7 @@ void main() {
           logger: logger,
         );
 
-        final libUri = tempUri.resolve(OS.linux.libraryFileName(name, linkMode));
+        final libUri = buildInput.outputDirectory.resolve(OS.linux.libraryFileName(name, linkMode));
         final machine = await readelfMachine(libUri.path);
         expect(machine, contains(readElfMachine[target]));
       });
