@@ -63,13 +63,14 @@ void main() async {
               outputDirectoryShared: tempUri2,
             )
             ..config.setupBuild(linkingEnabled: false)
-            ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-            ..config.setupCode(
-              targetOS: OS.windows,
-              targetArchitecture: target,
-              linkModePreference: linkMode == DynamicLoadingBundled()
-                  ? LinkModePreference.dynamic
-                  : LinkModePreference.static,
+            ..addExtension(
+              CodeAssetExtension(
+                targetOS: OS.windows,
+                targetArchitecture: target,
+                linkModePreference: linkMode == DynamicLoadingBundled()
+                    ? LinkModePreference.dynamic
+                    : LinkModePreference.static,
+              ),
             );
 
           final buildInput = BuildInput(buildInputBuilder.json);
@@ -90,7 +91,7 @@ void main() async {
             logger: logger,
           );
 
-          final libUri = tempUri.resolve('install/lib/${OS.current.dylibFileName(name)}');
+          final libUri = buildInput.outputDirectory.resolve('install/lib/${OS.current.dylibFileName(name)}');
           expect(await File.fromUri(libUri).exists(), true);
           final result = await runProcess(
             executable: dumpbinUri,

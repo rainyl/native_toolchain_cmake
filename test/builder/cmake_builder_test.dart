@@ -41,14 +41,15 @@ void main() {
             outputDirectoryShared: tempUri2,
           )
           ..config.setupBuild(linkingEnabled: false)
-          ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-          ..config.setupCode(
-            targetOS: targetOS,
-            macOS: macOSConfig,
-            targetArchitecture: Architecture.current,
-            // Ignored by executables.
-            linkModePreference: LinkModePreference.dynamic,
-            cCompiler: cCompiler,
+          ..addExtension(
+            CodeAssetExtension(
+              targetOS: targetOS,
+              macOS: macOSConfig,
+              targetArchitecture: Architecture.current,
+              // Ignored by executables.
+              linkModePreference: LinkModePreference.dynamic,
+              cCompiler: cCompiler,
+            ),
           );
 
         final buildInput = BuildInput(buildInputBuilder.json);
@@ -64,9 +65,9 @@ void main() {
         await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
         final executableUri = switch (targetOS) {
-          OS.macOS => tempUri.resolve('$name.app/Contents/MacOS/${OS.current.executableFileName(name)}'),
-          OS.windows => tempUri.resolve('${buildMode.name.toCapitalCase()}/$name.exe'),
-          _ => tempUri.resolve(OS.current.executableFileName(name)),
+          OS.macOS => buildInput.outputDirectory.resolve('$name.app/Contents/MacOS/${OS.current.executableFileName(name)}'),
+          OS.windows => buildInput.outputDirectory.resolve('${buildMode.name.toCapitalCase()}/$name.exe'),
+          _ => buildInput.outputDirectory.resolve(OS.current.executableFileName(name)),
         };
         expect(await File.fromUri(executableUri).exists(), true);
         final result = await runProcess(
@@ -98,14 +99,15 @@ void main() {
           outputDirectoryShared: tempUri2,
         )
         ..config.setupBuild(linkingEnabled: false)
-        ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-        ..config.setupCode(
-          targetOS: targetOS,
-          macOS: macOSConfig,
-          targetArchitecture: Architecture.current,
-          // Ignored by executables.
-          linkModePreference: LinkModePreference.dynamic,
-          cCompiler: cCompiler,
+        ..addExtension(
+          CodeAssetExtension(
+            targetOS: targetOS,
+            macOS: macOSConfig,
+            targetArchitecture: Architecture.current,
+            // Ignored by executables.
+            linkModePreference: LinkModePreference.dynamic,
+            cCompiler: cCompiler,
+          ),
         );
 
       final buildInput = BuildInput(buildInputBuilder.json);
@@ -124,7 +126,7 @@ void main() {
       );
       await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
-      final dylibUri = tempUri.resolve('install/lib/${OS.current.dylibFileName(name)}');
+      final dylibUri = buildInput.outputDirectory.resolve('install/lib/${OS.current.dylibFileName(name)}');
       expect(await File.fromUri(dylibUri).exists(), true);
       final dylib = openDynamicLibraryForTest(dylibUri.toFilePath());
       final add = dylib.lookupFunction<Int32 Function(Int32, Int32), int Function(int, int)>('add');
@@ -150,14 +152,15 @@ Future<void> testDefines({BuildMode buildMode = BuildMode.debug}) async {
       outputDirectoryShared: tempUri2,
     )
     ..config.setupBuild(linkingEnabled: false)
-    ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-    ..config.setupCode(
-      targetOS: targetOS,
-      macOS: targetOS == OS.macOS ? MacOSCodeConfig(targetVersion: defaultMacOSVersion) : null,
-      targetArchitecture: Architecture.current,
-      // Ignored by executables.
-      linkModePreference: LinkModePreference.dynamic,
-      cCompiler: cCompiler,
+    ..addExtension(
+      CodeAssetExtension(
+        targetOS: targetOS,
+        macOS: targetOS == OS.macOS ? MacOSCodeConfig(targetVersion: defaultMacOSVersion) : null,
+        targetArchitecture: Architecture.current,
+        // Ignored by executables.
+        linkModePreference: LinkModePreference.dynamic,
+        cCompiler: cCompiler,
+      ),
     );
 
   final buildInput = BuildInput(buildInputBuilder.json);
@@ -177,9 +180,9 @@ Future<void> testDefines({BuildMode buildMode = BuildMode.debug}) async {
   );
 
   final executableUri = switch (targetOS) {
-    OS.macOS => tempUri.resolve('$name.app/Contents/MacOS/${OS.current.executableFileName(name)}'),
-    OS.windows => tempUri.resolve('${buildMode.name.toCapitalCase()}/$name.exe'),
-    _ => tempUri.resolve(OS.current.executableFileName(name)),
+    OS.macOS => buildInput.outputDirectory.resolve('$name.app/Contents/MacOS/${OS.current.executableFileName(name)}'),
+    OS.windows => buildInput.outputDirectory.resolve('${buildMode.name.toCapitalCase()}/$name.exe'),
+    _ => buildInput.outputDirectory.resolve(OS.current.executableFileName(name)),
   };
   expect(await File.fromUri(executableUri).exists(), true);
   final result = await runProcess(

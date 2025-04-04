@@ -34,11 +34,12 @@ void main() {
           outputDirectoryShared: sharedDir,
         )
         ..config.setupBuild(linkingEnabled: true)
-        ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-        ..config.setupCode(
-          targetOS: OS.current,
-          linkModePreference: LinkModePreference.dynamic,
-          targetArchitecture: Architecture.current,
+        ..addExtension(
+          CodeAssetExtension(
+            targetOS: OS.current,
+            linkModePreference: LinkModePreference.dynamic,
+            targetArchitecture: Architecture.current,
+          ),
         );
 
       final buildInput = BuildInput(buildInputBuilder.json);
@@ -101,11 +102,12 @@ void main() {
         outputDirectoryShared: sharedDir,
       )
       ..config.setupBuild(linkingEnabled: true)
-      ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-      ..config.setupCode(
-        targetOS: OS.current,
-        linkModePreference: LinkModePreference.dynamic,
-        targetArchitecture: Architecture.current,
+      ..addExtension(
+        CodeAssetExtension(
+          targetOS: OS.current,
+          linkModePreference: LinkModePreference.dynamic,
+          targetArchitecture: Architecture.current,
+        ),
       );
     final buildInput = BuildInput(buildInputBuilder.json);
     final buildOutput = BuildOutputBuilder();
@@ -163,11 +165,12 @@ void main() {
         outputDirectoryShared: sharedDir,
       )
       ..config.setupBuild(linkingEnabled: true)
-      ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-      ..config.setupCode(
-        targetOS: OS.current,
-        linkModePreference: LinkModePreference.dynamic,
-        targetArchitecture: Architecture.current,
+      ..addExtension(
+        CodeAssetExtension(
+          targetOS: OS.current,
+          linkModePreference: LinkModePreference.dynamic,
+          targetArchitecture: Architecture.current,
+        ),
       );
     final buildInput = BuildInput(buildInputBuilder.json);
     final buildOutput = BuildOutputBuilder();

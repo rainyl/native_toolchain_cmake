@@ -1,5 +1,11 @@
 # native_toolchain_cmake
 
+## 0.0.5
+
+- fix: only add `-A` when using Visual Studio Generators
+- new: add `useVcvars` to add environment variables from vcvarsXXX.bat
+- bump native_assets_cli to 0.13.0
+
 ## 0.0.4
 
 - fix: android should use Ninja for android builds
