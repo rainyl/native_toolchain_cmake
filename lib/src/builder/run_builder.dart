@@ -254,17 +254,20 @@ class RunCMakeBuilder {
     final defs = <String>[];
     defs.add('-DCMAKE_SYSTEM_NAME=Windows');
 
-    if (codeConfig.targetArchitecture == Architecture.arm64) {
-      defs.add('-DCMAKE_SYSTEM_PROCESSOR=ARM64');
-      defs.addAll(['-A', 'ARM64']);
-    }
-    if (codeConfig.targetArchitecture == Architecture.x64) {
-      defs.add('-DCMAKE_SYSTEM_PROCESSOR=AMD64');
-      defs.addAll(['-A', 'x64']);
-    }
-    if (codeConfig.targetArchitecture == Architecture.ia32) {
-      defs.add('-DCMAKE_SYSTEM_PROCESSOR=X86');
-      defs.addAll(['-A', 'Win32']);
+    // Generators besides Visual Studio do not support the -A argument.
+    if (generator == Generator.defaultGenerator || generator.name.startsWith("Visual Studio")) {
+      if (codeConfig.targetArchitecture == Architecture.arm64) {
+        defs.add('-DCMAKE_SYSTEM_PROCESSOR=ARM64');
+        defs.addAll(['-A', 'ARM64']);
+      }
+      if (codeConfig.targetArchitecture == Architecture.x64) {
+        defs.add('-DCMAKE_SYSTEM_PROCESSOR=AMD64');
+        defs.addAll(['-A', 'x64']);
+      }
+      if (codeConfig.targetArchitecture == Architecture.ia32) {
+        defs.add('-DCMAKE_SYSTEM_PROCESSOR=X86');
+        defs.addAll(['-A', 'Win32']);
+      }
     }
     return defs;
   }
