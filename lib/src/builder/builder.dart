@@ -11,6 +11,8 @@ import 'dart:io';
 import 'package:logging/logging.dart';
 import 'package:native_assets_cli/code_assets_builder.dart';
 
+import '../native_toolchain/msvc.dart';
+import '../utils/env_from_bat.dart';
 import '../utils/run_process.dart';
 import 'build_mode.dart';
 import 'builder_args.dart';
@@ -67,6 +69,8 @@ class CMakeBuilder implements Builder {
   /// If true, a build will be performed in `{sourceDir}/build/{platform}/{arch}`.
   final bool buildLocal;
 
+  final bool useVcvars;
+
   /// This constructor initializes a new build config from [sourceDir].
   ///
   /// Parameters:
@@ -102,6 +106,7 @@ class CMakeBuilder implements Builder {
     this.buildLocal = false,
     this.androidArgs = const AndroidBuilderArgs(),
     this.appleArgs = const AppleBuilderArgs(),
+    this.useVcvars = true,
   }) : cmakeListsDir = sourceDir;
 
   /// This constructor initializes a new build config by cloning the
@@ -151,6 +156,7 @@ class CMakeBuilder implements Builder {
     this.buildLocal = false,
     this.androidArgs = const AndroidBuilderArgs(),
     this.appleArgs = const AppleBuilderArgs(),
+    this.useVcvars = true,
   }) : cmakeListsDir = sourceDir {
     // Some platforms will error if directory does not exist, create it.
     cmakeListsDir = sourceDir.resolve('external/$name/').normalizePath();
@@ -223,6 +229,50 @@ class CMakeBuilder implements Builder {
 
     // Do not remove this line for potential extra variables in the future
     final Map<String, String> envVars = Map.from(Platform.environment);
+    if (useVcvars) {
+      envVars.addAll(
+        await environmentFromVcvars(
+          targetOS: input.config.code.targetOS,
+          targetArchitecture: input.config.code.targetArchitecture,
+          logger: logger,
+        ),
+      );
+    }
     await task.run(environment: envVars);
+  }
+
+  /// Get environment variables from vcvarsXXX.bat
+  ///
+  /// if [targetArchitecture] not provided, current architecture will be used
+  Future<Map<String, String>> environmentFromVcvars({
+    required OS targetOS,
+    Architecture? targetArchitecture,
+    Logger? logger,
+  }) async {
+    // TODO: patch environment variables for cmake
+    // may be error if system drive is not C:
+    // https://github.com/dart-lang/native/issues/2077
+    final vars = {
+      "WINDIR": r"C:\WINDOWS",
+      "SYSTEMDRIVE": "C:",
+    };
+
+    if (targetOS != OS.windows) return {};
+    targetArchitecture ??= Architecture.current;
+    final vcvars = switch (targetArchitecture) {
+      Architecture.x64 => vcvars64,
+      Architecture.ia32 => vcvars32,
+      Architecture.arm64 => vcvarsarm64,
+      _ => throw UnsupportedError('Unsupported architecture: $targetArchitecture'),
+    };
+    final tools = await vcvars.defaultResolver!.resolve(logger: logger);
+    if (tools.isNotEmpty) {
+      final _vars = await environmentFromBatchFile(tools.first.uri);
+      logger?.info('Environment variables from $vcvars: $vars');
+      vars.addAll(_vars);
+      return vars;
+    }
+    logger?.warning('No vcvars found for $targetOS $targetArchitecture');
+    return {};
   }
 }

@@ -66,14 +66,13 @@ void main() {
             outputDirectoryShared: tempDir,
           )
           ..config.setupBuild(linkingEnabled: false)
-          ..config.setupShared(
-            buildAssetTypes: [CodeAsset.type],
-          )
-          ..config.setupCode(
-            targetOS: targetOS,
-            macOS: macOSConfig,
-            targetArchitecture: Architecture.current,
-            linkModePreference: LinkModePreference.dynamic,
+          ..addExtension(
+            CodeAssetExtension(
+              targetOS: targetOS,
+              macOS: macOSConfig,
+              targetArchitecture: Architecture.current,
+              linkModePreference: LinkModePreference.dynamic,
+            ),
           );
         final input = BuildInput(buildInputBuilder.json);
         final output = BuildOutputBuilder();

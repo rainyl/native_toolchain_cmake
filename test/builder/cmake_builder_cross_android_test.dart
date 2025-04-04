@@ -112,14 +112,15 @@ Future<Uri> buildLib(
       outputDirectoryShared: tempUriShared,
     )
     ..config.setupBuild(linkingEnabled: false)
-    ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-    ..config.setupCode(
-      targetOS: OS.android,
-      targetArchitecture: targetArchitecture,
-      cCompiler: cCompiler,
-      android: AndroidCodeConfig(targetNdkApi: androidNdkApi),
-      linkModePreference:
-          linkMode == DynamicLoadingBundled() ? LinkModePreference.dynamic : LinkModePreference.static,
+    ..addExtension(
+      CodeAssetExtension(
+        targetArchitecture: targetArchitecture,
+        targetOS: OS.android,
+        cCompiler: cCompiler,
+        android: AndroidCodeConfig(targetNdkApi: androidNdkApi),
+        linkModePreference:
+            linkMode == DynamicLoadingBundled() ? LinkModePreference.dynamic : LinkModePreference.static,
+      ),
     );
 
   final buildInput = BuildInput(buildInputBuilder.json);
@@ -138,6 +139,6 @@ Future<Uri> buildLib(
     logger: logger,
   );
 
-  final libUri = tempUri.resolve(OS.android.libraryFileName(name, linkMode));
+  final libUri = buildInput.outputDirectory.resolve(OS.android.libraryFileName(name, linkMode));
   return libUri;
 }

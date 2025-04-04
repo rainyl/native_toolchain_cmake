@@ -49,13 +49,14 @@ void main() {
           outputDirectoryShared: tempUri2,
         )
         ..config.setupBuild(linkingEnabled: false)
-        ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-        ..config.setupCode(
-          targetOS: OS.macOS,
-          targetArchitecture: target,
-          linkModePreference: LinkModePreference.dynamic,
-          cCompiler: cCompiler,
-          macOS: MacOSCodeConfig(targetVersion: defaultMacOSVersion),
+        ..addExtension(
+          CodeAssetExtension(
+            targetOS: OS.macOS,
+            targetArchitecture: target,
+            linkModePreference: LinkModePreference.dynamic,
+            cCompiler: cCompiler,
+            macOS: MacOSCodeConfig(targetVersion: defaultMacOSVersion),
+          ),
         );
       final buildInput = BuildInput(buildInputBuilder.json);
       final buildOutput = BuildOutputBuilder();
@@ -72,7 +73,7 @@ void main() {
         logger: logger,
       );
 
-      final libUri = tempUri.resolve(OS.macOS.libraryFileName(name, DynamicLoadingBundled()));
+      final libUri = buildInput.outputDirectory.resolve(OS.macOS.libraryFileName(name, DynamicLoadingBundled()));
       final result = await runProcess(
         executable: Uri.file('objdump'),
         arguments: ['-t', libUri.path],
@@ -130,13 +131,14 @@ Future<Uri> buildLib(
       outputDirectoryShared: tempUri2,
     )
     ..config.setupBuild(linkingEnabled: false)
-    ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-    ..config.setupCode(
-      targetOS: OS.macOS,
-      targetArchitecture: targetArchitecture,
-      linkModePreference: LinkModePreference.dynamic,
-      macOS: MacOSCodeConfig(targetVersion: targetMacOSVersion),
-      cCompiler: cCompiler,
+    ..addExtension(
+      CodeAssetExtension(
+        targetOS: OS.macOS,
+        targetArchitecture: targetArchitecture,
+        linkModePreference: LinkModePreference.dynamic,
+        macOS: MacOSCodeConfig(targetVersion: targetMacOSVersion),
+        cCompiler: cCompiler,
+      ),
     );
 
   final buildInput = BuildInput(buildInputBuilder.json);
@@ -153,6 +155,6 @@ Future<Uri> buildLib(
     logger: logger,
   );
 
-  final libUri = tempUri.resolve(OS.iOS.libraryFileName(name, DynamicLoadingBundled()));
+  final libUri = buildInput.outputDirectory.resolve(OS.iOS.libraryFileName(name, DynamicLoadingBundled()));
   return libUri;
 }

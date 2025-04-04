@@ -40,13 +40,15 @@ void main() {
             outputDirectoryShared: tempUri2,
           )
           ..config.setupBuild(linkingEnabled: false)
-          ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-          ..config.setupCode(
-            targetOS: OS.linux,
-            targetArchitecture: target,
-            linkModePreference:
-                linkMode == DynamicLoadingBundled() ? LinkModePreference.dynamic : LinkModePreference.static,
-            cCompiler: cCompiler,
+          ..addExtension(
+            CodeAssetExtension(
+              targetOS: OS.linux,
+              targetArchitecture: target,
+              linkModePreference: linkMode == DynamicLoadingBundled()
+                  ? LinkModePreference.dynamic
+                  : LinkModePreference.static,
+              cCompiler: cCompiler,
+            ),
           );
 
         final buildInput = BuildInput(buildInputBuilder.json);
@@ -63,7 +65,7 @@ void main() {
           logger: logger,
         );
 
-        final libUri = tempUri.resolve(OS.linux.libraryFileName(name, linkMode));
+        final libUri = buildInput.outputDirectory.resolve(OS.linux.libraryFileName(name, linkMode));
         final machine = await readelfMachine(libUri.path);
         expect(machine, contains(readElfMachine[target]));
       });

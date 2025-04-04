@@ -57,16 +57,17 @@ void main() {
             outputDirectoryShared: tempUri2,
           )
           ..config.setupBuild(linkingEnabled: false)
-          ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-          ..config.setupCode(
-            targetOS: OS.iOS,
-            targetArchitecture: target,
-            linkModePreference: LinkModePreference.dynamic,
-            iOS: IOSCodeConfig(
-              targetSdk: targetIOSSdk,
-              targetVersion: flutteriOSHighestBestEffort,
+          ..addExtension(
+            CodeAssetExtension(
+              targetOS: OS.iOS,
+              targetArchitecture: target,
+              linkModePreference: LinkModePreference.dynamic,
+              iOS: IOSCodeConfig(
+                targetSdk: targetIOSSdk,
+                targetVersion: flutteriOSHighestBestEffort,
+              ),
+              cCompiler: cCompiler,
             ),
-            cCompiler: cCompiler,
           );
 
         final buildInput = BuildInput(buildInputBuilder.json);
@@ -84,7 +85,7 @@ void main() {
           logger: logger,
         );
 
-        final libUri = tempUri.resolve(libName);
+        final libUri = buildInput.outputDirectory.resolve(libName);
         final objdumpResult = await runProcess(
           executable: Uri.file('objdump'),
           arguments: ['-t', libUri.path],
@@ -176,17 +177,18 @@ Future<Uri> buildLib(
       outputDirectoryShared: tempUri2,
     )
     ..config.setupBuild(linkingEnabled: false)
-    ..config.setupShared(buildAssetTypes: [CodeAsset.type])
-    ..config.setupCode(
-      targetOS: OS.iOS,
-      targetArchitecture: targetArchitecture,
-      linkModePreference:
-          linkMode == DynamicLoadingBundled() ? LinkModePreference.dynamic : LinkModePreference.static,
-      iOS: IOSCodeConfig(
-        targetSdk: IOSSdk.iPhoneOS,
-        targetVersion: targetIOSVersion,
+    ..addExtension(
+      CodeAssetExtension(
+        targetOS: OS.iOS,
+        targetArchitecture: targetArchitecture,
+        linkModePreference:
+            linkMode == DynamicLoadingBundled() ? LinkModePreference.dynamic : LinkModePreference.static,
+        iOS: IOSCodeConfig(
+          targetSdk: IOSSdk.iPhoneOS,
+          targetVersion: targetIOSVersion,
+        ),
+        cCompiler: cCompiler,
       ),
-      cCompiler: cCompiler,
     );
 
   final buildInput = BuildInput(buildInputBuilder.json);
@@ -204,6 +206,6 @@ Future<Uri> buildLib(
     logger: logger,
   );
 
-  final libUri = tempUri.resolve(OS.iOS.libraryFileName(name, linkMode));
+  final libUri = buildInput.outputDirectory.resolve(OS.iOS.libraryFileName(name, linkMode));
   return libUri;
 }
