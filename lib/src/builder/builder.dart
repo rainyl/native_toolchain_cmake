@@ -249,6 +249,14 @@ class CMakeBuilder implements Builder {
     Architecture? targetArchitecture,
     Logger? logger,
   }) async {
+    // TODO: patch environment variables for cmake
+    // may be error if system drive is not C:
+    // https://github.com/dart-lang/native/issues/2077
+    final vars = {
+      "WINDIR": r"C:\WINDOWS",
+      "SYSTEMDRIVE": "C:",
+    };
+
     if (targetOS != OS.windows) return {};
     targetArchitecture ??= Architecture.current;
     final vcvars = switch (targetArchitecture) {
@@ -259,8 +267,9 @@ class CMakeBuilder implements Builder {
     };
     final tools = await vcvars.defaultResolver!.resolve(logger: logger);
     if (tools.isNotEmpty) {
-      final vars = await environmentFromBatchFile(tools.first.uri);
+      final _vars = await environmentFromBatchFile(tools.first.uri);
       logger?.info('Environment variables from $vcvars: $vars');
+      vars.addAll(_vars);
       return vars;
     }
     logger?.warning('No vcvars found for $targetOS $targetArchitecture');
