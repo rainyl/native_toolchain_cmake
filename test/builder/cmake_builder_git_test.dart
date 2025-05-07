@@ -1,6 +1,8 @@
 import 'dart:ffi';
 import 'dart:io';
 
+import 'package:code_assets/code_assets.dart';
+import 'package:hooks/hooks.dart';
 import 'package:logging/logging.dart';
 import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 import 'package:native_toolchain_cmake/src/builder/builder.dart';
@@ -62,7 +64,6 @@ void main() {
             packageName: 'add',
             packageRoot: tempDir,
             outputFile: tempDir.resolve('output.json'),
-            outputDirectory: tempDir,
             outputDirectoryShared: tempDir,
           )
           ..config.setupBuild(linkingEnabled: false)

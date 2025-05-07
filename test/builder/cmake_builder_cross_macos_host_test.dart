@@ -10,6 +10,8 @@ library;
 
 import 'dart:io';
 
+import 'package:code_assets/code_assets.dart';
+import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 import 'package:native_toolchain_cmake/src/utils/run_process.dart';
 import 'package:test/test.dart';
@@ -45,7 +47,6 @@ void main() {
           packageName: name,
           packageRoot: tempUri,
           outputFile: tempUri.resolve('output.json'),
-          outputDirectory: tempUri,
           outputDirectoryShared: tempUri2,
         )
         ..config.setupBuild(linkingEnabled: false)
@@ -127,7 +128,6 @@ Future<Uri> buildLib(
       packageName: name,
       packageRoot: tempUri,
       outputFile: tempUri.resolve('output.json'),
-      outputDirectory: tempUri,
       outputDirectoryShared: tempUri2,
     )
     ..config.setupBuild(linkingEnabled: false)
