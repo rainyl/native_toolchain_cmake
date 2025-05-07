@@ -1,9 +1,9 @@
 //  ignore_for_file: dead_code
 import 'dart:io';
 
+import 'package:code_assets/code_assets.dart';
+import 'package:hooks/hooks.dart';
 import 'package:logging/logging.dart';
-import 'package:native_assets_cli/code_assets_builder.dart';
-import 'package:native_assets_cli/native_assets_cli.dart';
 import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 
 void main(List<String> args) async {
@@ -105,9 +105,7 @@ Future<void> runBuildGit(
       package: name,
       name: '$name.dart',
       linkMode: DynamicLoadingBundled(),
-      os: input.config.code.targetOS,
       file: input.outputDirectory.resolve(libPath),
-      architecture: input.config.code.targetArchitecture,
     ),
   );
 }

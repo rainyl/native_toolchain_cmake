@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:code_assets/code_assets.dart';
+import 'package:hooks/hooks.dart';
 import 'package:logging/logging.dart';
 import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 import 'package:native_toolchain_cmake/src/utils/add_assets.dart';
@@ -30,7 +32,6 @@ void main() {
           packageName: 'add',
           packageRoot: baseDir,
           outputFile: baseDir.resolve('output.json'),
-          outputDirectory: baseDir,
           outputDirectoryShared: sharedDir,
         )
         ..config.setupBuild(linkingEnabled: true)
@@ -98,7 +99,6 @@ void main() {
         packageName: 'add',
         packageRoot: baseDir,
         outputFile: baseDir.resolve('output.json'),
-        outputDirectory: baseDir,
         outputDirectoryShared: sharedDir,
       )
       ..config.setupBuild(linkingEnabled: true)
@@ -161,7 +161,6 @@ void main() {
         packageName: 'add',
         packageRoot: baseDir,
         outputFile: baseDir.resolve('output.json'),
-        outputDirectory: baseDir,
         outputDirectoryShared: sharedDir,
       )
       ..config.setupBuild(linkingEnabled: true)

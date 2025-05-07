@@ -6,6 +6,8 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:change_case/change_case.dart';
+import 'package:code_assets/code_assets.dart';
+import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 import 'package:native_toolchain_cmake/src/utils/run_process.dart';
 import 'package:test/test.dart';
@@ -37,7 +39,6 @@ void main() {
             packageName: name,
             packageRoot: tempUri,
             outputFile: tempUri.resolve('output.json'),
-            outputDirectory: tempUri,
             outputDirectoryShared: tempUri2,
           )
           ..config.setupBuild(linkingEnabled: false)
@@ -65,7 +66,8 @@ void main() {
         await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
         final executableUri = switch (targetOS) {
-          OS.macOS => buildInput.outputDirectory.resolve('$name.app/Contents/MacOS/${OS.current.executableFileName(name)}'),
+          OS.macOS => buildInput.outputDirectory
+              .resolve('$name.app/Contents/MacOS/${OS.current.executableFileName(name)}'),
           OS.windows => buildInput.outputDirectory.resolve('${buildMode.name.toCapitalCase()}/$name.exe'),
           _ => buildInput.outputDirectory.resolve(OS.current.executableFileName(name)),
         };
@@ -95,7 +97,6 @@ void main() {
           packageName: name,
           packageRoot: tempUri,
           outputFile: tempUri.resolve('output.json'),
-          outputDirectory: tempUri,
           outputDirectoryShared: tempUri2,
         )
         ..config.setupBuild(linkingEnabled: false)
@@ -148,7 +149,6 @@ Future<void> testDefines({BuildMode buildMode = BuildMode.debug}) async {
       packageName: name,
       packageRoot: tempUri,
       outputFile: tempUri.resolve('output.json'),
-      outputDirectory: tempUri,
       outputDirectoryShared: tempUri2,
     )
     ..config.setupBuild(linkingEnabled: false)
@@ -180,7 +180,8 @@ Future<void> testDefines({BuildMode buildMode = BuildMode.debug}) async {
   );
 
   final executableUri = switch (targetOS) {
-    OS.macOS => buildInput.outputDirectory.resolve('$name.app/Contents/MacOS/${OS.current.executableFileName(name)}'),
+    OS.macOS =>
+      buildInput.outputDirectory.resolve('$name.app/Contents/MacOS/${OS.current.executableFileName(name)}'),
     OS.windows => buildInput.outputDirectory.resolve('${buildMode.name.toCapitalCase()}/$name.exe'),
     _ => buildInput.outputDirectory.resolve(OS.current.executableFileName(name)),
   };

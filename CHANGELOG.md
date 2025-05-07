@@ -1,5 +1,10 @@
 # native_toolchain_cmake
 
+## 0.0.6
+
+- add `useVcvars` to `CMakeBuilder`
+- migrate to `hooks` and `code_assets`
+
 ## 0.0.5
 
 - fix: only add `-A` when using Visual Studio Generators

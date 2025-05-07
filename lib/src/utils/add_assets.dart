@@ -1,8 +1,9 @@
 // ignore_for_file: comment_references
 import 'dart:io';
 
+import 'package:code_assets/code_assets.dart';
+import 'package:hooks/hooks.dart';
 import 'package:logging/logging.dart';
-import 'package:native_assets_cli/code_assets_builder.dart';
 import 'package:path/path.dart' as p;
 
 import '../builder/linkmode.dart';
@@ -115,9 +116,7 @@ extension BuildOutputBuilderCodeAssets on BuildOutputBuilder {
           package: input.packageName,
           name: assetName,
           linkMode: linkMode,
-          os: input.config.code.targetOS,
           file: entity.uri,
-          architecture: input.config.code.targetArchitecture,
         );
         foundAssets.add(asset);
         break; // Only add one file per asset name.

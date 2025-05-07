@@ -8,8 +8,9 @@
 
 import 'dart:io';
 
+import 'package:code_assets/code_assets.dart';
 import 'package:logging/logging.dart';
-import 'package:native_assets_cli/code_assets_builder.dart';
+import 'package:hooks/hooks.dart';
 
 import '../native_toolchain/msvc.dart';
 import '../utils/env_from_bat.dart';

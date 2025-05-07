@@ -15,14 +15,14 @@ environment:
 
 dependencies:
   change_case: ^2.2.0
+  code_assets: ^0.19.0
   glob: ^2.1.1
+  hooks: ^0.19.0
   logging: ^1.1.1
   meta: ^1.9.1
-  native_assets_cli: ">=0.13.0 <0.15.0"
-  native_assets_builder: ">=0.13.0 <0.15.0"  # required for CMake Env Vars
   path: ^1.9.1
   pub_semver: ^2.1.5
 
 dev_dependencies:
-  test: ^1.21.0
   collection: ^1.19.1
+  test: ^1.21.0
