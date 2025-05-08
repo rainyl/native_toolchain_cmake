@@ -1,8 +1,7 @@
 # native_toolchain_cmake
 
-## 0.0.6
+## 0.0.6-dev.0
 
-- add `useVcvars` to `CMakeBuilder`
 - migrate to `hooks` and `code_assets`
 
 ## 0.0.5

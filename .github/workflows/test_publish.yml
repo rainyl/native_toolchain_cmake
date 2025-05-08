@@ -15,7 +15,7 @@ on:
       - "LICENSE"
 
 jobs:
-  test-linux:
+  linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
         run: |
           cd "${{github.workspace}}"
           dart test
-  test-windows:
+  windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,7 +56,7 @@ jobs:
         run: |
           cd "${{github.workspace}}"
           dart test
-  test-macos:
+  macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -78,7 +78,7 @@ jobs:
   publish:
     name: Publish
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [test-linux, test-windows, test-macos]
+    needs: [linux, windows, macos]
     permissions:
       id-token: write # Required for authentication using OIDC
     runs-on: ubuntu-latest
@@ -96,7 +96,7 @@ jobs:
   release:
     name: Release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [test-linux, test-windows, test-macos]
+    needs: [linux, windows, macos]
     permissions:
       contents: write # https://github.com/softprops/action-gh-release/issues/236
     runs-on: ubuntu-latest
