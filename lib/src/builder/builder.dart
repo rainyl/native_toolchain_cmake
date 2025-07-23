@@ -208,10 +208,9 @@ class CMakeBuilder implements Builder {
     // do not override user specified output directory if they also set buildLocal to true
     if (outDir == null && buildLocal) {
       final os = input.config.code.targetOS;
-      final iosSdk = input.config.code.iOS.targetSdk;
       var plat = os.name.toLowerCase();
       // ios-simulator has both x86_64 and arm64, ios/arm64 is ambiguous
-      if (os == OS.iOS && iosSdk == IOSSdk.iPhoneSimulator) {
+      if (os == OS.iOS && input.config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator) {
         plat = "iossimulator";
       }
       final arch = input.config.code.targetArchitecture.name.toLowerCase();
