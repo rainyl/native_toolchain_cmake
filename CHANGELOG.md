@@ -1,5 +1,11 @@
 # native_toolchain_cmake
 
+## 0.1.0
+
+- migrate to `hooks` and `code_assets`
+- fix: ambiguous ios/arm64 for iosSimulator/arm64
+- bump hooks to 0.20.0
+
 ## 0.0.6-dev.1
 
 - fix: ambiguous ios/arm64 for iosSimulator/arm64

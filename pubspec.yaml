@@ -1,7 +1,7 @@
 name: native_toolchain_cmake
 description: >-
   A library to invoke and build CMake projects for Dart Native Assets.
-version: 0.0.6-dev.1
+version: 0.1.0
 repository: https://github.com/rainyl/native_toolchain_cmake
 
 topics:
@@ -15,9 +15,9 @@ environment:
 
 dependencies:
   change_case: ^2.2.0
-  code_assets: ^0.19.4
+  code_assets: ^0.19.5
   glob: ^2.1.3
-  hooks: ^0.19.5
+  hooks: ^0.20.0
   logging: ^1.3.0
   meta: ^1.16.0
   path: ^1.9.1
