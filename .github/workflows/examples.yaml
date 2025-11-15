@@ -23,7 +23,7 @@ jobs:
       - name: run dart-cli example
         run: |
           cd ${{github.workspace}}\example\dart_cli
-          dart --enable-experiment=native-assets run
+          dart run
       - name: run flutter example
         run: |
           cd ${{github.workspace}}\example\flutter
@@ -48,7 +48,7 @@ jobs:
       - name: run dart-cli example
         run: |
           cd "${{github.workspace}}/example/dart_cli"
-          dart --enable-experiment=native-assets run
+          dart run
       - name: run flutter example
         run: |
           cd "${{github.workspace}}/example/flutter"
@@ -65,7 +65,7 @@ jobs:
       - name: run dart-cli example
         run: |
           cd "${{github.workspace}}/example/dart_cli"
-          dart --enable-experiment=native-assets run
+          dart run
       - name: run flutter example
         run: |
           cd "${{github.workspace}}/example/flutter"

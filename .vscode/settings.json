@@ -1,6 +1,3 @@
 {
-  "dart.flutterSdkPath": ".fvm/versions/master",
-  "dart.vmAdditionalArgs": [
-    "--enable-experiment=native-assets"
-  ]
+  "dart.flutterSdkPath": ".fvm/versions/stable",
 }
