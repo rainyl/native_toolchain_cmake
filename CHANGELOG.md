@@ -1,5 +1,9 @@
 # native_toolchain_cmake
 
+## 0.2.0
+
+- bump hooks and code_assets to 1.0.0
+
 ## 0.1.0
 
 - migrate to `hooks` and `code_assets`
