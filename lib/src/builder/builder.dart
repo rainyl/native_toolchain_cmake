@@ -244,7 +244,7 @@ class CMakeBuilder implements Builder {
         ),
       );
     }
-    await task.run(environment: envVars);
+    await task.run(environment: envVars); // finds android toolchain cmake
   }
 
   /// Get environment variables from vcvarsXXX.bat

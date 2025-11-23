@@ -70,7 +70,9 @@ class _AndroidNdkResolver implements ToolResolver {
 
   @override
   Future<List<ToolInstance>> resolve({required Logger? logger}) async {
-    final ndkInstances = await installLocationResolver.resolve(logger: logger);
+    final ndkInstances = await installLocationResolver.resolve(logger: logger)
+    // sort latest version first
+    ..sort((a, b) => a.version! > b.version! ? -1 : 1);
 
     return [
       for (final ndkInstance in ndkInstances) ...[

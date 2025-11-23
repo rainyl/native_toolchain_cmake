@@ -6,12 +6,15 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import 'dart:io';
 import 'dart:math';
 
 import 'package:change_case/change_case.dart';
 import 'package:code_assets/code_assets.dart';
 import 'package:hooks/hooks.dart';
 import 'package:logging/logging.dart';
+import 'package:native_toolchain_cmake/src/native_toolchain/ninja.dart';
+import 'package:path/path.dart';
 
 import '../native_toolchain/android_ndk.dart';
 import '../native_toolchain/cmake.dart';
@@ -72,8 +75,21 @@ class RunCMakeBuilder {
   }) : outDir = outputDir ?? input.outputDirectory;
 
   Future<Uri> cmakePath() async {
-    final cmakeTools = await cmake.defaultResolver?.resolve(logger: logger);
+    final cmakeTools = switch (codeConfig.targetOS) {
+      OS.android => await androidCmake.defaultResolver?.resolve(logger: logger),
+      _ => await cmake.defaultResolver?.resolve(logger: logger),
+    };
     final path = cmakeTools?.first.uri;
+    assert(path != null);
+    return Future.value(path);
+  }
+
+  Future<Uri> ninjaPath() async {
+    final ninjaTools = switch (codeConfig.targetOS) {
+      OS.android => await androidNinja.defaultResolver?.resolve(logger: logger),
+      _ => await ninja.defaultResolver?.resolve(logger: logger),
+    };
+    final path = ninjaTools?.first.uri;
     assert(path != null);
     return Future.value(path);
   }
@@ -136,11 +152,16 @@ class RunCMakeBuilder {
       OS.android => await _generateAndroidDefines(),
       _ => throw UnimplementedError('Unsupported OS: ${codeConfig.targetOS}'),
     };
+
+    final ninjaBinUri = await ninjaPath();
+    final ninjaBinDir = dirname(Directory.fromUri(ninjaBinUri).path);
+
     final _defines = <String>[
       '-DCMAKE_BUILD_TYPE=${buildMode.name.toCapitalCase()}',
       if (buildMode == BuildMode.debug) '-DCMAKE_C_FLAGS_DEBUG=-DDEBUG',
       if (buildMode == BuildMode.debug) '-DCMAKE_CXX_FLAGS_DEBUG=-DDEBUG',
       ...defs,
+      '-DCMAKE_PROGRAM_PATH=$ninjaBinDir'
     ];
     defines.forEach((k, v) => _defines.add('-D$k=${v ?? "1"}'));
 
