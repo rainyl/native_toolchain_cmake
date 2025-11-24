@@ -3,6 +3,7 @@
 import 'dart:io';
 import 'package:code_assets/code_assets.dart';
 import 'package:logging/logging.dart';
+import 'package:native_toolchain_cmake/src/builder/build_extra_config.dart';
 import 'package:native_toolchain_cmake/src/tool/tool_instance.dart';
 
 import '../tool/tool.dart';
@@ -26,31 +27,34 @@ final androidCmake = Tool(
 );
 
 class _AndroidCmakeResolver implements ToolResolver {
-  final installLocationResolver = PathVersionResolver(
-    wrappedResolver: ToolResolvers([
-      PathToolResolver(
-        toolName: 'CMake',
-        executableName: 'cmake',
-      ),
-      InstallLocationResolver(
-        toolName: 'CMake',
-        paths: [
-          if (Platform.isLinux) ...[
-            r'$HOME/Android/Sdk/cmake/*/bin/',
-          ],
-          if (Platform.isMacOS) ...[
-            r'$HOME/Library/Android/sdk/cmake/*/bin/',
-          ],
-          if (Platform.isWindows) ...[
-            r'$HOME/AppData/Local/Android/Sdk/cmake/*/bin/',
-          ],
-        ],
-      ),
-    ]),
-  );
-
   @override
   Future<List<ToolInstance>> resolve({required Logger? logger}) async {
+    final installLocationResolver = PathVersionResolver(
+      wrappedResolver: ToolResolvers([
+        PathToolResolver(
+          toolName: 'CMake',
+          executableName: 'cmake',
+        ),
+        InstallLocationResolver(
+          toolName: 'CMake',
+          paths: [
+            if (BuildExtraConfig.androidHome != null) ...[
+              '${BuildExtraConfig.androidHome}/cmake/*/bin/',
+            ],
+            if (Platform.isLinux) ...[
+              r'$HOME/Android/Sdk/cmake/*/bin/',
+            ],
+            if (Platform.isMacOS) ...[
+              r'$HOME/Library/Android/sdk/cmake/*/bin/',
+            ],
+            if (Platform.isWindows) ...[
+              r'$HOME/AppData/Local/Android/Sdk/cmake/*/bin/',
+            ],
+          ],
+        ),
+      ]),
+    );
+
     final cmakeInstances = await installLocationResolver.resolve(logger: logger);    
 
     final androidCmakeInstances = <ToolInstance>[];

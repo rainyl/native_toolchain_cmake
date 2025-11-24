@@ -6,11 +6,14 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:code_assets/code_assets.dart';
 import 'package:logging/logging.dart';
 import 'package:hooks/hooks.dart';
+import 'package:native_toolchain_cmake/src/builder/build_extra_config.dart';
+import 'package:path/path.dart' as path;
 
 import '../native_toolchain/msvc.dart';
 import '../utils/env_from_bat.dart';
@@ -244,6 +247,28 @@ class CMakeBuilder implements Builder {
         ),
       );
     }
+
+    // Add optional ANDROID_HOME env var  
+    final hookInputUserDefines = input.json['user_defines'] as Map<String, dynamic>?;
+    if (hookInputUserDefines != null) {
+      final workspacePubspec = hookInputUserDefines['workspace_pubspec'] as Map<String, dynamic>?;
+      if (workspacePubspec != null) {
+        final basePath = workspacePubspec['base_path'] as String?;
+        if (basePath != null) {
+          final projectDir = path.dirname(basePath);
+          final nativeConfigPath = path.join(projectDir, 'native_config.json');
+          final configFile = File(nativeConfigPath);
+          if (configFile.existsSync()) {
+            final config = jsonDecode(configFile.readAsStringSync()) as Map<String, dynamic>;
+            final androidHome = config['ANDROID_HOME'] as String?;
+            if (androidHome != null) {
+              BuildExtraConfig.androidHome = androidHome;
+            }
+          }
+        }
+      }
+    }
+
     await task.run(environment: envVars); // finds android toolchain cmake
   }
 

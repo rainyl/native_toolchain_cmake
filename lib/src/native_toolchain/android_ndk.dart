@@ -10,6 +10,7 @@ import 'dart:io';
 
 import 'package:code_assets/code_assets.dart';
 import 'package:logging/logging.dart';
+import 'package:native_toolchain_cmake/src/builder/build_extra_config.dart';
 
 import '../tool/tool.dart';
 import '../tool/tool_instance.dart';
@@ -40,36 +41,46 @@ final androidNdkLld = Tool(
 );
 
 class _AndroidNdkResolver implements ToolResolver {
-  final installLocationResolver = PathVersionResolver(
-    wrappedResolver: ToolResolvers([
-      RelativeToolResolver(
-        toolName: 'Android NDK',
-        wrappedResolver: PathToolResolver(
-          toolName: 'ndk-build',
-          executableName: Platform.isWindows ? 'ndk-build.cmd' : 'ndk-build',
-        ),
-        relativePath: Uri(path: ''),
-      ),
-      InstallLocationResolver(
-        toolName: 'Android NDK',
-        paths: [
-          if (Platform.isLinux) ...[
-            r'$HOME/Android/Sdk/ndk/*/',
-            r'$HOME/Android/Sdk/ndk-bundle/',
-          ],
-          if (Platform.isMacOS) ...[
-            r'$HOME/Library/Android/sdk/ndk/*/',
-          ],
-          if (Platform.isWindows) ...[
-            r'$HOME/AppData/Local/Android/Sdk/ndk/*/',
-          ],
-        ],
-      ),
-    ]),
-  );
-
   @override
   Future<List<ToolInstance>> resolve({required Logger? logger}) async {
+    final installLocationResolver = PathVersionResolver(
+      wrappedResolver: ToolResolvers([
+        RelativeToolResolver(
+          toolName: 'Android NDK',
+          wrappedResolver: PathToolResolver(
+            toolName: 'ndk-build',
+            executableName: Platform.isWindows ? 'ndk-build.cmd' : 'ndk-build',
+          ),
+          relativePath: Uri(path: ''),
+        ),
+        InstallLocationResolver(
+          toolName: 'Android NDK',
+          paths: [
+            if (Platform.isLinux) ...[
+              if (BuildExtraConfig.androidHome != null) ...[
+                '${BuildExtraConfig.androidHome}/ndk/*/',
+                '${BuildExtraConfig.androidHome}/ndk-bundle/',
+              ],
+              r'$HOME/Android/Sdk/ndk/*/',
+              r'$HOME/Android/Sdk/ndk-bundle/',
+            ],
+            if (Platform.isMacOS) ...[
+              if (BuildExtraConfig.androidHome != null) ...[
+                '${BuildExtraConfig.androidHome}/ndk/*/',
+              ],
+              r'$HOME/Library/Android/sdk/ndk/*/',
+            ],
+            if (Platform.isWindows) ...[
+              if (BuildExtraConfig.androidHome != null) ...[
+                '${BuildExtraConfig.androidHome}/ndk/*/',
+              ],
+              r'$HOME/AppData/Local/Android/Sdk/ndk/*/',
+            ],
+          ],
+        ),
+      ]),
+    );
+
     final ndkInstances = await installLocationResolver.resolve(logger: logger)
     // sort latest version first
     ..sort((a, b) => a.version! > b.version! ? -1 : 1);
