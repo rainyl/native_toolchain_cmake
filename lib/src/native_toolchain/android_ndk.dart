@@ -89,6 +89,10 @@ class _AndroidNdkResolver implements ToolResolver {
     if (BuildExtraConfig.ndkVersion != null) {
       final ndkVer = Version.parse(BuildExtraConfig.ndkVersion!);
       ndkInstances.removeWhere((ndkInstance) => ndkInstance.version != ndkVer);
+      if (ndkInstances.isEmpty) {
+        logger?.severe('Failed to find NDK version: ${BuildExtraConfig.ndkVersion}');
+        throw Exception('Failed to find NDK version: ${BuildExtraConfig.ndkVersion}');
+      }
     }
 
     return [

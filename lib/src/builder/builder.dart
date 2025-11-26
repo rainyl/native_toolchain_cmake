@@ -247,17 +247,24 @@ class CMakeBuilder implements Builder {
       );
     }
 
-    // Add optional native config
-    final Map<String, dynamic> nativeConfig = await setExtraConfigFromNativeConfig(input: input);
-    final androidHome = nativeConfig['ANDROID_HOME'] as String?;
-    if (androidHome != null) {
-      BuildExtraConfig.androidHome = androidHome;
-    }
-
     // tool versions
     final userDefines = input.userDefines;
     BuildExtraConfig.cmakeVersion = userDefines["cmakeVersion"] as String?;
+    BuildExtraConfig.ninjaVersion = userDefines["ninjaVersion"] as String?;
     BuildExtraConfig.ndkVersion = userDefines["ndkVersion"] as String?;
+
+    // optional extra build config
+    final extraBuildConfigFile = userDefines["extraBuildConfigFile"] as String?;
+    if (extraBuildConfigFile != null) {
+      final nativeConfig = await setExtraConfigFromNativeConfig(
+        input: input,
+        extraBuildConfigFile: extraBuildConfigFile,
+      );
+      final androidHome = nativeConfig['ANDROID_HOME'] as String?;
+      if (androidHome != null) {
+        BuildExtraConfig.androidHome = androidHome;
+      }
+    }
 
     await task.run(environment: envVars);
   }

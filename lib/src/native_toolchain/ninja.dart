@@ -82,9 +82,13 @@ class _AndroidNinjaResolver implements ToolResolver {
     combinedNinjaInstances.addAll(androidNinjaInstances);
     combinedNinjaInstances.addAll(systemNinjaInstances);
 
-    if (BuildExtraConfig.cmakeVersion != null) {
-      final cmakeVer = Version.parse(BuildExtraConfig.cmakeVersion!);
-      combinedNinjaInstances.removeWhere((ninjaInstance) => ninjaInstance.version != cmakeVer);
+    if (BuildExtraConfig.ninjaVersion != null) {
+      final ninjaVer = Version.parse(BuildExtraConfig.ninjaVersion!);
+      combinedNinjaInstances.removeWhere((ninjaInstance) => ninjaInstance.version != ninjaVer);
+      if (combinedNinjaInstances.isEmpty) {
+        logger?.severe('Failed to find ninja version: ${BuildExtraConfig.ninjaVersion}');
+        throw Exception('Failed to find ninja version: ${BuildExtraConfig.ninjaVersion}');
+      }
     }
 
     return combinedNinjaInstances;

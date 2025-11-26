@@ -4,5 +4,6 @@
 class BuildExtraConfig {
   static String? androidHome;
   static String? cmakeVersion;
+  static String? ninjaVersion;
   static String? ndkVersion;
 }

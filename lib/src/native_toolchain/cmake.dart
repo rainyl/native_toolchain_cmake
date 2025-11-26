@@ -85,6 +85,10 @@ class _AndroidCmakeResolver implements ToolResolver {
     if (BuildExtraConfig.cmakeVersion != null) {
       final cmakeVer = Version.parse(BuildExtraConfig.cmakeVersion!);
       combinedCmakeInstances.removeWhere((cmakeInstance) => cmakeInstance.version != cmakeVer);
+      if (combinedCmakeInstances.isEmpty) {
+        logger?.severe('Failed to find cmake version: ${BuildExtraConfig.cmakeVersion}');
+        throw Exception('Failed to find cmake version: ${BuildExtraConfig.cmakeVersion}');
+      }
     }
 
     return combinedCmakeInstances;
