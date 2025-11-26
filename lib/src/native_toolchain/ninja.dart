@@ -5,6 +5,7 @@ import 'package:code_assets/code_assets.dart';
 import 'package:logging/logging.dart';
 import 'package:native_toolchain_cmake/src/builder/build_extra_config.dart';
 import 'package:native_toolchain_cmake/src/tool/tool_instance.dart';
+import 'package:pub_semver/pub_semver.dart';
 
 import '../tool/tool.dart';
 import '../tool/tool_resolver.dart';
@@ -80,6 +81,12 @@ class _AndroidNinjaResolver implements ToolResolver {
     androidNinjaInstances.sort((a, b) => a.version! > b.version! ? -1 : 1);
     combinedNinjaInstances.addAll(androidNinjaInstances);
     combinedNinjaInstances.addAll(systemNinjaInstances);
+
+    if (BuildExtraConfig.cmakeVersion != null) {
+      final cmakeVer = Version.parse(BuildExtraConfig.cmakeVersion!);
+      combinedNinjaInstances.removeWhere((ninjaInstance) => ninjaInstance.version != cmakeVer);
+    }
+
     return combinedNinjaInstances;
   }
 

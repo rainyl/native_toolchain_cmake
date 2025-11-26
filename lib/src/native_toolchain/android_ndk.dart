@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:code_assets/code_assets.dart';
 import 'package:logging/logging.dart';
 import 'package:native_toolchain_cmake/src/builder/build_extra_config.dart';
+import 'package:pub_semver/pub_semver.dart';
 
 import '../tool/tool.dart';
 import '../tool/tool_instance.dart';
@@ -84,6 +85,11 @@ class _AndroidNdkResolver implements ToolResolver {
     final ndkInstances = await installLocationResolver.resolve(logger: logger)
     // sort latest version first
     ..sort((a, b) => a.version! > b.version! ? -1 : 1);
+
+    if (BuildExtraConfig.ndkVersion != null) {
+      final ndkVer = Version.parse(BuildExtraConfig.ndkVersion!);
+      ndkInstances.removeWhere((ndkInstance) => ndkInstance.version != ndkVer);
+    }
 
     return [
       for (final ndkInstance in ndkInstances) ...[

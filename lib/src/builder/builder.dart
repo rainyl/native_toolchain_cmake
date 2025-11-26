@@ -254,7 +254,12 @@ class CMakeBuilder implements Builder {
       BuildExtraConfig.androidHome = androidHome;
     }
 
-    await task.run(environment: envVars); // finds android toolchain cmake
+    // tool versions
+    final userDefines = input.userDefines;
+    BuildExtraConfig.cmakeVersion = userDefines["cmakeVersion"] as String?;
+    BuildExtraConfig.ndkVersion = userDefines["ndkVersion"] as String?;
+
+    await task.run(environment: envVars);
   }
 
   /// Get environment variables from vcvarsXXX.bat
