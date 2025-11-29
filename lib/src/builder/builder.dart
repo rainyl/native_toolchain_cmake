@@ -9,8 +9,10 @@
 import 'dart:io';
 
 import 'package:code_assets/code_assets.dart';
-import 'package:logging/logging.dart';
 import 'package:hooks/hooks.dart';
+import 'package:logging/logging.dart';
+import 'package:native_toolchain_cmake/src/builder/build_extra_config.dart';
+import 'package:native_toolchain_cmake/src/utils/env_from_native_config.dart';
 
 import '../native_toolchain/msvc.dart';
 import '../utils/env_from_bat.dart';
@@ -244,6 +246,26 @@ class CMakeBuilder implements Builder {
         ),
       );
     }
+
+    // tool versions
+    final userDefines = input.userDefines;
+    BuildExtraConfig.cmakeVersion = userDefines["cmakeVersion"] as String?;
+    BuildExtraConfig.ninjaVersion = userDefines["ninjaVersion"] as String?;
+    BuildExtraConfig.ndkVersion = userDefines["ndkVersion"] as String?;
+
+    // optional host specific build config
+    final hostBuildConfigFile = userDefines["hostBuildConfigFile"] as String?;
+    if (hostBuildConfigFile != null) {
+      final hostBuildConfig = await getHostBuildConfig(
+        input: input,
+        hostBuildConfigFile: hostBuildConfigFile,
+      );
+      final androidHome = hostBuildConfig['ANDROID_HOME'];
+      if (androidHome != null) {
+        BuildExtraConfig.androidHome = androidHome;
+      }
+    }
+
     await task.run(environment: envVars);
   }
 
