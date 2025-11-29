@@ -161,7 +161,7 @@ class RunCMakeBuilder {
       if (buildMode == BuildMode.debug) '-DCMAKE_C_FLAGS_DEBUG=-DDEBUG',
       if (buildMode == BuildMode.debug) '-DCMAKE_CXX_FLAGS_DEBUG=-DDEBUG',
       ...defs,
-      '-DCMAKE_PROGRAM_PATH=$ninjaBinDir'
+      '-DCMAKE_PROGRAM_PATH=$ninjaBinDir',
     ];
     defines.forEach((k, v) => _defines.add('-D$k=${v ?? "1"}'));
 

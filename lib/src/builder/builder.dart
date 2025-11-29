@@ -253,14 +253,14 @@ class CMakeBuilder implements Builder {
     BuildExtraConfig.ninjaVersion = userDefines["ninjaVersion"] as String?;
     BuildExtraConfig.ndkVersion = userDefines["ndkVersion"] as String?;
 
-    // optional extra build config
-    final extraBuildConfigFile = userDefines["extraBuildConfigFile"] as String?;
-    if (extraBuildConfigFile != null) {
-      final nativeConfig = await setExtraConfigFromNativeConfig(
+    // optional host specific build config
+    final hostBuildConfigFile = userDefines["hostBuildConfigFile"] as String?;
+    if (hostBuildConfigFile != null) {
+      final hostBuildConfig = await getHostBuildConfig(
         input: input,
-        extraBuildConfigFile: extraBuildConfigFile,
+        hostBuildConfigFile: hostBuildConfigFile,
       );
-      final androidHome = nativeConfig['ANDROID_HOME'] as String?;
+      final androidHome = hostBuildConfig['ANDROID_HOME'];
       if (androidHome != null) {
         BuildExtraConfig.androidHome = androidHome;
       }

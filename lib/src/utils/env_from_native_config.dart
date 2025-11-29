@@ -1,13 +1,12 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:hooks/hooks.dart';
 import 'package:path/path.dart' as path;
 
-/// Set extra config from native_config.json
-Future<Map<String, dynamic>> setExtraConfigFromNativeConfig({
+/// Get host specific build config
+Future<Map<String, String>> getHostBuildConfig({
   required BuildInput input,
-  required String extraBuildConfigFile,
+  required String hostBuildConfigFile,
 }) async {
   final hookInputUserDefines = input.json['user_defines'] as Map<String, dynamic>?;
   if (hookInputUserDefines == null) return {};
@@ -19,9 +18,35 @@ Future<Map<String, dynamic>> setExtraConfigFromNativeConfig({
   if (basePath == null) return {};
 
   final projectDir = path.dirname(basePath);
-  final nativeConfigPath = path.join(projectDir, extraBuildConfigFile);
+  final nativeConfigPath = path.join(projectDir, hostBuildConfigFile);
   final configFile = File(nativeConfigPath);
   if (!configFile.existsSync()) return {};
 
-  return jsonDecode(configFile.readAsStringSync()) as Map<String, dynamic>;
+  return _parseKeyValueFile(configFile);
+}
+
+Future<Map<String, String>> _parseKeyValueFile(File envFile) async {
+  final lines = await envFile.readAsLines();
+  final Map<String, String> result = {};
+
+  for (final rawLine in lines) {
+    final line = rawLine.trim();
+
+    // Skip comments and blank lines
+    if (line.isEmpty || line.startsWith('#')) continue;
+
+    final eq = line.indexOf('=');
+    if (eq == -1) continue;
+
+    final key = line.substring(0, eq).trim();
+    var value = line.substring(eq + 1).trim();
+
+    if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
+      value = value.substring(1, value.length - 1);
+    }
+
+    result[key] = value;
+  }
+
+  return result;
 }
