@@ -5,6 +5,7 @@
 import 'package:code_assets/code_assets.dart';
 import 'package:logging/logging.dart';
 
+import '../builder/user_config.dart';
 import '../tool/tool.dart';
 import '../tool/tool_instance.dart';
 import '../tool/tool_resolver.dart';
@@ -19,7 +20,7 @@ class CompilerRecognizer implements ToolResolver {
   CompilerRecognizer(this.uri);
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger}) async {
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
     final os = OS.current;
     logger?.finer('Trying to recognize $uri.');
     final filePath = uri.toFilePath();
@@ -44,9 +45,7 @@ class CompilerRecognizer implements ToolResolver {
         await CliVersionResolver.lookupVersion(
           toolInstance,
           logger: logger,
-          arguments: [
-            if (tool != cl) '--version',
-          ],
+          arguments: [if (tool != cl) '--version'],
         ),
       ];
     }
@@ -62,7 +61,7 @@ class LinkerRecognizer implements ToolResolver {
   LinkerRecognizer(this.uri);
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger}) async {
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
     final os = OS.current;
     logger?.finer('Trying to recognize $uri.');
     final filePath = uri.toFilePath();
@@ -81,12 +80,7 @@ class LinkerRecognizer implements ToolResolver {
       logger?.fine('Tool instance $uri is likely $tool.');
       final toolInstance = ToolInstance(tool: tool, uri: uri);
       if (tool == lld) {
-        return [
-          await CliVersionResolver.lookupVersion(
-            toolInstance,
-            logger: logger,
-          ),
-        ];
+        return [await CliVersionResolver.lookupVersion(toolInstance, logger: logger)];
       }
       if (tool == msvcLink) {
         return [
@@ -112,7 +106,7 @@ class ArchiverRecognizer implements ToolResolver {
   ArchiverRecognizer(this.uri);
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger}) async {
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
     logger?.finer('Trying to recognize $uri.');
     final os = OS.current;
     final filePath = uri.toFilePath();
@@ -131,12 +125,7 @@ class ArchiverRecognizer implements ToolResolver {
       logger?.fine('Tool instance $uri is likely $tool.');
       final toolInstance = ToolInstance(tool: tool, uri: uri);
       if (tool == llvmAr) {
-        return [
-          await CliVersionResolver.lookupVersion(
-            toolInstance,
-            logger: logger,
-          ),
-        ];
+        return [await CliVersionResolver.lookupVersion(toolInstance, logger: logger)];
       }
       return [toolInstance];
     }

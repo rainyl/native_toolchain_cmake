@@ -3,9 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 @TestOn('windows')
-@OnPlatform({
-  'windows': Timeout.factor(10),
-})
+@OnPlatform({'windows': Timeout.factor(10)})
 library;
 
 import 'dart:io';
@@ -157,14 +155,7 @@ void main() {
     final instances = await vcvarsall.defaultResolver!.resolve(logger: logger);
     expect(instances.isNotEmpty, true);
     final instance = instances.first;
-    final env = await environmentFromBatchFile(
-      instance.uri,
-      arguments: [
-        'x64',
-        'uwp',
-        '10.0',
-      ],
-    );
+    final env = await environmentFromBatchFile(instance.uri, arguments: ['x64', 'uwp', '10.0']);
     expect(env['INCLUDE'] != null, true);
     expect(env['WindowsSdkDir'] != null, true); // stdio.h
   });

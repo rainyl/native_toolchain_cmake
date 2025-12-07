@@ -11,17 +11,17 @@ import 'dart:io';
 import 'package:code_assets/code_assets.dart';
 import 'package:hooks/hooks.dart';
 import 'package:logging/logging.dart';
-import 'package:native_toolchain_cmake/src/builder/build_extra_config.dart';
-import 'package:native_toolchain_cmake/src/utils/env_from_native_config.dart';
 
 import '../native_toolchain/msvc.dart';
 import '../utils/env_from_bat.dart';
+import '../utils/env_from_native_config.dart';
 import '../utils/run_process.dart';
 import 'build_mode.dart';
 import 'builder_args.dart';
 import 'generator.dart';
 import 'log_level.dart';
 import 'run_builder.dart';
+import 'user_config.dart';
 
 /// Specification for building an artifact with a C compiler.
 class CMakeBuilder implements Builder {
@@ -202,11 +202,7 @@ class CMakeBuilder implements Builder {
   ///
   /// Completes with an error if the build fails.
   @override
-  Future<void> run({
-    required BuildInput input,
-    required BuildOutputBuilder output,
-    Logger? logger,
-  }) async {
+  Future<void> run({required BuildInput input, required BuildOutputBuilder output, Logger? logger}) async {
     // do not override user specified output directory if they also set buildLocal to true
     if (outDir == null && buildLocal) {
       final os = input.config.code.targetOS;
@@ -220,6 +216,25 @@ class CMakeBuilder implements Builder {
     }
     await Directory.fromUri(outDir ?? input.outputDirectory).create(recursive: true);
 
+    var userConfig = UserConfig(
+      androidHome: input.userDefines["androidHome"] as String?,
+      cmakeVersion: input.userDefines["cmakeVersion"] as String?,
+      ninjaVersion: input.userDefines["ninjaVersion"] as String?,
+      ndkVersion: input.userDefines["ndkVersion"] as String?,
+      preferAndroidNinja: input.userDefines["preferAndroidNinja"] as bool? ?? false,
+      preferAndroidCmake: input.userDefines["preferAndroidCmake"] as bool? ?? false,
+    );
+
+    // optional host specific build config
+    final envFile = input.userDefines["envFile"] as String?;
+    if (envFile != null) {
+      final userEnvConfig = await getUserEnvConfig(input: input, envFile: envFile);
+      final androidHome = userEnvConfig['ANDROID_HOME'];
+      if (androidHome != null) {
+        userConfig = userConfig.copyWith(androidHome: androidHome);
+      }
+    }
+
     final task = RunCMakeBuilder(
       input: input,
       outputDir: outDir,
@@ -232,6 +247,7 @@ class CMakeBuilder implements Builder {
       targets: targets,
       appleArgs: appleArgs,
       androidArgs: androidArgs,
+      userConfig: userConfig,
       logLevel: logLevel,
     );
 
@@ -245,25 +261,6 @@ class CMakeBuilder implements Builder {
           logger: logger,
         ),
       );
-    }
-
-    // tool versions
-    final userDefines = input.userDefines;
-    BuildExtraConfig.cmakeVersion = userDefines["cmakeVersion"] as String?;
-    BuildExtraConfig.ninjaVersion = userDefines["ninjaVersion"] as String?;
-    BuildExtraConfig.ndkVersion = userDefines["ndkVersion"] as String?;
-
-    // optional host specific build config
-    final hostBuildConfigFile = userDefines["hostBuildConfigFile"] as String?;
-    if (hostBuildConfigFile != null) {
-      final hostBuildConfig = await getHostBuildConfig(
-        input: input,
-        hostBuildConfigFile: hostBuildConfigFile,
-      );
-      final androidHome = hostBuildConfig['ANDROID_HOME'];
-      if (androidHome != null) {
-        BuildExtraConfig.androidHome = androidHome;
-      }
     }
 
     await task.run(environment: envVars);
@@ -280,10 +277,7 @@ class CMakeBuilder implements Builder {
     // TODO: patch environment variables for cmake
     // may be error if system drive is not C:
     // https://github.com/dart-lang/native/issues/2077
-    final vars = {
-      "WINDIR": r"C:\WINDOWS",
-      "SYSTEMDRIVE": "C:",
-    };
+    final vars = {"WINDIR": r"C:\WINDOWS", "SYSTEMDRIVE": "C:"};
 
     if (targetOS != OS.windows) return {};
     targetArchitecture ??= Architecture.current;

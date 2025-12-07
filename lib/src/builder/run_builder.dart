@@ -13,11 +13,11 @@ import 'package:change_case/change_case.dart';
 import 'package:code_assets/code_assets.dart';
 import 'package:hooks/hooks.dart';
 import 'package:logging/logging.dart';
-import 'package:native_toolchain_cmake/src/native_toolchain/ninja.dart';
 import 'package:path/path.dart';
 
 import '../native_toolchain/android_ndk.dart';
 import '../native_toolchain/cmake.dart';
+import '../native_toolchain/ninja.dart';
 import '../native_toolchain/xcode.dart';
 import '../tool/tool_instance.dart';
 import '../utils/package_config_parser.dart';
@@ -26,6 +26,7 @@ import 'build_mode.dart';
 import 'builder_args.dart';
 import 'generator.dart';
 import 'log_level.dart';
+import 'user_config.dart';
 
 class RunCMakeBuilder {
   final HookInput input;
@@ -55,6 +56,9 @@ class RunCMakeBuilder {
   // android ndk
   final AndroidBuilderArgs androidArgs;
 
+  // user defined configs
+  final UserConfig userConfig;
+
   /// log level of CMake
   final LogLevel logLevel;
 
@@ -71,24 +75,19 @@ class RunCMakeBuilder {
     this.targets,
     this.androidArgs = const AndroidBuilderArgs(),
     this.appleArgs = const AppleBuilderArgs(),
+    this.userConfig = const UserConfig(),
     this.logLevel = LogLevel.STATUS,
   }) : outDir = outputDir ?? input.outputDirectory;
 
   Future<Uri> cmakePath() async {
-    final cmakeTools = switch (codeConfig.targetOS) {
-      OS.android => await androidCmake.defaultResolver?.resolve(logger: logger),
-      _ => await cmake.defaultResolver?.resolve(logger: logger),
-    };
+    final cmakeTools = await cmake.defaultResolver?.resolve(logger: logger, userConfig: userConfig);
     final path = cmakeTools?.first.uri;
     assert(path != null);
     return Future.value(path);
   }
 
   Future<Uri> ninjaPath() async {
-    final ninjaTools = switch (codeConfig.targetOS) {
-      OS.android => await androidNinja.defaultResolver?.resolve(logger: logger),
-      _ => await ninja.defaultResolver?.resolve(logger: logger),
-    };
+    final ninjaTools = await ninja.defaultResolver?.resolve(logger: logger, userConfig: userConfig);
     final path = ninjaTools?.first.uri;
     assert(path != null);
     return Future.value(path);
@@ -99,36 +98,37 @@ class RunCMakeBuilder {
   Future<Uri> iosToolchainCmake() async => (await currentPackageRoot()).resolve('cmake/ios.toolchain.cmake');
 
   Future<Uri> androidToolchainCmake() async {
-    final tool = await androidNdk.defaultResolver?.resolve(logger: logger);
+    final tool = await androidNdk.defaultResolver?.resolve(logger: logger, userConfig: userConfig);
     final toolUri = tool?.first.uri.resolve('build/cmake/android.toolchain.cmake');
     assert(toolUri != null);
     return Future.value(toolUri);
   }
 
   Future<Uri> linuxToolchainCmake() async => switch (codeConfig.targetArchitecture) {
-        Architecture.x64 => (await currentPackageRoot()).resolve('cmake/x86_64-linux-gnu.toolchain.cmake'),
-        Architecture.arm64 => (await currentPackageRoot()).resolve('cmake/aarch64-linux-gnu.toolchain.cmake'),
-        Architecture.riscv64 =>
-          (await currentPackageRoot()).resolve('cmake/riscv64-linux-gnu.toolchain.cmake'),
-        _ => throw UnimplementedError('Unsupported architecture: ${codeConfig.targetArchitecture} for Linux'),
-      };
+    Architecture.x64 => (await currentPackageRoot()).resolve('cmake/x86_64-linux-gnu.toolchain.cmake'),
+    Architecture.arm64 => (await currentPackageRoot()).resolve('cmake/aarch64-linux-gnu.toolchain.cmake'),
+    Architecture.riscv64 => (await currentPackageRoot()).resolve('cmake/riscv64-linux-gnu.toolchain.cmake'),
+    _ => throw UnimplementedError('Unsupported architecture: ${codeConfig.targetArchitecture} for Linux'),
+  };
 
   Future<Uri> iosSdk(IOSSdk iosSdk, {required Logger? logger}) async {
     if (iosSdk == IOSSdk.iPhoneOS) {
-      return (await iPhoneOSSdk.defaultResolver!.resolve(logger: logger))
-          .where((i) => i.tool == iPhoneOSSdk)
-          .first
-          .uri;
+      return (await iPhoneOSSdk.defaultResolver!.resolve(
+        logger: logger,
+        userConfig: userConfig,
+      )).where((i) => i.tool == iPhoneOSSdk).first.uri;
     }
     assert(iosSdk == IOSSdk.iPhoneSimulator);
-    return (await iPhoneSimulatorSdk.defaultResolver!.resolve(logger: logger))
-        .where((i) => i.tool == iPhoneSimulatorSdk)
-        .first
-        .uri;
+    return (await iPhoneSimulatorSdk.defaultResolver!.resolve(
+      logger: logger,
+      userConfig: userConfig,
+    )).where((i) => i.tool == iPhoneSimulatorSdk).first.uri;
   }
 
-  Future<Uri> macosSdk({required Logger? logger}) async =>
-      (await macosxSdk.defaultResolver!.resolve(logger: logger)).where((i) => i.tool == macosxSdk).first.uri;
+  Future<Uri> macosSdk({required Logger? logger}) async => (await macosxSdk.defaultResolver!.resolve(
+    logger: logger,
+    userConfig: userConfig,
+  )).where((i) => i.tool == macosxSdk).first.uri;
 
   Uri androidSysroot(ToolInstance compiler) => compiler.uri.resolve('../sysroot/');
 
@@ -312,18 +312,10 @@ class RunCMakeBuilder {
     Architecture.x64: 'x86_64',
   };
 
-  static const macosPlatforms = {
-    Architecture.arm64: 'MAC_ARM64',
-    Architecture.x64: 'MAC',
-  };
+  static const macosPlatforms = {Architecture.arm64: 'MAC_ARM64', Architecture.x64: 'MAC'};
 
   static const iosPlatforms = {
-    Architecture.arm64: {
-      IOSSdk.iPhoneOS: 'OS64',
-      IOSSdk.iPhoneSimulator: 'SIMULATORARM64',
-    },
-    Architecture.x64: {
-      IOSSdk.iPhoneSimulator: 'SIMULATOR64',
-    },
+    Architecture.arm64: {IOSSdk.iPhoneOS: 'OS64', IOSSdk.iPhoneSimulator: 'SIMULATORARM64'},
+    Architecture.x64: {IOSSdk.iPhoneSimulator: 'SIMULATOR64'},
   };
 }

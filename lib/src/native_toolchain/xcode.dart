@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 
+import '../builder/user_config.dart';
 import '../tool/tool.dart';
 import '../tool/tool_instance.dart';
 import '../tool/tool_resolver.dart';
@@ -17,44 +18,27 @@ import '../utils/run_process.dart';
 final Tool xcrun = Tool(
   name: 'xcrun',
   defaultResolver: CliVersionResolver(
-    wrappedResolver: PathToolResolver(
-      toolName: 'xcrun',
-      executableName: 'xcrun',
-    ),
+    wrappedResolver: PathToolResolver(toolName: 'xcrun', executableName: 'xcrun'),
   ),
 );
 
 /// The MacOSX SDK.
-final Tool macosxSdk = Tool(
-  name: 'MacOSX SDK',
-  defaultResolver: XCodeSdkResolver(),
-);
+final Tool macosxSdk = Tool(name: 'MacOSX SDK', defaultResolver: XCodeSdkResolver());
 
 /// The iPhoneOS SDK.
-final Tool iPhoneOSSdk = Tool(
-  name: 'iPhoneOS SDK',
-  defaultResolver: XCodeSdkResolver(),
-);
+final Tool iPhoneOSSdk = Tool(name: 'iPhoneOS SDK', defaultResolver: XCodeSdkResolver());
 
 /// The iPhoneSimulator SDK.
-final Tool iPhoneSimulatorSdk = Tool(
-  name: 'iPhoneSimulator SDK',
-  defaultResolver: XCodeSdkResolver(),
-);
+final Tool iPhoneSimulatorSdk = Tool(name: 'iPhoneSimulator SDK', defaultResolver: XCodeSdkResolver());
 
 class XCodeSdkResolver implements ToolResolver {
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger}) async {
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
     final xcrunInstances = await xcrun.defaultResolver!.resolve(logger: logger);
 
     return [
       for (final xcrunInstance in xcrunInstances) ...[
-        ...await tryResolveSdk(
-          xcrunInstance: xcrunInstance,
-          sdk: 'macosx',
-          tool: macosxSdk,
-          logger: logger,
-        ),
+        ...await tryResolveSdk(xcrunInstance: xcrunInstance, sdk: 'macosx', tool: macosxSdk, logger: logger),
         ...await tryResolveSdk(
           xcrunInstance: xcrunInstance,
           sdk: 'iphoneos',

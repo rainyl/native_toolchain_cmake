@@ -4,9 +4,9 @@ import 'package:hooks/hooks.dart';
 import 'package:path/path.dart' as path;
 
 /// Get host specific build config
-Future<Map<String, String>> getHostBuildConfig({
+Future<Map<String, String>> getUserEnvConfig({
   required BuildInput input,
-  required String hostBuildConfigFile,
+  required String envFile,
 }) async {
   final hookInputUserDefines = input.json['user_defines'] as Map<String, dynamic>?;
   if (hookInputUserDefines == null) return {};
@@ -18,8 +18,8 @@ Future<Map<String, String>> getHostBuildConfig({
   if (basePath == null) return {};
 
   final projectDir = path.dirname(basePath);
-  final nativeConfigPath = path.join(projectDir, hostBuildConfigFile);
-  final configFile = File(nativeConfigPath);
+  final envConfigPath = path.join(projectDir, envFile);
+  final configFile = File(envConfigPath);
   if (!configFile.existsSync()) return {};
 
   return _parseKeyValueFile(configFile);

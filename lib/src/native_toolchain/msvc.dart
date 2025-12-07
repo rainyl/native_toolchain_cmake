@@ -9,6 +9,7 @@ import 'package:code_assets/code_assets.dart';
 import 'package:glob/glob.dart';
 import 'package:logging/logging.dart';
 
+import '../builder/user_config.dart';
 import '../tool/tool.dart';
 import '../tool/tool_instance.dart';
 import '../tool/tool_resolver.dart';
@@ -22,31 +23,26 @@ final Tool vswhere = Tool(
   name: 'Visual Studio Locator',
   defaultResolver: CliVersionResolver(
     arguments: [],
-    wrappedResolver: ToolResolvers(
-      [
-        // PathToolResolver(
-        //   toolName: 'Visual Studio Locator',
-        //   executableName: 'vswhere.exe',
-        // ),
-        InstallLocationResolver(
-          toolName: 'Visual Studio Locator',
-          paths: [
-            r'C:/Program Files \(x86\)/Microsoft Visual Studio/Installer/vswhere.exe',
-            'C:/Program Files/Microsoft Visual Studio/Installer/vswhere.exe',
-          ],
-        ),
-      ],
-    ),
+    wrappedResolver: ToolResolvers([
+      // PathToolResolver(
+      //   toolName: 'Visual Studio Locator',
+      //   executableName: 'vswhere.exe',
+      // ),
+      InstallLocationResolver(
+        toolName: 'Visual Studio Locator',
+        paths: [
+          r'C:/Program Files \(x86\)/Microsoft Visual Studio/Installer/vswhere.exe',
+          'C:/Program Files/Microsoft Visual Studio/Installer/vswhere.exe',
+        ],
+      ),
+    ]),
   ),
 );
 
 /// Visual Studio.
 ///
 /// https://visualstudio.microsoft.com/
-final Tool visualStudio = Tool(
-  name: 'Visual Studio',
-  defaultResolver: VisualStudioResolver(),
-);
+final Tool visualStudio = Tool(name: 'Visual Studio', defaultResolver: VisualStudioResolver());
 
 /// The C/C++ Optimizing Compiler.
 final Tool msvc = Tool(
@@ -82,9 +78,7 @@ Tool vcvars(ToolInstance toolInstance) {
     name: fileName,
     defaultResolver: InstallLocationResolver(
       toolName: fileName,
-      paths: [
-        Glob.quote(batchScript.toFilePath().replaceAll(r'\', '/')),
-      ],
+      paths: [Glob.quote(batchScript.toFilePath().replaceAll(r'\', '/'))],
     ),
   );
 }
@@ -223,11 +217,7 @@ final Tool dumpbin = _msvcTool(
   hostArchitecture: Architecture.current,
 );
 
-const _msvcArchNames = {
-  Architecture.ia32: 'x86',
-  Architecture.x64: 'x64',
-  Architecture.arm64: 'arm64',
-};
+const _msvcArchNames = {Architecture.ia32: 'x86', Architecture.x64: 'x64', Architecture.arm64: 'arm64'};
 
 Tool _msvcTool({
   required String name,
@@ -239,19 +229,14 @@ Tool _msvcTool({
 }) {
   final executableName = OS.windows.executableFileName(name);
   if (OS.current != OS.windows) {
-    return Tool(
-      name: executableName,
-      defaultResolver: ToolResolvers([]),
-    );
+    return Tool(name: executableName, defaultResolver: ToolResolvers([]));
   }
   final hostArchName = _msvcArchNames[hostArchitecture]!;
   final targetArchName = _msvcArchNames[targetArchitecture]!;
   ToolResolver resolver = RelativeToolResolver(
     toolName: executableName,
     wrappedResolver: msvc.defaultResolver!,
-    relativePath: Uri(
-      path: 'bin/Host$hostArchName/$targetArchName/$executableName',
-    ),
+    relativePath: Uri(path: 'bin/Host$hostArchName/$targetArchName/$executableName'),
   );
   if (resolveVersion) {
     resolver = CliVersionResolver(
@@ -260,16 +245,13 @@ Tool _msvcTool({
       wrappedResolver: resolver,
     );
   }
-  return Tool(
-    name: executableName,
-    defaultResolver: resolver,
-  );
+  return Tool(name: executableName, defaultResolver: resolver);
 }
 
 class VisualStudioResolver implements ToolResolver {
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger}) async {
-    final vswhereInstances = await vswhere.defaultResolver!.resolve(logger: logger);
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+    final vswhereInstances = await vswhere.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
     final result = <ToolInstance>[];
     for (final vswhereInstance in vswhereInstances.take(1)) {

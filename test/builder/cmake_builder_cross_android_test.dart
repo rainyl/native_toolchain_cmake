@@ -13,12 +13,7 @@ import 'package:test/test.dart';
 import '../helpers.dart';
 
 void main() {
-  const targets = [
-    Architecture.arm,
-    Architecture.arm64,
-    Architecture.ia32,
-    Architecture.x64,
-  ];
+  const targets = [Architecture.arm, Architecture.arm64, Architecture.ia32, Architecture.x64];
 
   const objdumpFileFormat = {
     Architecture.arm: 'elf32-littlearm',
@@ -43,32 +38,35 @@ void main() {
         flutterAndroidNdkVersionLowestSupported,
         flutterAndroidNdkVersionHighestSupported,
       ]) {
-        test('CMakeBuilder $linkMode library $target minSdkVersion $apiLevel', () async {
-          final tempUri = await tempDirForTest();
-          final libUri = await buildLib(
-            tempUri,
-            target,
-            apiLevel,
-            linkMode,
-          );
-          if (Platform.isLinux) {
-            final machine = await readelfMachine(libUri.path);
-            expect(machine, contains(readElfMachine[target]));
-          } else if (Platform.isMacOS) {
-            final result = await runProcess(
-              executable: Uri.file('objdump'),
-              arguments: ['-T', libUri.path],
-              logger: logger,
+        for (final enableUserDefinedConfig in [true, false]) {
+          test('CMakeBuilder $linkMode library $target minSdkVersion $apiLevel enableUserDefinedConfig $enableUserDefinedConfig', () async {
+            final tempUri = await tempDirForTest();
+            final libUri = await buildLib(
+              tempUri,
+              target,
+              apiLevel,
+              linkMode,
+              enableUserDefinedConfig: enableUserDefinedConfig,
             );
-            expect(result.exitCode, 0);
-            final machine = result.stdout.split('\n').firstWhere((e) => e.contains('file format'));
-            expect(machine, contains(objdumpFileFormat[target]));
-          }
-          // TODO: failed
-          // if (linkMode == DynamicLoadingBundled()) {
-          //   await expectPageSize(libUri, 16 * 1024);
-          // }
-        });
+            if (Platform.isLinux) {
+              final machine = await readelfMachine(libUri.path);
+              expect(machine, contains(readElfMachine[target]));
+            } else if (Platform.isMacOS) {
+              final result = await runProcess(
+                executable: Uri.file('objdump'),
+                arguments: ['-T', libUri.path],
+                logger: logger,
+              );
+              expect(result.exitCode, 0);
+              final machine = result.stdout.split('\n').firstWhere((e) => e.contains('file format'));
+              expect(machine, contains(objdumpFileFormat[target]));
+            }
+            // TODO: failed
+            // if (linkMode == DynamicLoadingBundled()) {
+            //   await expectPageSize(libUri, 16 * 1024);
+            // }
+          });
+        }
       }
     }
   }
@@ -99,9 +97,19 @@ Future<Uri> buildLib(
   Uri tempUri,
   Architecture targetArchitecture,
   int androidNdkApi,
-  LinkMode linkMode,
-) async {
+  LinkMode linkMode, {
+  bool enableUserDefinedConfig = false,
+}) async {
   const name = 'add';
+
+  const userDefinedConfig = {"envFile": ".env"};
+  if (enableUserDefinedConfig) {
+    // cmakeVersion ninjaVersion ndkVersion envFile
+    // TODO: add more user configs.
+    final envFilePath = tempUri.resolve(userDefinedConfig["envFile"] as String).toFilePath();
+    final envFile = File(envFilePath);
+    await envFile.writeAsString(r'ANDROID_HOME=$HOME/Android/Sdk');
+  }
 
   final tempUriShared = tempUri.resolve('shared/');
   await Directory.fromUri(tempUriShared).create();
@@ -111,6 +119,11 @@ Future<Uri> buildLib(
       packageRoot: tempUri,
       outputFile: tempUri.resolve('output.json'),
       outputDirectoryShared: tempUriShared,
+      userDefines: enableUserDefinedConfig
+          ? PackageUserDefines(
+              workspacePubspec: PackageUserDefinesSource(defines: userDefinedConfig, basePath: tempUri),
+            )
+          : null,
     )
     ..config.setupBuild(linkingEnabled: false)
     ..addExtension(
@@ -119,8 +132,9 @@ Future<Uri> buildLib(
         targetOS: OS.android,
         cCompiler: cCompiler,
         android: AndroidCodeConfig(targetNdkApi: androidNdkApi),
-        linkModePreference:
-            linkMode == DynamicLoadingBundled() ? LinkModePreference.dynamic : LinkModePreference.static,
+        linkModePreference: linkMode == DynamicLoadingBundled()
+            ? LinkModePreference.dynamic
+            : LinkModePreference.static,
       ),
     );
 
@@ -134,11 +148,7 @@ Future<Uri> buildLib(
     generator: Generator.ninja,
     androidArgs: AndroidBuilderArgs(androidAPI: androidNdkApi),
   );
-  await builder.run(
-    input: buildInput,
-    output: buildOutput,
-    logger: logger,
-  );
+  await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
   final libUri = buildInput.outputDirectory.resolve(OS.android.libraryFileName(name, linkMode));
   return libUri;
