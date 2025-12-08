@@ -34,13 +34,13 @@ class _CmakeResolver implements ToolResolver {
       ]),
     );
     final androidCmakeInstances = await androidResolver.resolve(logger: logger);
-    logger?.info('Android CMake: ${androidCmakeInstances.map((e) => e.toString()).join(', ')}');
+    logger?.info('Found Android CMake: ${androidCmakeInstances.map((e) => e.toString()).join(', ')}');
 
     final systemResolver = CliVersionResolver(
       wrappedResolver: PathToolResolver(toolName: 'CMake', executableName: 'cmake'),
     );
     final systemCmakeInstances = await systemResolver.resolve(logger: logger);
-    logger?.info('System CMake: ${systemCmakeInstances.map((e) => e.toString()).join(', ')}');
+    logger?.info('Found System CMake: ${systemCmakeInstances.map((e) => e.toString()).join(', ')}');
 
     // sort latest version first
     androidCmakeInstances.sort((a, b) => a.version! > b.version! ? -1 : 1);

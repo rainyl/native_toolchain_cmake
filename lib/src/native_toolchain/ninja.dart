@@ -33,13 +33,13 @@ class _NinjaResolver implements ToolResolver {
       ]),
     );
     final androidNinjaInstances = await androidResolver.resolve(logger: logger);
-    logger?.info('Android Ninja: ${androidNinjaInstances.map((e) => e.toString()).join(', ')}');
+    logger?.info('Found Android Ninja: ${androidNinjaInstances.map((e) => e.toString()).join(', ')}');
 
     final systemResolver = CliVersionResolver(
       wrappedResolver: PathToolResolver(toolName: 'Ninja', executableName: 'ninja'),
     );
     final systemNinjaInstances = await systemResolver.resolve(logger: logger);
-    logger?.info('System Ninja: ${systemNinjaInstances.map((e) => e.toString()).join(', ')}');
+    logger?.info('Found System Ninja: ${systemNinjaInstances.map((e) => e.toString()).join(', ')}');
 
     // sort latest version first
     androidNinjaInstances.sort((a, b) => a.version! > b.version! ? -1 : 1);

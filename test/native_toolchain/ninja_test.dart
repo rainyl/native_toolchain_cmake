@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:native_toolchain_cmake/src/builder/user_config.dart';
 import 'package:native_toolchain_cmake/src/native_toolchain/ninja.dart';
 import 'package:test/test.dart';
@@ -11,10 +13,14 @@ void main() {
   });
 
   test('Android Ninja test', () async {
-    final ninjaTool = await ninja.defaultResolver!.resolve(
+    final androidHome = Platform.environment['ANDROID_HOME'];
+    final tools = await ninja.defaultResolver!.resolve(
       logger: logger,
-      userConfig: UserConfig(preferAndroidNinja: true),
+      userConfig: UserConfig(androidHome: androidHome, preferAndroidNinja: true),
     );
-    expect(ninjaTool, isNotEmpty);
+    expect(tools, isNotEmpty);
+    if (androidHome != null) {
+      expect(File.fromUri(tools.first.uri).path, startsWith(androidHome));
+    }
   });
 }

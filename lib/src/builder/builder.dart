@@ -231,7 +231,14 @@ class CMakeBuilder implements Builder {
       final userEnvConfig = await getUserEnvConfig(input: input, envFile: envFile);
       final androidHome = userEnvConfig['ANDROID_HOME'];
       if (androidHome != null) {
-        userConfig = userConfig.copyWith(androidHome: androidHome);
+        final androidHomeEntity = Directory(androidHome);
+        if (await androidHomeEntity.exists()) {
+          userConfig = userConfig.copyWith(androidHome: androidHomeEntity.absolute.path);
+        } else {
+          logger?.warning(
+            "ANDROID_HOME=$androidHome is set in envFile=$envFile but does not exist, ignoring",
+          );
+        }
       }
     }
 
