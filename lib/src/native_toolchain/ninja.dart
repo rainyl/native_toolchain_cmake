@@ -51,7 +51,12 @@ class _NinjaResolver implements ToolResolver {
 
     if (userConfig?.ninjaVersion != null) {
       final ninjaVer = Version.parse(userConfig!.ninjaVersion!);
-      combinedNinjaInstances.removeWhere((ninjaInstance) => ninjaInstance.version != ninjaVer);
+      combinedNinjaInstances.removeWhere((instance) {
+        return instance.version == null ||
+            (instance.version!.major != ninjaVer.major &&
+                instance.version!.minor != ninjaVer.minor &&
+                instance.version!.patch != ninjaVer.patch);
+      });
       if (combinedNinjaInstances.isEmpty) {
         logger?.severe('Failed to find ninja version: ${userConfig.ninjaVersion}');
         throw Exception('Failed to find ninja version: ${userConfig.ninjaVersion}');

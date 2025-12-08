@@ -49,10 +49,24 @@ class _CmakeResolver implements ToolResolver {
       combinedCmakeInstances.addAll(androidCmakeInstances);
     }
     combinedCmakeInstances.addAll(systemCmakeInstances);
+    for (final instance in combinedCmakeInstances) {
+      if (instance.version == null) {
+        logger?.warning('Can not determine version of: $instance');
+      }
+    }
 
     if (userConfig?.cmakeVersion != null) {
       final cmakeVer = Version.parse(userConfig!.cmakeVersion!);
-      combinedCmakeInstances.removeWhere((cmakeInstance) => cmakeInstance.version != cmakeVer);
+      logger?.info('Filtering CMake version: $cmakeVer');
+      logger?.info('Found CMake: ${combinedCmakeInstances.map((e) => e.toString()).join(', ')}');
+      // cmake version of android are likely to be the format of `3.22.1-g37088a8-dirty`
+      // so here we just check the major, minor and patch version
+      combinedCmakeInstances.removeWhere((instance) {
+        return instance.version == null ||
+            (instance.version!.major != cmakeVer.major &&
+                instance.version!.minor != cmakeVer.minor &&
+                instance.version!.patch != cmakeVer.patch);
+      });
       if (combinedCmakeInstances.isEmpty) {
         logger?.severe('Failed to find cmake version: ${userConfig.cmakeVersion}');
         throw Exception('Failed to find cmake version: ${userConfig.cmakeVersion}');

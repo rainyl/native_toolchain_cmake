@@ -16,7 +16,12 @@ void main() {
     final androidHome = Platform.environment['ANDROID_HOME'];
     final tools = await cmake.defaultResolver!.resolve(
       logger: logger,
-      userConfig: UserConfig(androidHome: androidHome, preferAndroidCmake: true),
+      userConfig: UserConfig(
+        androidHome: androidHome,
+        preferAndroidCmake: true,
+        // cmakeVersion: "3.22.1",
+        // ninjaVersion: "1.10.2",
+      ),
     );
     expect(tools, isNotEmpty);
     if (androidHome != null) {

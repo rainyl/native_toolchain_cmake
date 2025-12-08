@@ -16,7 +16,11 @@ void main() {
     final androidHome = Platform.environment['ANDROID_HOME'];
     final tools = await ninja.defaultResolver!.resolve(
       logger: logger,
-      userConfig: UserConfig(androidHome: androidHome, preferAndroidNinja: true),
+      userConfig: UserConfig(
+        androidHome: androidHome,
+        preferAndroidNinja: true,
+        // ninjaVersion: "1.10.2"
+      ),
     );
     expect(tools, isNotEmpty);
     if (androidHome != null) {
