@@ -80,14 +80,14 @@ class RunCMakeBuilder {
   }) : outDir = outputDir ?? input.outputDirectory;
 
   Future<Uri> cmakePath() async {
-    final cmakeTools = await cmake.defaultResolver?.resolve(logger: logger, userConfig: userConfig);
+    final cmakeTools = await cmake.defaultResolver?.resolve(logger: logger, userConfig: userConfig, codeConfig: codeConfig);
     final path = cmakeTools?.first.uri;
     assert(path != null);
     return Future.value(path);
   }
 
   Future<Uri> ninjaPath() async {
-    final ninjaTools = await ninja.defaultResolver?.resolve(logger: logger, userConfig: userConfig);
+    final ninjaTools = await ninja.defaultResolver?.resolve(logger: logger, userConfig: userConfig, codeConfig: codeConfig);
     final path = ninjaTools?.first.uri;
     assert(path != null);
     return Future.value(path);

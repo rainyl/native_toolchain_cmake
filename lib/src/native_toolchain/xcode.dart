@@ -4,6 +4,7 @@
 
 import 'dart:io';
 
+import 'package:code_assets/code_assets.dart';
 import 'package:logging/logging.dart';
 
 import '../builder/user_config.dart';
@@ -33,7 +34,7 @@ final Tool iPhoneSimulatorSdk = Tool(name: 'iPhoneSimulator SDK', defaultResolve
 
 class XCodeSdkResolver implements ToolResolver {
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig, CodeConfig? codeConfig}) async {
     final xcrunInstances = await xcrun.defaultResolver!.resolve(logger: logger);
 
     return [

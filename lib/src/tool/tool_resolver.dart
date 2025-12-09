@@ -20,7 +20,7 @@ import 'tool_instance.dart';
 
 abstract class ToolResolver {
   /// Resolves tools on the host system.
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig});
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig, CodeConfig? codeConfig});
 }
 
 /// Tries to resolve a tool on the `PATH`.
@@ -38,7 +38,7 @@ class PathToolResolver extends ToolResolver {
   /// Resolves [toolName] on the `PATH`.
   /// [userConfig] is ignored.
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig, CodeConfig? codeConfig}) async {
     logger?.finer('Looking for $toolName on PATH.');
     final uri = await runWhich(logger: logger);
     if (uri == null) {
@@ -86,8 +86,8 @@ class CliVersionResolver implements ToolResolver {
   });
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
-    final toolInstances = await wrappedResolver.resolve(logger: logger, userConfig: userConfig);
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig, CodeConfig? codeConfig}) async {
+    final toolInstances = await wrappedResolver.resolve(logger: logger, userConfig: userConfig, codeConfig: codeConfig);
     return [
       for (final toolInstance in toolInstances)
         await lookupVersion(
@@ -142,8 +142,8 @@ class PathVersionResolver implements ToolResolver {
   PathVersionResolver({required this.wrappedResolver});
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
-    final toolInstances = await wrappedResolver.resolve(logger: logger, userConfig: userConfig);
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig, CodeConfig? codeConfig}) async {
+    final toolInstances = await wrappedResolver.resolve(logger: logger, userConfig: userConfig, codeConfig: codeConfig);
 
     return [for (final toolInstance in toolInstances) lookupVersion(toolInstance)];
   }
@@ -169,8 +169,8 @@ class ToolResolvers implements ToolResolver {
   ToolResolvers(this.resolvers);
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async => [
-    for (final resolver in resolvers) ...await resolver.resolve(logger: logger, userConfig: userConfig),
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig, CodeConfig? codeConfig}) async => [
+    for (final resolver in resolvers) ...await resolver.resolve(logger: logger, userConfig: userConfig, codeConfig: codeConfig),
   ];
 }
 
@@ -184,7 +184,7 @@ class InstallLocationResolver implements ToolResolver {
 
   /// [userConfig] is ignored.
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig, CodeConfig? codeConfig}) async {
     logger?.finer('Looking for $toolName in $paths.');
     final resolvedPaths = [for (final path in paths) ...await tryResolvePath(path)];
     final toolInstances = [
@@ -240,8 +240,8 @@ class RelativeToolResolver implements ToolResolver {
   RelativeToolResolver({required this.toolName, required this.wrappedResolver, required this.relativePath});
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
-    final otherToolInstances = await wrappedResolver.resolve(logger: logger, userConfig: userConfig);
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig, CodeConfig? codeConfig}) async {
+    final otherToolInstances = await wrappedResolver.resolve(logger: logger, userConfig: userConfig, codeConfig: codeConfig);
 
     logger?.finer(
       'Looking for $toolName relative to $otherToolInstances '
@@ -283,8 +283,8 @@ class CliFilter implements ToolResolver {
   CliFilter({required this.wrappedResolver, required this.cliArguments, required this.keepIf});
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
-    final toolInstances = await wrappedResolver.resolve(logger: logger, userConfig: userConfig);
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig, CodeConfig? codeConfig}) async {
+    final toolInstances = await wrappedResolver.resolve(logger: logger, userConfig: userConfig, codeConfig: codeConfig);
     return [
       for (final toolInstance in toolInstances) await filter(toolInstance, logger: logger),
     ].whereType<ToolInstance>().toList();

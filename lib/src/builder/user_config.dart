@@ -5,16 +5,20 @@ class UserConfig {
   final String? androidHome;
   final String? cmakeVersion;
   final bool preferAndroidCmake;
+  final String? androidTargetCmakeVersion;
   final String? ninjaVersion;
   final bool preferAndroidNinja;
+  final String? androidTargetNinjaVersion;
   final String? ndkVersion;
 
   const UserConfig({
     this.androidHome,
     this.cmakeVersion,
     this.preferAndroidCmake = false,
+    this.androidTargetCmakeVersion,
     this.preferAndroidNinja = false,
     this.ninjaVersion,
+    this.androidTargetNinjaVersion,
     this.ndkVersion,
   });
 
@@ -22,15 +26,19 @@ class UserConfig {
     String? androidHome,
     String? cmakeVersion,
     bool preferAndroidCmake = false,
-    bool preferAndroidNinja = false,
+    String? androidTargetCmakeVersion,
     String? ninjaVersion,
+    bool preferAndroidNinja = false,
+    String? androidTargetNinjaVersion,
     String? ndkVersion,
   }) => UserConfig(
     androidHome: androidHome ?? this.androidHome,
     cmakeVersion: cmakeVersion ?? this.cmakeVersion,
     preferAndroidCmake: preferAndroidCmake,
-    preferAndroidNinja: preferAndroidNinja,
+    androidTargetCmakeVersion: androidTargetCmakeVersion ?? this.androidTargetCmakeVersion,
     ninjaVersion: ninjaVersion ?? this.ninjaVersion,
+    preferAndroidNinja: preferAndroidNinja,
+    androidTargetNinjaVersion: androidTargetNinjaVersion ?? this.androidTargetNinjaVersion,
     ndkVersion: ndkVersion ?? this.ndkVersion,
   );
 }

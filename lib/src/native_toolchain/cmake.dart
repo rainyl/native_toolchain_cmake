@@ -18,10 +18,10 @@ class _CmakeResolver implements ToolResolver {
   final executableName = OS.current.executableFileName('cmake');
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig, CodeConfig? codeConfig}) async {
     final androidResolver = CliVersionResolver(
       wrappedResolver: ToolResolvers([
-        if (userConfig?.preferAndroidCmake ?? false)
+        if ((userConfig?.preferAndroidCmake ?? false) || (codeConfig?.targetOS == OS.android))
           InstallLocationResolver(
             toolName: 'CMake',
             paths: [
@@ -45,7 +45,7 @@ class _CmakeResolver implements ToolResolver {
     // sort latest version first
     androidCmakeInstances.sort((a, b) => a.version! > b.version! ? -1 : 1);
     final combinedCmakeInstances = <ToolInstance>[];
-    if ((userConfig?.preferAndroidCmake ?? false) && androidCmakeInstances.isNotEmpty) {
+    if ((userConfig?.preferAndroidCmake ?? false) || (codeConfig?.targetOS == OS.android)) {
       combinedCmakeInstances.addAll(androidCmakeInstances);
     }
     combinedCmakeInstances.addAll(systemCmakeInstances);
@@ -55,8 +55,15 @@ class _CmakeResolver implements ToolResolver {
       }
     }
 
-    if (userConfig?.cmakeVersion != null) {
-      final cmakeVer = Version.parse(userConfig!.cmakeVersion!);
+    String? specificCmakeVersion;
+    if (codeConfig?.targetOS == OS.android && userConfig?.androidTargetCmakeVersion != null) {
+      specificCmakeVersion = userConfig?.androidTargetCmakeVersion;
+    } else {
+      specificCmakeVersion = userConfig?.cmakeVersion;
+    }
+
+    if (specificCmakeVersion != null) {
+      final cmakeVer = Version.parse(specificCmakeVersion);
       logger?.info('Filtering CMake version: $cmakeVer');
       logger?.info('Found CMake: ${combinedCmakeInstances.map((e) => e.toString()).join(', ')}');
       // cmake version of android are likely to be the format of `3.22.1-g37088a8-dirty`
@@ -68,8 +75,8 @@ class _CmakeResolver implements ToolResolver {
                 instance.version!.patch != cmakeVer.patch);
       });
       if (combinedCmakeInstances.isEmpty) {
-        logger?.severe('Failed to find cmake version: ${userConfig.cmakeVersion}');
-        throw Exception('Failed to find cmake version: ${userConfig.cmakeVersion}');
+        logger?.severe('Failed to find cmake version: $specificCmakeVersion');
+        throw Exception('Failed to find cmake version: $specificCmakeVersion');
       }
     }
 

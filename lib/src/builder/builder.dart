@@ -223,6 +223,8 @@ class CMakeBuilder implements Builder {
       ndkVersion: input.userDefines["ndkVersion"] as String?,
       preferAndroidNinja: input.userDefines["preferAndroidNinja"] as bool? ?? false,
       preferAndroidCmake: input.userDefines["preferAndroidCmake"] as bool? ?? false,
+      androidTargetCmakeVersion: input.userDefines["androidTargetCmakeVersion"] as String?,
+      androidTargetNinjaVersion: input.userDefines["androidTargetNinjaVersion"] as String?,
     );
 
     // optional host specific build config
@@ -232,7 +234,7 @@ class CMakeBuilder implements Builder {
       final androidHome = userEnvConfig['ANDROID_HOME'];
       if (androidHome != null) {
         final androidHomeEntity = Directory(androidHome);
-        if (await androidHomeEntity.exists()) {
+        if (androidHomeEntity.existsSync()) {
           userConfig = userConfig.copyWith(androidHome: androidHomeEntity.absolute.path);
         } else {
           logger?.warning(

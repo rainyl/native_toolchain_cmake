@@ -17,10 +17,10 @@ class _NinjaResolver implements ToolResolver {
   final executableName = OS.current.executableFileName('ninja');
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig, CodeConfig? codeConfig}) async {
     final androidResolver = CliVersionResolver(
       wrappedResolver: ToolResolvers([
-        if (userConfig?.preferAndroidNinja ?? false)
+        if ((userConfig?.preferAndroidNinja ?? false) || (codeConfig?.targetOS == OS.android))
           InstallLocationResolver(
             toolName: 'Ninja',
             paths: [
@@ -44,13 +44,20 @@ class _NinjaResolver implements ToolResolver {
     // sort latest version first
     androidNinjaInstances.sort((a, b) => a.version! > b.version! ? -1 : 1);
     final combinedNinjaInstances = <ToolInstance>[];
-    if ((userConfig?.preferAndroidNinja ?? false) && androidNinjaInstances.isNotEmpty) {
+    if ((userConfig?.preferAndroidNinja ?? false) || (codeConfig?.targetOS == OS.android)) {
       combinedNinjaInstances.addAll(androidNinjaInstances);
     }
     combinedNinjaInstances.addAll(systemNinjaInstances);
 
-    if (userConfig?.ninjaVersion != null) {
-      final ninjaVer = Version.parse(userConfig!.ninjaVersion!);
+    String? specificNinjaVersion;
+    if (codeConfig?.targetOS == OS.android && userConfig?.androidTargetNinjaVersion != null) {
+      specificNinjaVersion = userConfig?.androidTargetNinjaVersion;
+    } else {
+      specificNinjaVersion = userConfig?.ninjaVersion;
+    }
+
+    if (specificNinjaVersion != null) {
+      final ninjaVer = Version.parse(specificNinjaVersion);
       combinedNinjaInstances.removeWhere((instance) {
         return instance.version == null ||
             (instance.version!.major != ninjaVer.major &&
@@ -58,8 +65,8 @@ class _NinjaResolver implements ToolResolver {
                 instance.version!.patch != ninjaVer.patch);
       });
       if (combinedNinjaInstances.isEmpty) {
-        logger?.severe('Failed to find ninja version: ${userConfig.ninjaVersion}');
-        throw Exception('Failed to find ninja version: ${userConfig.ninjaVersion}');
+        logger?.severe('Failed to find ninja version: $specificNinjaVersion');
+        throw Exception('Failed to find ninja version: $specificNinjaVersion');
       }
     }
 
