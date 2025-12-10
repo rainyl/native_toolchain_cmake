@@ -45,7 +45,7 @@ class _CmakeResolver implements ToolResolver {
     // sort latest version first
     androidCmakeInstances.sort((a, b) => a.version! > b.version! ? -1 : 1);
     final combinedCmakeInstances = <ToolInstance>[];
-    if (userConfig?.preferAndroidCmake ?? userConfig?.targetOS == OS.android) {
+    if ((userConfig?.preferAndroidCmake ?? false) || userConfig?.targetOS == OS.android) {
       combinedCmakeInstances.addAll(androidCmakeInstances);
     }
     combinedCmakeInstances.addAll(systemCmakeInstances);

@@ -43,7 +43,7 @@ class _NinjaResolver implements ToolResolver {
     // sort latest version first
     androidNinjaInstances.sort((a, b) => a.version! > b.version! ? -1 : 1);
     final combinedNinjaInstances = <ToolInstance>[];
-    if (userConfig?.preferAndroidNinja ?? userConfig?.targetOS == OS.android) {
+    if ((userConfig?.preferAndroidNinja ?? false) || userConfig?.targetOS == OS.android) {
       combinedNinjaInstances.addAll(androidNinjaInstances);
     }
     combinedNinjaInstances.addAll(systemNinjaInstances);
