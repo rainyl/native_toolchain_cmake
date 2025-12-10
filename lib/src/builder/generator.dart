@@ -16,6 +16,8 @@ class Generator {
 
   static const Generator vs2022 = Generator._('Visual Studio 17 2022');
 
+  static const Generator vs2026 = Generator._('Visual Studio 18 2026');
+
   static const Generator defaultGenerator = Generator._("default");
 
   List<String> toArgs() => name == "default" ? [] : ["-G", name];

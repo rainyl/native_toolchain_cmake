@@ -10,75 +10,76 @@ import 'dart:io';
 
 import 'package:code_assets/code_assets.dart';
 import 'package:logging/logging.dart';
+import 'package:pub_semver/pub_semver.dart';
 
+import '../builder/user_config.dart';
 import '../tool/tool.dart';
 import '../tool/tool_instance.dart';
 import '../tool/tool_resolver.dart';
 import 'clang.dart';
 
-final androidNdk = Tool(
-  name: 'Android NDK',
-  defaultResolver: _AndroidNdkResolver(),
-);
+final androidNdk = Tool(name: 'Android NDK', defaultResolver: _AndroidNdkResolver());
 
 /// [clang] with [Tool.defaultResolver] for the [OS.android] NDK.
-final androidNdkClang = Tool(
-  name: clang.name,
-  defaultResolver: _AndroidNdkResolver(),
-);
+final androidNdkClang = Tool(name: clang.name, defaultResolver: _AndroidNdkResolver());
 
 /// [llvmAr] with [Tool.defaultResolver] for the [OS.android] NDK.
-final androidNdkLlvmAr = Tool(
-  name: llvmAr.name,
-  defaultResolver: _AndroidNdkResolver(),
-);
+final androidNdkLlvmAr = Tool(name: llvmAr.name, defaultResolver: _AndroidNdkResolver());
 
 /// [lld] with [Tool.defaultResolver] for the [OS.android] NDK.
-final androidNdkLld = Tool(
-  name: lld.name,
-  defaultResolver: _AndroidNdkResolver(),
-);
+final androidNdkLld = Tool(name: lld.name, defaultResolver: _AndroidNdkResolver());
 
 class _AndroidNdkResolver implements ToolResolver {
-  final installLocationResolver = PathVersionResolver(
-    wrappedResolver: ToolResolvers([
-      RelativeToolResolver(
-        toolName: 'Android NDK',
-        wrappedResolver: PathToolResolver(
-          toolName: 'ndk-build',
-          executableName: Platform.isWindows ? 'ndk-build.cmd' : 'ndk-build',
-        ),
-        relativePath: Uri(path: ''),
-      ),
-      InstallLocationResolver(
-        toolName: 'Android NDK',
-        paths: [
-          if (Platform.isLinux) ...[
-            r'$HOME/Android/Sdk/ndk/*/',
-            r'$HOME/Android/Sdk/ndk-bundle/',
-          ],
-          if (Platform.isMacOS) ...[
-            r'$HOME/Library/Android/sdk/ndk/*/',
-          ],
-          if (Platform.isWindows) ...[
-            r'$HOME/AppData/Local/Android/Sdk/ndk/*/',
-          ],
-        ],
-      ),
-    ]),
-  );
-
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger}) async {
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+    final installLocationResolver = PathVersionResolver(
+      wrappedResolver: ToolResolvers([
+        RelativeToolResolver(
+          toolName: 'Android NDK',
+          wrappedResolver: PathToolResolver(
+            toolName: 'ndk-build',
+            executableName: Platform.isWindows ? 'ndk-build.cmd' : 'ndk-build',
+          ),
+          relativePath: Uri(path: ''),
+        ),
+        InstallLocationResolver(
+          toolName: 'Android NDK',
+          paths: [
+            if (userConfig?.androidHome != null) ...[
+              '${userConfig?.androidHome}/ndk/*/',
+              if (Platform.isLinux) '${userConfig?.androidHome}/ndk-bundle/',
+            ],
+            if (Platform.isLinux) ...[r'$HOME/Android/Sdk/ndk/*/', r'$HOME/Android/Sdk/ndk-bundle/'],
+            if (Platform.isMacOS) r'$HOME/Library/Android/sdk/ndk/*/',
+            if (Platform.isWindows) r'$HOME/AppData/Local/Android/Sdk/ndk/*/',
+          ],
+        ),
+      ]),
+    );
+
     final ndkInstances = await installLocationResolver.resolve(logger: logger);
+    // sort latest version first
+    ndkInstances.sort(
+      (a, b) => switch ((a.version, b.version)) {
+        (null, null) => 0,
+        (null, _) => 1,
+        (_, null) => -1,
+        (_, _) => -a.version!.compareTo(b.version!),
+      },
+    );
+    if (userConfig?.ndkVersion != null) {
+      final ndkVer = Version.parse(userConfig!.ndkVersion!);
+      ndkInstances.removeWhere((ndkInstance) => ndkInstance.version != ndkVer);
+      if (ndkInstances.isEmpty) {
+        logger?.severe('Failed to find NDK version: ${userConfig.ndkVersion}');
+        throw Exception('Failed to find NDK version: ${userConfig.ndkVersion}');
+      }
+    }
 
     return [
       for (final ndkInstance in ndkInstances) ...[
         ndkInstance,
-        ...await tryResolveClang(
-          ndkInstance,
-          logger: logger,
-        ),
+        ...await tryResolveClang(ndkInstance, logger: logger),
       ],
     ];
   }
@@ -96,10 +97,7 @@ class _AndroidNdkResolver implements ToolResolver {
       if (await File.fromUri(clangUri).exists()) {
         result.add(
           await CliVersionResolver.lookupVersion(
-            ToolInstance(
-              tool: androidNdkClang,
-              uri: clangUri,
-            ),
+            ToolInstance(tool: androidNdkClang, uri: clangUri),
             logger: logger,
           ),
         );
@@ -108,10 +106,7 @@ class _AndroidNdkResolver implements ToolResolver {
       if (await File.fromUri(arUri).exists()) {
         result.add(
           await CliVersionResolver.lookupVersion(
-            ToolInstance(
-              tool: androidNdkLlvmAr,
-              uri: arUri,
-            ),
+            ToolInstance(tool: androidNdkLlvmAr, uri: arUri),
             logger: logger,
           ),
         );
@@ -120,10 +115,7 @@ class _AndroidNdkResolver implements ToolResolver {
       if (await File.fromUri(arUri).exists()) {
         result.add(
           await CliVersionResolver.lookupVersion(
-            ToolInstance(
-              tool: androidNdkLld,
-              uri: ldUri,
-            ),
+            ToolInstance(tool: androidNdkLld, uri: ldUri),
             logger: logger,
           ),
         );

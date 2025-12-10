@@ -19,3 +19,15 @@ dev_dependencies:
   lints: ^5.0.0
   test: ^1.24.0
   ffigen: ^18.1.0
+
+hooks:
+  user_defines:
+    add:
+      env_file: null # ".env"
+      cmake_version: null # "3.22.1"
+      ninja_version: null # "1.10.2"
+      prefer_android_cmake: null # true # defaults to true for android
+      prefer_android_ninja: null # true # defaults to true for android
+      android:
+        android_home: null # "C:\\Android\\Sdk" # can be set in .env file
+        ndk_version: null # "28.2.13676358"

@@ -1,5 +1,9 @@
 # native_toolchain_cmake
 
+## 0.2.1
+
+- support configuring cmake/ninja versions and android NDK version
+
 ## 0.2.0
 
 - bump hooks and code_assets to 1.0.0
