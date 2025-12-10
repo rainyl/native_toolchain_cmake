@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:code_assets/code_assets.dart';
 import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 import '../builder/user_config.dart';
@@ -14,13 +15,28 @@ import '../tool/tool_resolver.dart';
 /// CMake.
 final cmake = Tool(name: 'CMake', defaultResolver: _CmakeResolver());
 
+CliVersionResolver? _unitTestAndroidResolver;
+CliVersionResolver? _unitTestSystemResolver;
+
+@visibleForTesting
+CliVersionResolver? get cmakeUnitTestAndroidResolver => _unitTestAndroidResolver;
+
+@visibleForTesting
+set cmakeUnitTestAndroidResolver(CliVersionResolver? resolver) =>
+    _unitTestAndroidResolver = resolver;
+
+@visibleForTesting
+CliVersionResolver? get cmakeUnitTestSystemResolver => _unitTestSystemResolver;
+
+@visibleForTesting
+set cmakeUnitTestSystemResolver(CliVersionResolver? resolver) =>
+    _unitTestSystemResolver = resolver;
+
 class _CmakeResolver implements ToolResolver {
   final executableName = OS.current.executableFileName('cmake');
 
-  @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
-    // here, we always try to find android cmake first and filter out unsatisfied versions
-    final androidResolver = CliVersionResolver(
+  CliVersionResolver getAndroidResolver({UserConfig? userConfig}) {
+    return _unitTestAndroidResolver ?? CliVersionResolver(
       wrappedResolver: ToolResolvers([
         InstallLocationResolver(
           toolName: 'CMake',
@@ -33,12 +49,22 @@ class _CmakeResolver implements ToolResolver {
         ),
       ]),
     );
+  }
+
+  CliVersionResolver getSystemResolver() {
+    return _unitTestSystemResolver ?? CliVersionResolver(
+      wrappedResolver: PathToolResolver(toolName: 'CMake', executableName: 'cmake'),
+    );
+  }
+
+  @override
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+    // here, we always try to find android cmake first and filter out unsatisfied versions
+    final androidResolver = getAndroidResolver(userConfig: userConfig);
     final androidCmakeInstances = await androidResolver.resolve(logger: logger);
     logger?.info('Found Android CMake: ${androidCmakeInstances.map((e) => e.toString()).join(', ')}');
 
-    final systemResolver = CliVersionResolver(
-      wrappedResolver: PathToolResolver(toolName: 'CMake', executableName: 'cmake'),
-    );
+    final systemResolver = getSystemResolver();
     final systemCmakeInstances = await systemResolver.resolve(logger: logger);
     logger?.info('Found System CMake: ${systemCmakeInstances.map((e) => e.toString()).join(', ')}');
 
