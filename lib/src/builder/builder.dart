@@ -247,10 +247,13 @@ class CMakeBuilder implements Builder {
       _ => cmakeVersion,
     };
 
-    // currently, ninja is only used for android
     var ninjaVersion = input.userDefines["ninja_version"] as String?;
     ninjaVersion = switch (input.config.code.targetOS) {
       OS.android => androidConfig?["ninja_version"] as String? ?? ninjaVersion,
+      OS.iOS => iosConfig?["ninja_version"] as String? ?? ninjaVersion,
+      OS.linux => linuxConfig?["ninja_version"] as String? ?? ninjaVersion,
+      OS.macOS => macOSConfig?["ninja_version"] as String? ?? ninjaVersion,
+      OS.windows => windowsConfig?["ninja_version"] as String? ?? ninjaVersion,
       _ => ninjaVersion,
     };
 
