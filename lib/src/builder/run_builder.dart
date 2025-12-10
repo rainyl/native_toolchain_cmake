@@ -66,7 +66,6 @@ class RunCMakeBuilder {
     required this.input,
     required this.codeConfig,
     required this.sourceDir,
-    Uri? outputDir,
     this.logger,
     this.defines = const {},
     this.generator = Generator.defaultGenerator,
@@ -75,19 +74,21 @@ class RunCMakeBuilder {
     this.targets,
     this.androidArgs = const AndroidBuilderArgs(),
     this.appleArgs = const AppleBuilderArgs(),
-    this.userConfig = const UserConfig(),
     this.logLevel = LogLevel.STATUS,
-  }) : outDir = outputDir ?? input.outputDirectory;
+    Uri? outputDir,
+    UserConfig? userConfig,
+  }) : outDir = outputDir ?? input.outputDirectory,
+       userConfig = userConfig ?? UserConfig(targetOS: codeConfig.targetOS);
 
   Future<Uri> cmakePath() async {
-    final cmakeTools = await cmake.defaultResolver?.resolve(logger: logger, userConfig: userConfig, codeConfig: codeConfig);
+    final cmakeTools = await cmake.defaultResolver?.resolve(logger: logger, userConfig: userConfig);
     final path = cmakeTools?.first.uri;
     assert(path != null);
     return Future.value(path);
   }
 
   Future<Uri> ninjaPath() async {
-    final ninjaTools = await ninja.defaultResolver?.resolve(logger: logger, userConfig: userConfig, codeConfig: codeConfig);
+    final ninjaTools = await ninja.defaultResolver?.resolve(logger: logger, userConfig: userConfig);
     final path = ninjaTools?.first.uri;
     assert(path != null);
     return Future.value(path);

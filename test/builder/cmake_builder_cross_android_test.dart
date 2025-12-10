@@ -102,13 +102,24 @@ Future<Uri> buildLib(
 }) async {
   const name = 'add';
 
-  const userDefinedConfig = {"envFile": ".env"};
+  const userDefinedConfig = {"env_file": ".env"};
   if (enableUserDefinedConfig) {
-    // cmakeVersion ninjaVersion ndkVersion envFile
+    // hooks:
+    //   user_defines:
+    //     <package_name_that_use_native_toolchain_cmake>:
+    //       env_file: ".env"
+    //       cmake_version: "3.22.1"
+    //       ninja_version: "1.10.2"
+    //       prefer_android_cmake: false # defaults to true for android
+    //       prefer_android_ninja: false # defaults to true for android
+    //       android:
+    //         android_home: "C:\\Android\\Sdk" # can be set in .env file
+    //         ndk_version: "28.2.13676358"
     // TODO: add more user configs.
-    final envFilePath = tempUri.resolve(userDefinedConfig["envFile"] as String).toFilePath();
+    final androidHome = Platform.environment['ANDROID_HOME'];
+    final envFilePath = tempUri.resolve(userDefinedConfig["env_file"] as String).toFilePath();
     final envFile = File(envFilePath);
-    await envFile.writeAsString(r'ANDROID_HOME=$HOME/Android/Sdk');
+    await envFile.writeAsString('ANDROID_HOME=$androidHome');
   }
 
   final tempUriShared = tempUri.resolve('shared/');

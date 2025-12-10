@@ -89,3 +89,15 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+hooks:
+  user_defines:
+    add:
+      env_file: null # ".env"
+      cmake_version: null # "3.22.1"
+      ninja_version: null # "1.10.2"
+      prefer_android_cmake: null # true # defaults to true for android
+      prefer_android_ninja: null # true # defaults to true for android
+      android:
+        android_home: null # "C:\\Android\\Sdk" # can be set in .env file
+        ndk_version: null # "28.2.13676358"

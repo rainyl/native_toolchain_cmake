@@ -18,19 +18,19 @@ class _CmakeResolver implements ToolResolver {
   final executableName = OS.current.executableFileName('cmake');
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig, CodeConfig? codeConfig}) async {
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+    // here, we always try to find android cmake first and filter out unsatisfied versions
     final androidResolver = CliVersionResolver(
       wrappedResolver: ToolResolvers([
-        if ((userConfig?.preferAndroidCmake ?? false) || (codeConfig?.targetOS == OS.android))
-          InstallLocationResolver(
-            toolName: 'CMake',
-            paths: [
-              if (userConfig?.androidHome != null) '${userConfig?.androidHome}/cmake/*/bin/$executableName',
-              if (Platform.isLinux) r'$HOME/Android/Sdk/cmake/*/bin/' + executableName,
-              if (Platform.isMacOS) r'$HOME/Library/Android/sdk/cmake/*/bin/' + executableName,
-              if (Platform.isWindows) r'$HOME/AppData/Local/Android/Sdk/cmake/*/bin/' + executableName,
-            ],
-          ),
+        InstallLocationResolver(
+          toolName: 'CMake',
+          paths: [
+            if (userConfig?.androidHome != null) '${userConfig?.androidHome}/cmake/*/bin/$executableName',
+            if (Platform.isLinux) r'$HOME/Android/Sdk/cmake/*/bin/' + executableName,
+            if (Platform.isMacOS) r'$HOME/Library/Android/sdk/cmake/*/bin/' + executableName,
+            if (Platform.isWindows) r'$HOME/AppData/Local/Android/Sdk/cmake/*/bin/' + executableName,
+          ],
+        ),
       ]),
     );
     final androidCmakeInstances = await androidResolver.resolve(logger: logger);
@@ -45,7 +45,7 @@ class _CmakeResolver implements ToolResolver {
     // sort latest version first
     androidCmakeInstances.sort((a, b) => a.version! > b.version! ? -1 : 1);
     final combinedCmakeInstances = <ToolInstance>[];
-    if ((userConfig?.preferAndroidCmake ?? false) || (codeConfig?.targetOS == OS.android)) {
+    if (userConfig?.preferAndroidCmake ?? userConfig?.targetOS == OS.android) {
       combinedCmakeInstances.addAll(androidCmakeInstances);
     }
     combinedCmakeInstances.addAll(systemCmakeInstances);
@@ -55,29 +55,25 @@ class _CmakeResolver implements ToolResolver {
       }
     }
 
-    String? specificCmakeVersion;
-    if (codeConfig?.targetOS == OS.android && userConfig?.androidTargetCmakeVersion != null) {
-      specificCmakeVersion = userConfig?.androidTargetCmakeVersion;
-    } else {
-      specificCmakeVersion = userConfig?.cmakeVersion;
-    }
-
+    final specificCmakeVersion = userConfig?.cmakeVersion;
     if (specificCmakeVersion != null) {
       final cmakeVer = Version.parse(specificCmakeVersion);
       logger?.info('Filtering CMake version: $cmakeVer');
-      logger?.info('Found CMake: ${combinedCmakeInstances.map((e) => e.toString()).join(', ')}');
       // cmake version of android are likely to be the format of `3.22.1-g37088a8-dirty`
       // so here we just check the major, minor and patch version
-      combinedCmakeInstances.removeWhere((instance) {
-        return instance.version == null ||
-            (instance.version!.major != cmakeVer.major &&
-                instance.version!.minor != cmakeVer.minor &&
-                instance.version!.patch != cmakeVer.patch);
-      });
-      if (combinedCmakeInstances.isEmpty) {
-        logger?.severe('Failed to find cmake version: $specificCmakeVersion');
-        throw Exception('Failed to find cmake version: $specificCmakeVersion');
-      }
+      combinedCmakeInstances.removeWhere(
+        (instance) =>
+            instance.version == null ||
+            instance.version?.major != cmakeVer.major ||
+            instance.version?.minor != cmakeVer.minor ||
+            instance.version?.patch != cmakeVer.patch,
+      );
+    }
+
+    logger?.info('Found CMake: ${combinedCmakeInstances.map((e) => e.toString()).join(', ')}');
+    if (combinedCmakeInstances.isEmpty) {
+      logger?.severe('Failed to find cmake with version=${specificCmakeVersion ?? 'latest'}');
+      throw Exception('Failed to find cmake version: ${specificCmakeVersion ?? 'latest'}');
     }
 
     return combinedCmakeInstances;

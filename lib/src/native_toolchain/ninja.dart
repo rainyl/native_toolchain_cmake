@@ -17,19 +17,18 @@ class _NinjaResolver implements ToolResolver {
   final executableName = OS.current.executableFileName('ninja');
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig, CodeConfig? codeConfig}) async {
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
     final androidResolver = CliVersionResolver(
       wrappedResolver: ToolResolvers([
-        if ((userConfig?.preferAndroidNinja ?? false) || (codeConfig?.targetOS == OS.android))
-          InstallLocationResolver(
-            toolName: 'Ninja',
-            paths: [
-              if (userConfig?.androidHome != null) '${userConfig?.androidHome}/cmake/*/bin/$executableName',
-              if (Platform.isLinux) r'$HOME/Android/Sdk/cmake/*/bin/' + executableName,
-              if (Platform.isMacOS) r'$HOME/Library/Android/sdk/cmake/*/bin/' + executableName,
-              if (Platform.isWindows) r'$HOME/AppData/Local/Android/Sdk/cmake/*/bin/' + executableName,
-            ],
-          ),
+        InstallLocationResolver(
+          toolName: 'Ninja',
+          paths: [
+            if (userConfig?.androidHome != null) '${userConfig?.androidHome}/cmake/*/bin/$executableName',
+            if (Platform.isLinux) r'$HOME/Android/Sdk/cmake/*/bin/' + executableName,
+            if (Platform.isMacOS) r'$HOME/Library/Android/sdk/cmake/*/bin/' + executableName,
+            if (Platform.isWindows) r'$HOME/AppData/Local/Android/Sdk/cmake/*/bin/' + executableName,
+          ],
+        ),
       ]),
     );
     final androidNinjaInstances = await androidResolver.resolve(logger: logger);
@@ -44,30 +43,33 @@ class _NinjaResolver implements ToolResolver {
     // sort latest version first
     androidNinjaInstances.sort((a, b) => a.version! > b.version! ? -1 : 1);
     final combinedNinjaInstances = <ToolInstance>[];
-    if ((userConfig?.preferAndroidNinja ?? false) || (codeConfig?.targetOS == OS.android)) {
+    if (userConfig?.preferAndroidNinja ?? userConfig?.targetOS == OS.android) {
       combinedNinjaInstances.addAll(androidNinjaInstances);
     }
     combinedNinjaInstances.addAll(systemNinjaInstances);
-
-    String? specificNinjaVersion;
-    if (codeConfig?.targetOS == OS.android && userConfig?.androidTargetNinjaVersion != null) {
-      specificNinjaVersion = userConfig?.androidTargetNinjaVersion;
-    } else {
-      specificNinjaVersion = userConfig?.ninjaVersion;
+    for (final instance in combinedNinjaInstances) {
+      if (instance.version == null) {
+        logger?.warning('Can not determine version of: $instance');
+      }
     }
 
+    final specificNinjaVersion = userConfig?.ninjaVersion;
     if (specificNinjaVersion != null) {
       final ninjaVer = Version.parse(specificNinjaVersion);
-      combinedNinjaInstances.removeWhere((instance) {
-        return instance.version == null ||
-            (instance.version!.major != ninjaVer.major &&
-                instance.version!.minor != ninjaVer.minor &&
-                instance.version!.patch != ninjaVer.patch);
-      });
-      if (combinedNinjaInstances.isEmpty) {
-        logger?.severe('Failed to find ninja version: $specificNinjaVersion');
-        throw Exception('Failed to find ninja version: $specificNinjaVersion');
-      }
+      logger?.info('Filtering Ninja version: $ninjaVer');
+      combinedNinjaInstances.removeWhere(
+        (instance) =>
+            instance.version == null ||
+            instance.version!.major != ninjaVer.major ||
+            instance.version!.minor != ninjaVer.minor ||
+            instance.version!.patch != ninjaVer.patch,
+      );
+    }
+
+    logger?.info('Found Ninja: ${combinedNinjaInstances.map((e) => e.toString()).join(', ')}');
+    if (combinedNinjaInstances.isEmpty) {
+      logger?.severe('Failed to find ninja with version=${specificNinjaVersion ?? 'latest'}');
+      throw Exception('Failed to find ninja version: ${specificNinjaVersion ?? 'latest'}');
     }
 
     return combinedNinjaInstances;

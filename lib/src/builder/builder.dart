@@ -216,19 +216,32 @@ class CMakeBuilder implements Builder {
     }
     await Directory.fromUri(outDir ?? input.outputDirectory).create(recursive: true);
 
+    // hooks:
+    //   user_defines:
+    //     <package_name_that_use_native_toolchain_cmake>:
+    //       env_file: ".env"
+    //       cmake_version: "3.22.1"
+    //       ninja_version: "1.10.2"
+    //       prefer_android_cmake: false # defaults to true for android
+    //       prefer_android_ninja: false # defaults to true for android
+    //       android:
+    //         android_home: "C:\\Android\\Sdk" # can be set in .env file
+    //         ndk_version: "28.2.13676358"
+    final androidConfig = input.userDefines["android"] as Map<String, dynamic>?;
+
     var userConfig = UserConfig(
-      androidHome: input.userDefines["androidHome"] as String?,
-      cmakeVersion: input.userDefines["cmakeVersion"] as String?,
-      ninjaVersion: input.userDefines["ninjaVersion"] as String?,
-      ndkVersion: input.userDefines["ndkVersion"] as String?,
-      preferAndroidNinja: input.userDefines["preferAndroidNinja"] as bool? ?? false,
-      preferAndroidCmake: input.userDefines["preferAndroidCmake"] as bool? ?? false,
-      androidTargetCmakeVersion: input.userDefines["androidTargetCmakeVersion"] as String?,
-      androidTargetNinjaVersion: input.userDefines["androidTargetNinjaVersion"] as String?,
+      targetOS: input.config.code.targetOS,
+      cmakeVersion: input.userDefines["cmake_version"] as String?,
+      ninjaVersion: input.userDefines["ninja_version"] as String?,
+      ndkVersion: androidConfig?["ndk_version"] as String?,
+      androidHome: androidConfig?["android_home"] as String?,
+      preferAndroidNinja: input.userDefines["prefer_android_ninja"] as bool?,
+      preferAndroidCmake: input.userDefines["prefer_android_cmake"] as bool?,
     );
 
     // optional host specific build config
-    final envFile = input.userDefines["envFile"] as String?;
+    final envFile = input.userDefines["env_file"] as String?;
+
     if (envFile != null) {
       final userEnvConfig = await getUserEnvConfig(input: input, envFile: envFile);
       final androidHome = userEnvConfig['ANDROID_HOME'];
@@ -256,8 +269,8 @@ class CMakeBuilder implements Builder {
       targets: targets,
       appleArgs: appleArgs,
       androidArgs: androidArgs,
-      userConfig: userConfig,
       logLevel: logLevel,
+      userConfig: userConfig,
     );
 
     // Do not remove this line for potential extra variables in the future

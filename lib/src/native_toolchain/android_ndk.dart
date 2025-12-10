@@ -31,7 +31,7 @@ final androidNdkLld = Tool(name: lld.name, defaultResolver: _AndroidNdkResolver(
 
 class _AndroidNdkResolver implements ToolResolver {
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig, CodeConfig? codeConfig}) async {
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
     final installLocationResolver = PathVersionResolver(
       wrappedResolver: ToolResolvers([
         RelativeToolResolver(
