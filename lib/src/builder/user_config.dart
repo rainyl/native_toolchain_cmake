@@ -50,15 +50,15 @@ class UserConfig {
     String? ninjaVersion,
     String? ndkVersion,
     String? androidHome,
-    bool preferAndroidCmake = false,
-    bool preferAndroidNinja = false,
+    bool? preferAndroidCmake,
+    bool? preferAndroidNinja,
   }) => UserConfig(
     targetOS: targetOS ?? this.targetOS,
     androidHome: androidHome ?? this.androidHome,
     cmakeVersion: cmakeVersion ?? this.cmakeVersion,
-    preferAndroidCmake: preferAndroidCmake,
+    preferAndroidCmake: preferAndroidCmake ?? this.preferAndroidCmake,
     ninjaVersion: ninjaVersion ?? this.ninjaVersion,
-    preferAndroidNinja: preferAndroidNinja,
+    preferAndroidNinja: preferAndroidNinja ?? this.preferAndroidNinja,
     ndkVersion: ndkVersion ?? this.ndkVersion,
   );
 }
