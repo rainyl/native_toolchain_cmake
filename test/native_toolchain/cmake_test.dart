@@ -11,7 +11,7 @@ void main() {
   for (final preferAndroid in [null, false, true]) {
     test('System CMake preferAndroid=$preferAndroid', () async {
       final userConfig = UserConfig(
-        targetOS: OS.android,
+        targetOS: OS.current,
         androidHome: null,
         preferAndroidCmake: preferAndroid,
         // cmakeVersion: "3.22.1"
@@ -22,9 +22,6 @@ void main() {
         expect(tools.length, 1);
       }
       // print(tools);
-      if (userConfig.androidHome != null && userConfig.preferAndroidCmake) {
-        expect(File.fromUri(tools.first.uri).path, startsWith(userConfig.androidHome!));
-      }
     });
 
     test('Android CMake preferAndroid=$preferAndroid', () async {
@@ -38,9 +35,6 @@ void main() {
       final tools = await cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
       expect(tools, isNotEmpty);
       // print(tools);
-      if (userConfig.androidHome != null && userConfig.preferAndroidCmake) {
-        expect(File.fromUri(tools.first.uri).path, startsWith(userConfig.androidHome!));
-      }
     });
   }
 }

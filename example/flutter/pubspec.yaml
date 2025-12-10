@@ -101,3 +101,5 @@ hooks:
       android:
         android_home: null # "C:\\Android\\Sdk" # can be set in .env file
         ndk_version: null # "28.2.13676358"
+        cmake_version: null # "3.22.1"
+        ninja_version: null # "1.10.2"

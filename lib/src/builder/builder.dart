@@ -227,12 +227,37 @@ class CMakeBuilder implements Builder {
     //       android:
     //         android_home: "C:\\Android\\Sdk" # can be set in .env file
     //         ndk_version: "28.2.13676358"
+    //         cmake_version: null # "3.22.1"
+    //         ninja_version: null # "1.10.2"
+    //       windows:
+    //         cmake_version: null # "3.31.6"
     final androidConfig = input.userDefines["android"] as Map<String, dynamic>?;
+    final iosConfig = input.userDefines["ios"] as Map<String, dynamic>?;
+    final linuxConfig = input.userDefines["linux"] as Map<String, dynamic>?;
+    final macOSConfig = input.userDefines["macos"] as Map<String, dynamic>?;
+    final windowsConfig = input.userDefines["windows"] as Map<String, dynamic>?;
+
+    var cmakeVersion = input.userDefines["cmake_version"] as String?;
+    cmakeVersion = switch (input.config.code.targetOS) {
+      OS.android => androidConfig?["cmake_version"] as String? ?? cmakeVersion,
+      OS.iOS => iosConfig?["cmake_version"] as String? ?? cmakeVersion,
+      OS.linux => linuxConfig?["cmake_version"] as String? ?? cmakeVersion,
+      OS.macOS => macOSConfig?["cmake_version"] as String? ?? cmakeVersion,
+      OS.windows => windowsConfig?["cmake_version"] as String? ?? cmakeVersion,
+      _ => cmakeVersion,
+    };
+
+    // currently, ninja is only used for android
+    var ninjaVersion = input.userDefines["ninja_version"] as String?;
+    ninjaVersion = switch (input.config.code.targetOS) {
+      OS.android => androidConfig?["ninja_version"] as String? ?? ninjaVersion,
+      _ => ninjaVersion,
+    };
 
     var userConfig = UserConfig(
       targetOS: input.config.code.targetOS,
-      cmakeVersion: input.userDefines["cmake_version"] as String?,
-      ninjaVersion: input.userDefines["ninja_version"] as String?,
+      cmakeVersion: cmakeVersion,
+      ninjaVersion: ninjaVersion,
       ndkVersion: androidConfig?["ndk_version"] as String?,
       androidHome: androidConfig?["android_home"] as String?,
       preferAndroidNinja: input.userDefines["prefer_android_ninja"] as bool?,

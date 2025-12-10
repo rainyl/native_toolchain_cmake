@@ -115,6 +115,8 @@ Future<Uri> buildLib(
     //       android:
     //         android_home: "C:\\Android\\Sdk" # can be set in .env file
     //         ndk_version: "28.2.13676358"
+    //         cmake_version: null # "3.22.1"
+    //         ninja_version: null # "1.10.2"
     // TODO: add more user configs.
     final androidHome = Platform.environment['ANDROID_HOME'];
     final envFilePath = tempUri.resolve(userDefinedConfig["env_file"] as String).toFilePath();

@@ -13,7 +13,6 @@ import 'package:change_case/change_case.dart';
 import 'package:code_assets/code_assets.dart';
 import 'package:hooks/hooks.dart';
 import 'package:logging/logging.dart';
-import 'package:path/path.dart';
 
 import '../native_toolchain/android_ndk.dart';
 import '../native_toolchain/cmake.dart';
@@ -154,18 +153,19 @@ class RunCMakeBuilder {
       _ => throw UnimplementedError('Unsupported OS: ${codeConfig.targetOS}'),
     };
 
-    final ninjaBinUri = await ninjaPath();
-    final ninjaBinDir = dirname(Directory.fromUri(ninjaBinUri).path);
-
     final _defines = <String>[
       '-DCMAKE_BUILD_TYPE=${buildMode.name.toCapitalCase()}',
       if (buildMode == BuildMode.debug) '-DCMAKE_C_FLAGS_DEBUG=-DDEBUG',
       if (buildMode == BuildMode.debug) '-DCMAKE_CXX_FLAGS_DEBUG=-DDEBUG',
       ...defs,
-      '-DCMAKE_PROGRAM_PATH=$ninjaBinDir',
     ];
     defines.forEach((k, v) => _defines.add('-D$k=${v ?? "1"}'));
 
+    if (generator == Generator.ninja) {
+      final ninjaBinUri = await ninjaPath();
+      final ninjaBinDir = File.fromUri(ninjaBinUri).parent.path;
+      _defines.add('-DCMAKE_PROGRAM_PATH=$ninjaBinDir');
+    }
     final _generator = generator.toArgs();
 
     return runProcess(
