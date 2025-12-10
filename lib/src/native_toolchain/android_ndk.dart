@@ -45,31 +45,28 @@ class _AndroidNdkResolver implements ToolResolver {
         InstallLocationResolver(
           toolName: 'Android NDK',
           paths: [
-            if (Platform.isLinux) ...[
-              if (userConfig?.androidHome != null) ...[
-                '${userConfig?.androidHome}/ndk/*/',
-                '${userConfig?.androidHome}/ndk-bundle/',
-              ],
-              r'$HOME/Android/Sdk/ndk/*/',
-              r'$HOME/Android/Sdk/ndk-bundle/',
+            if (userConfig?.androidHome != null) ...[
+              '${userConfig?.androidHome}/ndk/*/',
+              if (Platform.isLinux) '${userConfig?.androidHome}/ndk-bundle/',
             ],
-            if (Platform.isMacOS) ...[
-              if (userConfig?.androidHome != null) ...['${userConfig?.androidHome}/ndk/*/'],
-              r'$HOME/Library/Android/sdk/ndk/*/',
-            ],
-            if (Platform.isWindows) ...[
-              if (userConfig?.androidHome != null) ...['${userConfig?.androidHome}/ndk/*/'],
-              r'$HOME/AppData/Local/Android/Sdk/ndk/*/',
-            ],
+            if (Platform.isLinux) ...[r'$HOME/Android/Sdk/ndk/*/', r'$HOME/Android/Sdk/ndk-bundle/'],
+            if (Platform.isMacOS) r'$HOME/Library/Android/sdk/ndk/*/',
+            if (Platform.isWindows) r'$HOME/AppData/Local/Android/Sdk/ndk/*/',
           ],
         ),
       ]),
     );
 
-    final ndkInstances = await installLocationResolver.resolve(logger: logger)
-      // sort latest version first
-      ..sort((a, b) => a.version! > b.version! ? -1 : 1);
-
+    final ndkInstances = await installLocationResolver.resolve(logger: logger);
+    // sort latest version first
+    ndkInstances.sort(
+      (a, b) => switch ((a.version, b.version)) {
+        (null, null) => 0,
+        (null, _) => 1,
+        (_, null) => -1,
+        (_, _) => -a.version!.compareTo(b.version!),
+      },
+    );
     if (userConfig?.ndkVersion != null) {
       final ndkVer = Version.parse(userConfig!.ndkVersion!);
       ndkInstances.removeWhere((ndkInstance) => ndkInstance.version != ndkVer);

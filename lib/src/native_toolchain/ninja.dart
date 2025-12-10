@@ -40,10 +40,16 @@ class _NinjaResolver implements ToolResolver {
     final systemNinjaInstances = await systemResolver.resolve(logger: logger);
     logger?.info('Found System Ninja: ${systemNinjaInstances.map((e) => e.toString()).join(', ')}');
 
-    // sort latest version first
-    androidNinjaInstances.sort((a, b) => a.version! > b.version! ? -1 : 1);
     final combinedNinjaInstances = <ToolInstance>[];
-    if (userConfig?.preferAndroidNinja ?? userConfig?.targetOS == OS.android) {
+    if (userConfig?.preferAndroidNinja ?? false) {
+      androidNinjaInstances.sort(
+        (a, b) => switch ((a.version, b.version)) {
+          (null, null) => 0,
+          (null, _) => 1,
+          (_, null) => -1,
+          (_, _) => -a.version!.compareTo(b.version!),
+        },
+      );
       combinedNinjaInstances.addAll(androidNinjaInstances);
     }
     combinedNinjaInstances.addAll(systemNinjaInstances);
