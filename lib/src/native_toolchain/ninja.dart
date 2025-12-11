@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:code_assets/code_assets.dart';
 import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 import 'package:native_toolchain_cmake/src/tool/tool_instance.dart';
 import 'package:pub_semver/pub_semver.dart';
 
@@ -13,12 +14,16 @@ import '../tool/tool_resolver.dart';
 
 final ninja = Tool(name: 'Ninja', defaultResolver: _NinjaResolver());
 
+@visibleForTesting
+CliVersionResolver? unitTestNinjaAndroidResolver;
+@visibleForTesting
+CliVersionResolver? unitTestNinjaSystemResolver;
+
 class _NinjaResolver implements ToolResolver {
   final executableName = OS.current.executableFileName('ninja');
 
-  @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
-    final androidResolver = CliVersionResolver(
+  CliVersionResolver _getAndroidResolver({UserConfig? userConfig}) {
+    return unitTestNinjaAndroidResolver ?? CliVersionResolver(
       wrappedResolver: ToolResolvers([
         InstallLocationResolver(
           toolName: 'Ninja',
@@ -31,12 +36,21 @@ class _NinjaResolver implements ToolResolver {
         ),
       ]),
     );
+  }
+
+  CliVersionResolver _getSystemResolver() {
+    return unitTestNinjaSystemResolver ?? CliVersionResolver(
+      wrappedResolver: PathToolResolver(toolName: 'Ninja', executableName: 'ninja'),
+    );
+  }
+
+  @override
+  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+    final androidResolver = _getAndroidResolver(userConfig: userConfig);
     final androidNinjaInstances = await androidResolver.resolve(logger: logger);
     logger?.info('Found Android Ninja: ${androidNinjaInstances.map((e) => e.toString()).join(', ')}');
 
-    final systemResolver = CliVersionResolver(
-      wrappedResolver: PathToolResolver(toolName: 'Ninja', executableName: 'ninja'),
-    );
+    final systemResolver = _getSystemResolver();
     final systemNinjaInstances = await systemResolver.resolve(logger: logger);
     logger?.info('Found System Ninja: ${systemNinjaInstances.map((e) => e.toString()).join(', ')}');
 
