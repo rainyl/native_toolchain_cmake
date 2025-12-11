@@ -42,6 +42,7 @@ void main() {
           ]));
       final userConfig = UserConfig(
         targetOS: OS.android,
+        envVarAndroidHomeAsDefault: false,
       );
 
       final executableName = OS.current.executableFileName('ninja');
@@ -74,6 +75,7 @@ void main() {
           ]));
       final userConfig = UserConfig(
         targetOS: OS.android,
+        envVarAndroidHomeAsDefault: false,
         androidHome: 'my/android/home',
       );
 
@@ -120,6 +122,7 @@ void main() {
             .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
         final userConfig = UserConfig(
           targetOS: OS.android,
+          envVarAndroidHomeAsDefault: false,
         );
         final tools = await ninja.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
@@ -151,6 +154,7 @@ void main() {
             .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
         final userConfig = UserConfig(
           targetOS: OS.android,
+          envVarAndroidHomeAsDefault: false,
         );
         final tools = await ninja.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
@@ -182,6 +186,7 @@ void main() {
             .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
         final userConfig = UserConfig(
           targetOS: OS.android,
+          envVarAndroidHomeAsDefault: false,
           ninjaVersion: '1.11.1',
         );
         final tools = await ninja.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
@@ -204,6 +209,7 @@ void main() {
             .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
         final userConfig = UserConfig(
           targetOS: OS.android,
+          envVarAndroidHomeAsDefault: false,
           preferAndroidNinja: false,
         );
 
@@ -223,6 +229,7 @@ void main() {
             ]));
         final userConfig = UserConfig(
           targetOS: OS.android,
+          envVarAndroidHomeAsDefault: false,
         );
         final tools = await ninja.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
@@ -244,6 +251,7 @@ void main() {
             ]));
         final userConfig = UserConfig(
           targetOS: OS.android,
+          envVarAndroidHomeAsDefault: false,
           preferAndroidNinja: true,
         );
         final tools = await ninja.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
@@ -282,6 +290,7 @@ void main() {
             ]));
         final userConfig = UserConfig(
           targetOS: OS.android,
+          envVarAndroidHomeAsDefault: false,
           ninjaVersion: "1.12.1"
         );
         final tools = await ninja.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
@@ -306,6 +315,7 @@ void main() {
             .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
         final userConfig = UserConfig(
           targetOS: OS.iOS,
+          envVarAndroidHomeAsDefault: false,
         );
 
         expect(() async => ninja.defaultResolver!.resolve(logger: logger, userConfig: userConfig), throwsA(isA<Exception>()));
@@ -324,6 +334,7 @@ void main() {
             .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
         final userConfig = UserConfig(
           targetOS: OS.iOS,
+          envVarAndroidHomeAsDefault: false,
           preferAndroidNinja: false,
         );
 
@@ -343,6 +354,7 @@ void main() {
             .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
         final userConfig = UserConfig(
           targetOS: OS.iOS,
+          envVarAndroidHomeAsDefault: false,
           preferAndroidNinja: true,
         );
         final tools = await ninja.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
@@ -365,6 +377,7 @@ void main() {
             .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
         final userConfig = UserConfig(
           targetOS: OS.iOS,
+          envVarAndroidHomeAsDefault: false,
           preferAndroidNinja: true,
           ninjaVersion: "1.12.1",
         );
@@ -388,6 +401,7 @@ void main() {
             .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
         final userConfig = UserConfig(
           targetOS: OS.iOS,
+          envVarAndroidHomeAsDefault: false,
           preferAndroidNinja: true,
           ninjaVersion: "1.12.3",
         );
@@ -413,6 +427,7 @@ void main() {
             ]));
         final userConfig = UserConfig(
           targetOS: OS.iOS,
+          envVarAndroidHomeAsDefault: false,
           ninjaVersion: "1.12.1",
         );
         final tools = await ninja.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
@@ -441,6 +456,7 @@ void main() {
             ]));
         final userConfig = UserConfig(
           targetOS: OS.iOS,
+          envVarAndroidHomeAsDefault: false,
           preferAndroidNinja: true,
           ninjaVersion: "1.12.1",
         );
@@ -480,6 +496,7 @@ void main() {
             ]));
         final userConfig = UserConfig(
           targetOS: OS.iOS,
+          envVarAndroidHomeAsDefault: false,
           preferAndroidNinja: true,
         );
         final tools = await ninja.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
@@ -518,6 +535,7 @@ void main() {
             ]));
         final userConfig = UserConfig(
           targetOS: OS.iOS,
+          envVarAndroidHomeAsDefault: false,
         );
         final tools = await ninja.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
@@ -555,6 +573,7 @@ void main() {
             ]));
         final userConfig = UserConfig(
           targetOS: OS.iOS,
+          envVarAndroidHomeAsDefault: false,
           preferAndroidNinja: true,
           ninjaVersion: "1.14.4"
         );
@@ -594,6 +613,7 @@ void main() {
             ]));
         final userConfig = UserConfig(
           targetOS: OS.iOS,
+          envVarAndroidHomeAsDefault: false,
           preferAndroidNinja: true,
           ninjaVersion: "1.14.4"
         );
