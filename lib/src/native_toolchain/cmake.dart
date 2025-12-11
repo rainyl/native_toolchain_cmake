@@ -19,23 +19,15 @@ CliVersionResolver? _unitTestAndroidResolver;
 CliVersionResolver? _unitTestSystemResolver;
 
 @visibleForTesting
-CliVersionResolver? get cmakeUnitTestAndroidResolver => _unitTestAndroidResolver;
+set cmakeUnitTestAndroidResolver(CliVersionResolver? resolver) => _unitTestAndroidResolver = resolver;
 
 @visibleForTesting
-set cmakeUnitTestAndroidResolver(CliVersionResolver? resolver) =>
-    _unitTestAndroidResolver = resolver;
-
-@visibleForTesting
-CliVersionResolver? get cmakeUnitTestSystemResolver => _unitTestSystemResolver;
-
-@visibleForTesting
-set cmakeUnitTestSystemResolver(CliVersionResolver? resolver) =>
-    _unitTestSystemResolver = resolver;
+set cmakeUnitTestSystemResolver(CliVersionResolver? resolver) => _unitTestSystemResolver = resolver;
 
 class _CmakeResolver implements ToolResolver {
   final executableName = OS.current.executableFileName('cmake');
 
-  CliVersionResolver getAndroidResolver({UserConfig? userConfig}) {
+  CliVersionResolver _getAndroidResolver({UserConfig? userConfig}) {
     return _unitTestAndroidResolver ?? CliVersionResolver(
       wrappedResolver: ToolResolvers([
         InstallLocationResolver(
@@ -51,7 +43,7 @@ class _CmakeResolver implements ToolResolver {
     );
   }
 
-  CliVersionResolver getSystemResolver() {
+  CliVersionResolver _getSystemResolver() {
     return _unitTestSystemResolver ?? CliVersionResolver(
       wrappedResolver: PathToolResolver(toolName: 'CMake', executableName: 'cmake'),
     );
@@ -60,11 +52,11 @@ class _CmakeResolver implements ToolResolver {
   @override
   Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
     // here, we always try to find android cmake first and filter out unsatisfied versions
-    final androidResolver = getAndroidResolver(userConfig: userConfig);
+    final androidResolver = _getAndroidResolver(userConfig: userConfig);
     final androidCmakeInstances = await androidResolver.resolve(logger: logger);
     logger?.info('Found Android CMake: ${androidCmakeInstances.map((e) => e.toString()).join(', ')}');
 
-    final systemResolver = getSystemResolver();
+    final systemResolver = _getSystemResolver();
     final systemCmakeInstances = await systemResolver.resolve(logger: logger);
     logger?.info('Found System CMake: ${systemCmakeInstances.map((e) => e.toString()).join(', ')}');
 
