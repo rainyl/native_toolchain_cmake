@@ -9,6 +9,7 @@ import 'package:code_assets/code_assets.dart';
 import 'package:glob/glob.dart';
 import 'package:glob/list_local_fs.dart';
 import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 import '../builder/user_config.dart';
@@ -182,6 +183,9 @@ class InstallLocationResolver implements ToolResolver {
 
   static const home = r'$HOME';
 
+  @visibleForTesting
+  static Future<List<Uri>> Function(String)? unitTestTryResolvePath;
+
   /// [userConfig] is ignored.
   @override
   Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
@@ -203,6 +207,10 @@ class InstallLocationResolver implements ToolResolver {
   }
 
   Future<List<Uri>> tryResolvePath(String path) async {
+    if (unitTestTryResolvePath != null) {
+      return unitTestTryResolvePath!(path);
+    }
+
     String pathNew = path;
     if (path.startsWith(home)) {
       final homeDir_ = homeDir;

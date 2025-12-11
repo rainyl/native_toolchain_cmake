@@ -15,20 +15,16 @@ import '../tool/tool_resolver.dart';
 /// CMake.
 final cmake = Tool(name: 'CMake', defaultResolver: _CmakeResolver());
 
-CliVersionResolver? _unitTestAndroidResolver;
-CliVersionResolver? _unitTestSystemResolver;
-
 @visibleForTesting
-set cmakeUnitTestAndroidResolver(CliVersionResolver? resolver) => _unitTestAndroidResolver = resolver;
-
+CliVersionResolver? unitTestCmakeAndroidResolver;
 @visibleForTesting
-set cmakeUnitTestSystemResolver(CliVersionResolver? resolver) => _unitTestSystemResolver = resolver;
+CliVersionResolver? unitTestCmakeSystemResolver;
 
 class _CmakeResolver implements ToolResolver {
   final executableName = OS.current.executableFileName('cmake');
 
   CliVersionResolver _getAndroidResolver({UserConfig? userConfig}) {
-    return _unitTestAndroidResolver ?? CliVersionResolver(
+    return unitTestCmakeAndroidResolver ?? CliVersionResolver(
       wrappedResolver: ToolResolvers([
         InstallLocationResolver(
           toolName: 'CMake',
@@ -44,7 +40,7 @@ class _CmakeResolver implements ToolResolver {
   }
 
   CliVersionResolver _getSystemResolver() {
-    return _unitTestSystemResolver ?? CliVersionResolver(
+    return unitTestCmakeSystemResolver ?? CliVersionResolver(
       wrappedResolver: PathToolResolver(toolName: 'CMake', executableName: 'cmake'),
     );
   }
