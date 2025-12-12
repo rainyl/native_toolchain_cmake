@@ -3,6 +3,7 @@
 ## 0.2.1
 
 - support configuring cmake/ninja versions and android NDK version
+- mock cmake/ninja when testing
 
 ## 0.2.0
 
