@@ -1,5 +1,9 @@
 # native_toolchain_cmake
 
+## 0.2.2
+
+- find all available visual studio versions
+
 ## 0.2.1
 
 - support configuring cmake/ninja versions and android NDK version
