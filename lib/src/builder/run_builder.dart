@@ -153,7 +153,7 @@ class RunCMakeBuilder {
         skipGenerate = true;
       }
     }
-    if (skipGenerate) {
+    if (!skipGenerate) {
       final result = await _generate(environment: environment);
       if (result.exitCode != 0) {
         throw Exception('Failed to generate CMake project: ${result.stderr}');
