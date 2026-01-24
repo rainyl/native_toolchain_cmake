@@ -141,6 +141,7 @@ class RunCMakeBuilder {
   /// - [environment] additional environment variables to pass to CMake.
   /// - [skipGenerateIfCached] whether to skip generating the CMake project.
   Future<void> run({Map<String, String>? environment, bool skipGenerateIfCached = false}) async {
+    bool skipGenerate = false;
     if (skipGenerateIfCached) {
       final cmakeCacheExists = await File.fromUri(outDir.resolve('CMakeCache.txt')).exists();
       final lastGenExitCode = await getLastGenExitCode();
@@ -149,8 +150,10 @@ class RunCMakeBuilder {
           'CMake project is already successfully generated '
           'and skipGenerateIfCached is requested, skip generating.',
         );
+        skipGenerate = true;
       }
-    } else {
+    }
+    if (skipGenerate) {
       final result = await _generate(environment: environment);
       if (result.exitCode != 0) {
         throw Exception('Failed to generate CMake project: ${result.stderr}');
