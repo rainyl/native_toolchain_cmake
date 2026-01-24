@@ -201,8 +201,17 @@ class CMakeBuilder implements Builder {
   /// Runs the CMake genetate and build process.
   ///
   /// Completes with an error if the build fails.
+  ///
+  /// - [skipGenerateIfCached]: Whether to skip generating the CMake project if it is already cached, that is,
+  ///   the `CMakeCache.txt` file exists in the output directory
+  ///   **AND** the last generate exit code is 0.
   @override
-  Future<void> run({required BuildInput input, required BuildOutputBuilder output, Logger? logger}) async {
+  Future<void> run({
+    required BuildInput input,
+    required BuildOutputBuilder output,
+    Logger? logger,
+    bool skipGenerateIfCached = false,
+  }) async {
     // do not override user specified output directory if they also set buildLocal to true
     if (outDir == null && buildLocal) {
       final os = input.config.code.targetOS;
@@ -313,7 +322,7 @@ class CMakeBuilder implements Builder {
       );
     }
 
-    await task.run(environment: envVars);
+    await task.run(environment: envVars, skipGenerateIfCached: skipGenerateIfCached);
   }
 
   /// Get environment variables from vcvarsXXX.bat

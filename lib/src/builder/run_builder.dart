@@ -61,6 +61,9 @@ class RunCMakeBuilder {
   /// log level of CMake
   final LogLevel logLevel;
 
+  /// save the last generate status of native_toolchain_cmake
+  final String lastGenStatusFile;
+
   RunCMakeBuilder({
     required this.input,
     required this.codeConfig,
@@ -74,6 +77,7 @@ class RunCMakeBuilder {
     this.androidArgs = const AndroidBuilderArgs(),
     this.appleArgs = const AppleBuilderArgs(),
     this.logLevel = LogLevel.STATUS,
+    this.lastGenStatusFile = 'ntc_last_generate_status.txt',
     Uri? outputDir,
     UserConfig? userConfig,
   }) : outDir = outputDir ?? input.outputDirectory,
@@ -132,11 +136,30 @@ class RunCMakeBuilder {
 
   Uri androidSysroot(ToolInstance compiler) => compiler.uri.resolve('../sysroot/');
 
-  Future<void> run({Map<String, String>? environment}) async {
-    final result = await _generate(environment: environment);
-    if (result.exitCode != 0) {
-      throw Exception('Failed to generate CMake project: ${result.stderr}');
+  /// Run CMake to generate and build the project.
+  ///
+  /// - [environment] additional environment variables to pass to CMake.
+  /// - [skipGenerateIfCached] whether to skip generating the CMake project.
+  Future<void> run({Map<String, String>? environment, bool skipGenerateIfCached = false}) async {
+    bool skipGenerate = false;
+    if (skipGenerateIfCached) {
+      final cmakeCacheExists = await File.fromUri(outDir.resolve('CMakeCache.txt')).exists();
+      final lastGenExitCode = await getLastGenExitCode();
+      if (cmakeCacheExists && lastGenExitCode == 0) {
+        logger?.warning(
+          'CMake project is already successfully generated '
+          'and skipGenerateIfCached is requested, skip generating.',
+        );
+        skipGenerate = true;
+      }
     }
+    if (!skipGenerate) {
+      final result = await _generate(environment: environment);
+      if (result.exitCode != 0) {
+        throw Exception('Failed to generate CMake project: ${result.stderr}');
+      }
+    }
+
     final result1 = await _build(environment: environment);
     if (result1.exitCode != 0) {
       throw Exception('Failed to build CMake project: ${result1.stderr}');
@@ -168,7 +191,7 @@ class RunCMakeBuilder {
     }
     final _generator = generator.toArgs();
 
-    return runProcess(
+    final results = await runProcess(
       executable: await cmakePath(),
       arguments: [
         '--log-level=${logLevel.name}',
@@ -187,6 +210,17 @@ class RunCMakeBuilder {
       throwOnUnexpectedExitCode: false,
       environment: environment,
     );
+
+    // save the last generate status
+    final msg =
+        "command: ${results.command}\n"
+        "exitCode: ${results.exitCode}\n"
+    // "stdout: ${results.stdout}\n"
+    // "stderr: ${results.stderr}\n"
+    ;
+    await File.fromUri(outDir.resolve(lastGenStatusFile)).writeAsString(msg);
+
+    return results;
   }
 
   Future<RunProcessResult> _build({Map<String, String>? environment}) async {
@@ -304,6 +338,23 @@ class RunCMakeBuilder {
     final toolchain = await linuxToolchainCmake();
     defs.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
     return defs;
+  }
+
+  /// Returns the exit code of the last CMake generate command.
+  ///
+  /// -1: not exist
+  /// 0: success
+  /// other: failed
+  Future<int> getLastGenExitCode() async {
+    final statusFile = File.fromUri(outDir.resolve(lastGenStatusFile));
+    if (!await statusFile.exists()) {
+      return -1;
+    }
+    final content = await statusFile.readAsLines();
+    final exitCode = int.tryParse(
+      content.firstWhere((line) => line.startsWith('exitCode: ')).split('exitCode: ')[1],
+    );
+    return exitCode ?? -1;
   }
 
   static const androidAbis = {
