@@ -255,12 +255,22 @@ class VisualStudioResolver implements ToolResolver {
 
     final result = <ToolInstance>[];
     for (final vswhereInstance in vswhereInstances.take(1)) {
+      final arguments = ['-format', 'json', '-utf8', '-products', '*'];
       final vswhereResult = await runProcess(
         executable: vswhereInstance.uri,
-        arguments: ['-format', 'json', '-utf8', '-products', '*'],
+        arguments: arguments,
         logger: logger,
       );
-      final toolInfos = json.decode(vswhereResult.stdout) as List;
+      var toolInfos = json.decode(vswhereResult.stdout) as List;
+      // Try again including prerelease versions if no stable versions found.
+      if (toolInfos.isEmpty) {
+        final vswhereResult = await runProcess(
+          executable: vswhereInstance.uri,
+          arguments: [...arguments, '-prerelease'],
+          logger: logger,
+        );
+        toolInfos = json.decode(vswhereResult.stdout) as List;
+      }
       for (final toolInfo in toolInfos) {
         final toolInfoParsed = toolInfo;
         assert(toolInfoParsed['installationPath'] != null);
