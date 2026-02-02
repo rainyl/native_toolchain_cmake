@@ -39,7 +39,7 @@ Future<RunProcessResult> runProcess({
     arguments,
     workingDirectory: workingDirectory?.toFilePath(),
     environment: environment,
-    runInShell: Platform.isWindows && workingDirectory != null,
+    runInShell: false,
   );
 
   final stdoutSub = process.stdout.listen(
@@ -121,7 +121,7 @@ RunProcessResult runProcessSync({
     arguments,
     workingDirectory: workingDirectory?.toFilePath(),
     environment: environment,
-    runInShell: Platform.isWindows && workingDirectory != null,
+    runInShell: false,
   );
   final runResult = RunProcessResult(
     pid: result.pid,
