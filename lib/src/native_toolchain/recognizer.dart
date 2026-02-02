@@ -20,7 +20,11 @@ class CompilerRecognizer implements ToolResolver {
   CompilerRecognizer(this.uri);
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+  Future<List<ToolInstance>> resolve({
+    required Logger? logger,
+    UserConfig? userConfig,
+    Map<String, String>? environment,
+  }) async {
     final os = OS.current;
     logger?.finer('Trying to recognize $uri.');
     final filePath = uri.toFilePath();
@@ -61,7 +65,11 @@ class LinkerRecognizer implements ToolResolver {
   LinkerRecognizer(this.uri);
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+  Future<List<ToolInstance>> resolve({
+    required Logger? logger,
+    UserConfig? userConfig,
+    Map<String, String>? environment,
+  }) async {
     final os = OS.current;
     logger?.finer('Trying to recognize $uri.');
     final filePath = uri.toFilePath();
@@ -106,7 +114,11 @@ class ArchiverRecognizer implements ToolResolver {
   ArchiverRecognizer(this.uri);
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+  Future<List<ToolInstance>> resolve({
+    required Logger? logger,
+    UserConfig? userConfig,
+    Map<String, String>? environment,
+  }) async {
     logger?.finer('Trying to recognize $uri.');
     final os = OS.current;
     final filePath = uri.toFilePath();

@@ -250,8 +250,16 @@ Tool _msvcTool({
 
 class VisualStudioResolver implements ToolResolver {
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
-    final vswhereInstances = await vswhere.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
+  Future<List<ToolInstance>> resolve({
+    required Logger? logger,
+    UserConfig? userConfig,
+    Map<String, String>? environment,
+  }) async {
+    final vswhereInstances = await vswhere.defaultResolver!.resolve(
+      logger: logger,
+      userConfig: userConfig,
+      environment: environment,
+    );
 
     final result = <ToolInstance>[];
     for (final vswhereInstance in vswhereInstances.take(1)) {
@@ -260,6 +268,7 @@ class VisualStudioResolver implements ToolResolver {
         executable: vswhereInstance.uri,
         arguments: arguments,
         logger: logger,
+        environment: environment,
       );
       var toolInfos = json.decode(vswhereResult.stdout) as List;
       // Try again including prerelease versions if no stable versions found.
@@ -268,6 +277,7 @@ class VisualStudioResolver implements ToolResolver {
           executable: vswhereInstance.uri,
           arguments: [...arguments, '-prerelease'],
           logger: logger,
+          environment: environment,
         );
         toolInfos = json.decode(vswhereResult.stdout) as List;
       }

@@ -349,7 +349,7 @@ class CMakeBuilder implements Builder {
     final tools = await vcvars.defaultResolver!.resolve(logger: logger);
     if (tools.isNotEmpty) {
       final _vars = await environmentFromBatchFile(tools.first.uri);
-      logger?.info('Environment variables from $vcvars: $vars');
+      logger?.info('Environment variables from $vcvars: $_vars');
       vars.addAll(_vars);
       return vars;
     }

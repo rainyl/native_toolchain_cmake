@@ -31,7 +31,11 @@ final androidNdkLld = Tool(name: lld.name, defaultResolver: _AndroidNdkResolver(
 
 class _AndroidNdkResolver implements ToolResolver {
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+  Future<List<ToolInstance>> resolve({
+    required Logger? logger,
+    UserConfig? userConfig,
+    Map<String, String>? environment,
+  }) async {
     final installLocationResolver = PathVersionResolver(
       wrappedResolver: ToolResolvers([
         RelativeToolResolver(
@@ -57,7 +61,10 @@ class _AndroidNdkResolver implements ToolResolver {
       ]),
     );
 
-    final ndkInstances = await installLocationResolver.resolve(logger: logger);
+    final ndkInstances = await installLocationResolver.resolve(
+      logger: logger,
+      environment: environment,
+    );
     // sort latest version first
     ndkInstances.sort(
       (a, b) => switch ((a.version, b.version)) {

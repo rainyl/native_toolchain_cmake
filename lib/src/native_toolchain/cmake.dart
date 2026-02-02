@@ -46,14 +46,18 @@ class _CmakeResolver implements ToolResolver {
   }
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+  Future<List<ToolInstance>> resolve({
+    required Logger? logger,
+    UserConfig? userConfig,
+    Map<String, String>? environment,
+  }) async {
     // here, we always try to find android cmake first and filter out unsatisfied versions
     final androidResolver = _getAndroidResolver(userConfig: userConfig);
-    final androidCmakeInstances = await androidResolver.resolve(logger: logger);
+    final androidCmakeInstances = await androidResolver.resolve(logger: logger, environment: environment);
     logger?.info('Found Android CMake: ${androidCmakeInstances.map((e) => e.toString()).join(', ')}');
 
     final systemResolver = _getSystemResolver();
-    final systemCmakeInstances = await systemResolver.resolve(logger: logger);
+    final systemCmakeInstances = await systemResolver.resolve(logger: logger, environment: environment);
     logger?.info('Found System CMake: ${systemCmakeInstances.map((e) => e.toString()).join(', ')}');
 
     final combinedCmakeInstances = <ToolInstance>[];
