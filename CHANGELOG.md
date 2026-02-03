@@ -1,5 +1,11 @@
 # native_toolchain_cmake
 
+## 0.2.3
+
+- new: support skipping generate if cached
+- feat: check for prelrease VS version if no stable version is found
+- fix: pass environment variables from vcvars.bat to resolvers to allow finding cmake not in PATH
+
 ## 0.2.2
 
 - find all available visual studio versions
