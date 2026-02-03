@@ -83,15 +83,23 @@ class RunCMakeBuilder {
   }) : outDir = outputDir ?? input.outputDirectory,
        userConfig = userConfig ?? UserConfig(targetOS: codeConfig.targetOS);
 
-  Future<Uri> cmakePath() async {
-    final cmakeTools = await cmake.defaultResolver?.resolve(logger: logger, userConfig: userConfig);
+  Future<Uri> cmakePath({Map<String, String>? environment}) async {
+    final cmakeTools = await cmake.defaultResolver?.resolve(
+      logger: logger,
+      userConfig: userConfig,
+      environment: environment,
+    );
     final path = cmakeTools?.first.uri;
     assert(path != null);
     return Future.value(path);
   }
 
-  Future<Uri> ninjaPath() async {
-    final ninjaTools = await ninja.defaultResolver?.resolve(logger: logger, userConfig: userConfig);
+  Future<Uri> ninjaPath({Map<String, String>? environment}) async {
+    final ninjaTools = await ninja.defaultResolver?.resolve(
+      logger: logger,
+      userConfig: userConfig,
+      environment: environment,
+    );
     final path = ninjaTools?.first.uri;
     assert(path != null);
     return Future.value(path);
@@ -101,8 +109,12 @@ class RunCMakeBuilder {
 
   Future<Uri> iosToolchainCmake() async => (await currentPackageRoot()).resolve('cmake/ios.toolchain.cmake');
 
-  Future<Uri> androidToolchainCmake() async {
-    final tool = await androidNdk.defaultResolver?.resolve(logger: logger, userConfig: userConfig);
+  Future<Uri> androidToolchainCmake({Map<String, String>? environment}) async {
+    final tool = await androidNdk.defaultResolver?.resolve(
+      logger: logger,
+      userConfig: userConfig,
+      environment: environment,
+    );
     final toolUri = tool?.first.uri.resolve('build/cmake/android.toolchain.cmake');
     assert(toolUri != null);
     return Future.value(toolUri);
@@ -185,14 +197,14 @@ class RunCMakeBuilder {
     defines.forEach((k, v) => _defines.add('-D$k=${v ?? "1"}'));
 
     if (generator == Generator.ninja) {
-      final ninjaBinUri = await ninjaPath();
+      final ninjaBinUri = await ninjaPath(environment: environment);
       final ninjaBinDir = File.fromUri(ninjaBinUri).parent.path;
       _defines.add('-DCMAKE_PROGRAM_PATH=$ninjaBinDir');
     }
     final _generator = generator.toArgs();
 
     final results = await runProcess(
-      executable: await cmakePath(),
+      executable: await cmakePath(environment: environment),
       arguments: [
         '--log-level=${logLevel.name}',
         '-S',
@@ -225,7 +237,7 @@ class RunCMakeBuilder {
 
   Future<RunProcessResult> _build({Map<String, String>? environment}) async {
     return runProcess(
-      executable: await cmakePath(),
+      executable: await cmakePath(environment: environment),
       arguments: [
         '--build',
         outDir.normalizePath().toFilePath(),

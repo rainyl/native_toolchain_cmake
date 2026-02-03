@@ -33,23 +33,35 @@ final Tool iPhoneSimulatorSdk = Tool(name: 'iPhoneSimulator SDK', defaultResolve
 
 class XCodeSdkResolver implements ToolResolver {
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
-    final xcrunInstances = await xcrun.defaultResolver!.resolve(logger: logger);
+  Future<List<ToolInstance>> resolve({
+    required Logger? logger,
+    UserConfig? userConfig,
+    Map<String, String>? environment,
+  }) async {
+    final xcrunInstances = await xcrun.defaultResolver!.resolve(logger: logger, environment: environment);
 
     return [
       for (final xcrunInstance in xcrunInstances) ...[
-        ...await tryResolveSdk(xcrunInstance: xcrunInstance, sdk: 'macosx', tool: macosxSdk, logger: logger),
+        ...await tryResolveSdk(
+          xcrunInstance: xcrunInstance,
+          sdk: 'macosx',
+          tool: macosxSdk,
+          logger: logger,
+          environment: environment,
+        ),
         ...await tryResolveSdk(
           xcrunInstance: xcrunInstance,
           sdk: 'iphoneos',
           tool: iPhoneOSSdk,
           logger: logger,
+          environment: environment,
         ),
         ...await tryResolveSdk(
           xcrunInstance: xcrunInstance,
           sdk: 'iphonesimulator',
           tool: iPhoneSimulatorSdk,
           logger: logger,
+          environment: environment,
         ),
       ],
       // xcrun --sdk macosx --show-sdk-path)
@@ -61,11 +73,13 @@ class XCodeSdkResolver implements ToolResolver {
     required String sdk,
     required Tool tool,
     required Logger? logger,
+    Map<String, String>? environment,
   }) async {
     final result = await runProcess(
       executable: xcrunInstance.uri,
       arguments: ['--sdk', sdk, '--show-sdk-path'],
       logger: logger,
+      environment: environment,
     );
     if (result.exitCode == 1) {
       assert(result.stderr.contains('cannot be located'));

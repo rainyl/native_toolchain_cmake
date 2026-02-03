@@ -45,13 +45,17 @@ class _NinjaResolver implements ToolResolver {
   }
 
   @override
-  Future<List<ToolInstance>> resolve({required Logger? logger, UserConfig? userConfig}) async {
+  Future<List<ToolInstance>> resolve({
+    required Logger? logger,
+    UserConfig? userConfig,
+    Map<String, String>? environment,
+  }) async {
     final androidResolver = _getAndroidResolver(userConfig: userConfig);
-    final androidNinjaInstances = await androidResolver.resolve(logger: logger);
+    final androidNinjaInstances = await androidResolver.resolve(logger: logger, environment: environment);
     logger?.info('Found Android Ninja: ${androidNinjaInstances.map((e) => e.toString()).join(', ')}');
 
     final systemResolver = _getSystemResolver();
-    final systemNinjaInstances = await systemResolver.resolve(logger: logger);
+    final systemNinjaInstances = await systemResolver.resolve(logger: logger, environment: environment);
     logger?.info('Found System Ninja: ${systemNinjaInstances.map((e) => e.toString()).join(', ')}');
 
     final combinedNinjaInstances = <ToolInstance>[];
