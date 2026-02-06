@@ -13,6 +13,7 @@ import 'package:change_case/change_case.dart';
 import 'package:code_assets/code_assets.dart';
 import 'package:hooks/hooks.dart';
 import 'package:logging/logging.dart';
+import 'package:pub_semver/pub_semver.dart';
 
 import '../native_toolchain/android_ndk.dart';
 import '../native_toolchain/cmake.dart';
@@ -64,6 +65,10 @@ class RunCMakeBuilder {
   /// save the last generate status of native_toolchain_cmake
   final String lastGenStatusFile;
 
+  /// number of parallel jobs to use
+  final int? parallelJobs;
+  final bool parallelUseAllProcessors;
+
   RunCMakeBuilder({
     required this.input,
     required this.codeConfig,
@@ -78,10 +83,13 @@ class RunCMakeBuilder {
     this.appleArgs = const AppleBuilderArgs(),
     this.logLevel = LogLevel.STATUS,
     this.lastGenStatusFile = 'ntc_last_generate_status.txt',
+    this.parallelUseAllProcessors = false,
+    int? parallelJobs,
     Uri? outputDir,
     UserConfig? userConfig,
   }) : outDir = outputDir ?? input.outputDirectory,
-       userConfig = userConfig ?? UserConfig(targetOS: codeConfig.targetOS);
+       userConfig = userConfig ?? UserConfig(targetOS: codeConfig.targetOS),
+       parallelJobs = parallelJobs ?? (parallelUseAllProcessors ? Platform.numberOfProcessors : null);
 
   Future<Uri> cmakePath({Map<String, String>? environment}) async {
     final cmakeTools = await cmake.defaultResolver?.resolve(
@@ -236,8 +244,25 @@ class RunCMakeBuilder {
   }
 
   Future<RunProcessResult> _build({Map<String, String>? environment}) async {
+    final cmakeTools = await cmake.defaultResolver?.resolve(
+      logger: logger,
+      userConfig: userConfig,
+      environment: environment,
+    );
+    final _cmake = cmakeTools?.first;
+    if (_cmake == null) {
+      throw Exception('Failed to resolve CMake path.');
+    }
+
+    final _parallelJobs = <String>[];
+    // https://cmake.org/cmake/help/latest/manual/cmake.1.html#cmdoption-cmake-build-j
+    // --parallel added in CMake 3.12.0
+    if (parallelJobs != null && _cmake.version != null && _cmake.version! > Version.parse('3.12.0')) {
+      _parallelJobs.addAll(['--parallel', parallelJobs.toString()]);
+    }
+
     return runProcess(
-      executable: await cmakePath(environment: environment),
+      executable: _cmake.uri,
       arguments: [
         '--build',
         outDir.normalizePath().toFilePath(),
@@ -245,6 +270,7 @@ class RunCMakeBuilder {
         buildMode.name.toCapitalCase(),
         if (targets?.isNotEmpty ?? false) '--target',
         if (targets?.isNotEmpty ?? false) ...targets!,
+        ..._parallelJobs,
       ],
       logger: logger,
       workingDirectory: outDir,
