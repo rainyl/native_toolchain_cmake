@@ -74,6 +74,19 @@ class CMakeBuilder implements Builder {
 
   final bool useVcvars;
 
+  /// Number of parallel jobs to use for CMake build, i.e., --parallel [<jobs>].
+  ///
+  /// This is added since CMake 3.12
+  ///
+  /// https://cmake.org/cmake/help/latest/manual/cmake.1.html#cmdoption-cmake-build-j
+  ///
+  /// If [parallelUseAllProcessors] is true, [parallelJobs] will be set to
+  /// [Platform.numberOfProcessors].
+  final int? parallelJobs;
+
+  /// Whether to use all processors for parallel jobs.
+  final bool parallelUseAllProcessors;
+
   /// This constructor initializes a new build config from [sourceDir].
   ///
   /// Parameters:
@@ -110,6 +123,8 @@ class CMakeBuilder implements Builder {
     this.androidArgs = const AndroidBuilderArgs(),
     this.appleArgs = const AppleBuilderArgs(),
     this.useVcvars = true,
+    this.parallelJobs,
+    this.parallelUseAllProcessors = false,
   }) : cmakeListsDir = sourceDir;
 
   /// This constructor initializes a new build config by cloning the
@@ -160,6 +175,8 @@ class CMakeBuilder implements Builder {
     this.androidArgs = const AndroidBuilderArgs(),
     this.appleArgs = const AppleBuilderArgs(),
     this.useVcvars = true,
+    this.parallelJobs,
+    this.parallelUseAllProcessors = false,
   }) : cmakeListsDir = sourceDir {
     // Some platforms will error if directory does not exist, create it.
     cmakeListsDir = sourceDir.resolve('external/$name/').normalizePath();
@@ -308,6 +325,8 @@ class CMakeBuilder implements Builder {
       androidArgs: androidArgs,
       logLevel: logLevel,
       userConfig: userConfig,
+      parallelJobs: parallelJobs,
+      parallelUseAllProcessors: parallelUseAllProcessors,
     );
 
     // Do not remove this line for potential extra variables in the future

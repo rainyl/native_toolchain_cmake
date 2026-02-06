@@ -1,5 +1,9 @@
 # native_toolchain_cmake
 
+## 0.2.4
+
+- new: add `parallelJobs` and `parallelUseAllProcessors` to support parallel build or set njobs explicitly.
+
 ## 0.2.3
 
 - new: support skipping generate if cached
