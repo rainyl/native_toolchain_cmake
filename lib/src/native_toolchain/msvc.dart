@@ -269,6 +269,7 @@ class VisualStudioResolver implements ToolResolver {
         arguments: arguments,
         logger: logger,
         environment: environment,
+        encoding: utf8,
       );
       var toolInfos = json.decode(vswhereResult.stdout) as List;
       // Try again including prerelease versions if no stable versions found.
@@ -278,6 +279,7 @@ class VisualStudioResolver implements ToolResolver {
           arguments: [...arguments, '-prerelease'],
           logger: logger,
           environment: environment,
+          encoding: utf8,
         );
         toolInfos = json.decode(vswhereResult.stdout) as List;
       }
