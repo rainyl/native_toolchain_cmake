@@ -1,5 +1,9 @@
 # native_toolchain_cmake
 
+## 0.2.5
+
+- fix: add encoding parameter (default is `systemEncoding`) to runProcess for consistent output decoding
+
 ## 0.2.4
 
 - new: add `parallelJobs` and `parallelUseAllProcessors` to support parallel build or set njobs explicitly.
