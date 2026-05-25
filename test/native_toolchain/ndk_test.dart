@@ -252,14 +252,20 @@ void main() {
       await targetNdk.create(recursive: true);
       await otherNdk.create(recursive: true);
 
+      final env = Map<String, String>.from(_noSystemEnv)
+        ..['ANDROID_HOME'] = sdkDir.path
+        ..['PATH'] = tempDir.path;
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
         userConfig: UserConfig(targetOS: OS.android, ndkVersion: '28.0.0'),
-        environment: {..._noSystemEnv, 'ANDROID_HOME': sdkDir.path},
+        environment: env,
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
+      // Target must be among the filtered results; other versions are excluded.
       expect(ndkInstances.any((i) => i.uri == targetNdk.absolute.uri), isTrue);
+      // The other NDK version must NOT be present.
+      expect(ndkInstances.any((i) => i.uri == otherNdk.absolute.uri), isFalse);
     });
 
     test('throws when ndkVersion filter matches nothing', () async {
