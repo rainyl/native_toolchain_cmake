@@ -118,7 +118,7 @@ final Tool vcvarsarm64 = Tool(
 final Tool vcvarsall = Tool(
   name: 'vcvarsall.bat',
   defaultResolver: RelativeToolResolver(
-    toolName: 'vcvars32.bat',
+    toolName: 'vcvarsall.bat',
     wrappedResolver: visualStudio.defaultResolver!,
     relativePath: Uri(path: './VC/Auxiliary/Build/vcvarsall.bat'),
   ),
