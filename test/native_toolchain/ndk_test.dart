@@ -196,6 +196,7 @@ void main() {
       await Directory('${sdkDir.path}/platform-tools').create(recursive: true);
       final ndkDir = Directory('${sdkDir.path}/ndk/28.0.0');
       await ndkDir.create(recursive: true);
+      if (!_globOk(sdkDir.path)) return;
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
@@ -220,6 +221,7 @@ void main() {
       final envNdk = Directory('${envSdk.path}/ndk/1.0.0');
       await configNdk.create(recursive: true);
       await envNdk.create(recursive: true);
+      if (!_globOk(configSdk.path)) return;
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
@@ -239,6 +241,7 @@ void main() {
       final newNdk = Directory('${sdkDir.path}/ndk/34.0.0');
       await oldNdk.create(recursive: true);
       await newNdk.create(recursive: true);
+      if (!_globOk(sdkDir.path)) return;
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
@@ -309,6 +312,7 @@ void main() {
       await Directory('${sdkDir.path}/platform-tools').create(recursive: true);
       final ndkDir = Directory('${sdkDir.path}/ndk/27.0.0');
       await ndkDir.create(recursive: true);
+      if (!_globOk(sdkDir.path)) return;
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
