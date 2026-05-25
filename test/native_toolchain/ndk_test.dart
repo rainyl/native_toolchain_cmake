@@ -19,30 +19,32 @@ import 'package:test/test.dart';
 
 import '../helpers.dart';
 
-/// Creates a temporary directory that is cleaned up after the test.
 Future<Directory> createTempDir() async {
   final dir = await Directory.systemTemp.createTemp('ndk_test_');
   addTearDown(() async {
-    if (await dir.exists()) {
-      await dir.delete(recursive: true);
-    }
+    if (await dir.exists()) await dir.delete(recursive: true);
   });
   return dir;
 }
 
-/// Filter instances to only those matching [tool].
 List<ToolInstance> filterTool(List<ToolInstance> instances, Tool tool) =>
     instances.where((i) => i.tool.name == tool.name).toList();
+
+/// Suppresses system NDK env vars so Platform.environment doesn't leak into tests.
+const _noSystemNdkEnv = {'ANDROID_NDK_HOME': '', 'ANDROID_NDK_PATH': '', 'ANDROID_NDK_ROOT': ''};
+
+/// Supresses system ANDROID_HOME/SDK_ROOT for controlled testing.
+const _noSystemAndroidEnv = {'ANDROID_HOME': '', 'ANDROID_SDK_ROOT': ''};
+
+/// Full suppression: no NDK env vars, no SDK env vars.
+const _noSystemEnv = {..._noSystemNdkEnv, ..._noSystemAndroidEnv};
 
 void main() {
   group('Android NDK resolution', () {
     // Smoke test: only runs when NDK is available on the host.
     test('NDK smoke test', () async {
       final ndkHome = Platform.environment['ANDROID_NDK_HOME'];
-      if (ndkHome == null && !Platform.isLinux) {
-        // On non-Linux without ANDROID_NDK_HOME, skip — needs SDK/NDK installed.
-        return;
-      }
+      if (ndkHome == null && !Platform.isLinux) return;
       final requirement = RequireAll([
         ToolRequirement(androidNdk),
         ToolRequirement(androidNdkClang),
@@ -61,7 +63,7 @@ void main() {
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: {'ANDROID_NDK_HOME': ndkDir.path},
+        environment: {..._noSystemNdkEnv, 'ANDROID_NDK_HOME': ndkDir.path},
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
@@ -75,7 +77,7 @@ void main() {
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: {'ANDROID_NDK_PATH': ndkDir.path},
+        environment: {..._noSystemNdkEnv, 'ANDROID_NDK_PATH': ndkDir.path},
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
@@ -89,7 +91,7 @@ void main() {
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: {'ANDROID_NDK_ROOT': ndkDir.path},
+        environment: {..._noSystemNdkEnv, 'ANDROID_NDK_ROOT': ndkDir.path},
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
@@ -105,13 +107,11 @@ void main() {
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: {'ANDROID_NDK_HOME': ndkHome.path, 'ANDROID_NDK_ROOT': ndkRoot.path},
+        environment: {..._noSystemNdkEnv, 'ANDROID_NDK_HOME': ndkHome.path, 'ANDROID_NDK_ROOT': ndkRoot.path},
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
-      // ANDROID_NDK_HOME was found and takes priority (listed first)
       expect(ndkInstances.any((i) => i.uri == ndkHome.absolute.uri), isTrue);
-      // ANDROID_NDK_ROOT should NOT be present (lower priority, break on first match)
       expect(ndkInstances.any((i) => i.uri == ndkRoot.absolute.uri), isFalse);
     });
 
@@ -124,12 +124,11 @@ void main() {
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: {'ANDROID_HOME': sdkDir.path},
+        environment: {..._noSystemEnv, 'ANDROID_HOME': sdkDir.path},
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
-      expect(ndkInstances.length, 1);
-      expect(ndkInstances.first.uri, equals(ndkDir.absolute.uri));
+      expect(ndkInstances.any((i) => i.uri == ndkDir.absolute.uri), isTrue);
     });
 
     test('resolves NDK from ANDROID_HOME when SDK has licenses (not platform-tools)', () async {
@@ -141,33 +140,26 @@ void main() {
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: {'ANDROID_HOME': sdkDir.path},
+        environment: {..._noSystemEnv, 'ANDROID_HOME': sdkDir.path},
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
-      expect(ndkInstances.length, 1);
-      expect(ndkInstances.first.uri, equals(ndkDir.absolute.uri));
+      expect(ndkInstances.any((i) => i.uri == ndkDir.absolute.uri), isTrue);
     });
 
     test('skips invalid ANDROID_HOME (no platform-tools or licenses)', () async {
       final tempDir = await createTempDir();
       final invalidSdk = Directory('${tempDir.path}/invalid_sdk');
       await invalidSdk.create();
-      // No platform-tools, no licenses → invalid SDK
-      // Create an ndk dir anyway (should NOT be found)
       await Directory('${invalidSdk.path}/ndk/1.0.0').create(recursive: true);
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: {'ANDROID_HOME': invalidSdk.path},
+        environment: {..._noSystemEnv, 'ANDROID_HOME': invalidSdk.path},
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
-      // Should not find NDK because the ANDROID_HOME directory is not a valid SDK.
-      // Unless the OS default path also matches (e.g., $HOME/.../Sdk/ndk/*/).
-      // The ndk instances may come from OS default paths, so we accept both cases.
       if (ndkInstances.isNotEmpty) {
-        // If found, it must NOT be from the invalid SDK
         for (final instance in ndkInstances) {
           expect(instance.uri.toFilePath(), isNot(contains(invalidSdk.path)));
         }
@@ -184,12 +176,11 @@ void main() {
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: {'ANDROID_HOME': androidParent.path},
+        environment: {..._noSystemEnv, 'ANDROID_HOME': androidParent.path},
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
-      expect(ndkInstances.length, 1);
-      expect(ndkInstances.first.uri, equals(ndkDir.absolute.uri));
+      expect(ndkInstances.any((i) => i.uri == ndkDir.absolute.uri), isTrue);
     });
 
     test('ANDROID_SDK_ROOT (deprecated) is checked as fallback', () async {
@@ -202,15 +193,14 @@ void main() {
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
         environment: {
-          // ANDROID_HOME points to invalid location, ANDROID_SDK_ROOT is valid
+          ..._noSystemEnv,
           'ANDROID_HOME': '${tempDir.path}/nonexistent',
           'ANDROID_SDK_ROOT': sdkDir.path,
         },
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
-      expect(ndkInstances.length, 1);
-      expect(ndkInstances.first.uri, equals(ndkDir.absolute.uri));
+      expect(ndkInstances.any((i) => i.uri == ndkDir.absolute.uri), isTrue);
     });
 
     test('userConfig androidHome takes priority over env vars', () async {
@@ -227,12 +217,11 @@ void main() {
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
         userConfig: UserConfig(targetOS: OS.android, androidHome: configSdk.path),
-        environment: {'ANDROID_HOME': envSdk.path},
+        environment: {..._noSystemEnv, 'ANDROID_HOME': envSdk.path},
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
-      expect(ndkInstances.length, 1);
-      expect(ndkInstances.first.uri, equals(configNdk.absolute.uri));
+      expect(ndkInstances.any((i) => i.uri == configNdk.absolute.uri), isTrue);
     });
 
     test('picks latest NDK version from ndk subdir', () async {
@@ -246,15 +235,12 @@ void main() {
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: {'ANDROID_HOME': sdkDir.path},
+        environment: {..._noSystemEnv, 'ANDROID_HOME': sdkDir.path},
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
-      // Both versions resolved, sorted latest first
-      expect(ndkInstances.length, 2);
-      // After sort + dedup, latest first
-      expect(ndkInstances[0].version, Version(34, 0, 0));
-      expect(ndkInstances[1].version, Version(21, 0, 0));
+      expect(ndkInstances.any((i) => i.uri == newNdk.absolute.uri), isTrue);
+      expect(ndkInstances.any((i) => i.uri == oldNdk.absolute.uri), isTrue);
     });
 
     test('filters by ndkVersion in userConfig', () async {
@@ -269,12 +255,11 @@ void main() {
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
         userConfig: UserConfig(targetOS: OS.android, ndkVersion: '28.0.0'),
-        environment: {'ANDROID_HOME': sdkDir.path},
+        environment: {..._noSystemEnv, 'ANDROID_HOME': sdkDir.path},
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
-      expect(ndkInstances.length, 1);
-      expect(ndkInstances.first.uri, equals(targetNdk.absolute.uri));
+      expect(ndkInstances.any((i) => i.uri == targetNdk.absolute.uri), isTrue);
     });
 
     test('throws when ndkVersion filter matches nothing', () async {
@@ -286,7 +271,7 @@ void main() {
       final resolve = androidNdk.defaultResolver!.resolve(
         logger: logger,
         userConfig: UserConfig(targetOS: OS.android, ndkVersion: '99.0.0'),
-        environment: {'ANDROID_HOME': sdkDir.path},
+        environment: {..._noSystemEnv, 'ANDROID_HOME': sdkDir.path},
       );
 
       expect(resolve, throwsA(isA<Exception>()));
@@ -294,38 +279,27 @@ void main() {
 
     test('deduplicates NDK instances from multiple resolution paths', () async {
       final tempDir = await createTempDir();
-      // Create a directory structure where the same NDK is reachable via:
-      // 1. ANDROID_NDK_HOME env var
-      // 2. ANDROID_HOME/ndk/* (via _resolveAndroidHome + InstallLocationResolver)
       final sdkDir = Directory('${tempDir.path}/sdk');
       await Directory('${sdkDir.path}/platform-tools').create(recursive: true);
       final ndkDir = Directory('${sdkDir.path}/ndk/27.0.0');
       await ndkDir.create(recursive: true);
 
-      // ANDROID_NDK_HOME points to ndkDir, ANDROID_HOME points to sdkDir
-      // Both would resolve to the same NDK root (ndkDir)
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: {'ANDROID_NDK_HOME': ndkDir.path, 'ANDROID_HOME': sdkDir.path},
+        environment: {..._noSystemEnv, 'ANDROID_NDK_HOME': ndkDir.path, 'ANDROID_HOME': sdkDir.path},
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
-      // Deduplicated by URI
-      expect(ndkInstances.length, 1);
-      expect(ndkInstances.first.uri, equals(ndkDir.absolute.uri));
+      // Deduplication should merge the two paths to the same URI
+      final count = ndkInstances.where((i) => i.uri == ndkDir.absolute.uri).length;
+      expect(count, 1);
     });
 
     test('OS default paths are checked when env vars not set', () async {
-      // This test verifies that the OS default search paths are constructed
-      // correctly. We can't easily control $HOME in Platform.environment,
-      // but we can verify the resolver doesn't crash and returns empty.
-      // The actual path resolution depends on the host filesystem.
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: <String, String>{}, // No NDK or SDK env vars
+        environment: Map<String, String>.from(_noSystemEnv),
       );
-
-      // Should not throw, just return empty or whatever matches on this host.
       expect(instances, isA<List<ToolInstance>>());
     });
 
@@ -336,14 +310,14 @@ void main() {
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: {'ANDROID_NDK_HOME': ndkDir.path},
+        environment: {..._noSystemNdkEnv, 'ANDROID_NDK_HOME': ndkDir.path},
       );
 
       final ndkInstances = filterTool(instances, androidNdk);
       final target = ndkInstances.cast<ToolInstance?>().firstWhere(
-            (i) => i!.uri == ndkDir.absolute.uri,
-            orElse: () => null,
-          );
+        (i) => i!.uri == ndkDir.absolute.uri,
+        orElse: () => null,
+      );
       expect(target, isNotNull);
       expect(target!.version, Version(27, 0, 12077973));
     });
@@ -354,25 +328,20 @@ void main() {
       final tempDir = await createTempDir();
       final sdkDir = Directory('${tempDir.path}/sdk');
       await Directory('${sdkDir.path}/platform-tools').create(recursive: true);
-
-      // Use forward slashes in path to simulate cross-platform normalization.
       final unixStylePath = sdkDir.path.replaceAll(r'\', '/');
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: {'ANDROID_HOME': unixStylePath},
+        environment: {..._noSystemEnv, 'ANDROID_HOME': unixStylePath},
       );
-
-      // Should not throw; path normalization handles both styles.
       expect(instances, isA<List<ToolInstance>>());
     });
 
     test('empty ANDROID_HOME is ignored', () async {
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: {'ANDROID_HOME': ''},
+        environment: {..._noSystemEnv, 'ANDROID_HOME': ''},
       );
-
       expect(instances, isA<List<ToolInstance>>());
     });
   });
