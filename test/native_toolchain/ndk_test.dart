@@ -255,7 +255,11 @@ void main() {
       // Resolve without version filter first to verify test NDKs exist.
       final allInstances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
-        environment: {..._noSystemEnv, 'ANDROID_HOME': sdkDir.path},
+        environment: {
+          ..._noSystemEnv,
+          'ANDROID_HOME': sdkDir.path,
+          'PATH': '${tempDir.path}${Platform.isWindows ? ';' : ':'}${Platform.environment['PATH'] ?? ''}',
+        },
       );
       final allNdk = filterTool(allInstances, androidNdk);
       final testNdk28 = allNdk.where((i) => i.uri == targetNdk.absolute.uri);
@@ -264,7 +268,6 @@ void main() {
       // Both must be found, otherwise env/GLOB issues prevent testing the filter.
       if (testNdk28.isEmpty || testNdk33.isEmpty) return;
 
-      // Now test version filtering.
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
         userConfig: UserConfig(targetOS: OS.android, ndkVersion: '28.0.0', envVarAndroidHomeAsDefault: false),
