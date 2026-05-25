@@ -254,7 +254,7 @@ void main() {
 
       final env = Map<String, String>.from(_noSystemEnv)
         ..['ANDROID_HOME'] = sdkDir.path
-        ..['PATH'] = tempDir.path;
+        ..['PATH'] = '${tempDir.path}${Platform.isWindows ? ';' : ':'}${Platform.environment['PATH'] ?? ''}';
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
         userConfig: UserConfig(targetOS: OS.android, ndkVersion: '28.0.0'),
