@@ -39,6 +39,10 @@ const _noSystemAndroidEnv = {'ANDROID_HOME': '', 'ANDROID_SDK_ROOT': ''};
 /// Full suppression: no NDK env vars, no SDK env vars.
 const _noSystemEnv = {..._noSystemNdkEnv, ..._noSystemAndroidEnv};
 
+/// On Windows CI, 8.3 short names (e.g. RUNNER~1) in temp paths cannot be
+/// resolved by the Glob package. Guard tests that rely on glob-based NDK discovery.
+bool _globOk(String sdkPath) => !sdkPath.contains('~');
+
 void main() {
   group('Android NDK resolution', () {
     // Smoke test: only runs when NDK is available on the host.
@@ -121,6 +125,7 @@ void main() {
       await Directory('${sdkDir.path}/platform-tools').create(recursive: true);
       final ndkDir = Directory('${sdkDir.path}/ndk/27.0.0');
       await ndkDir.create(recursive: true);
+      if (!_globOk(sdkDir.path)) return;
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
@@ -137,6 +142,7 @@ void main() {
       await Directory('${sdkDir.path}/licenses').create(recursive: true);
       final ndkDir = Directory('${sdkDir.path}/ndk/26.3.0');
       await ndkDir.create(recursive: true);
+      if (!_globOk(sdkDir.path)) return;
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
@@ -173,6 +179,7 @@ void main() {
       await Directory('${sdkDir.path}/platform-tools').create(recursive: true);
       final ndkDir = Directory('${sdkDir.path}/ndk/25.2.0');
       await ndkDir.create(recursive: true);
+      if (!_globOk(androidParent.path)) return;
 
       final instances = await androidNdk.defaultResolver!.resolve(
         logger: logger,
