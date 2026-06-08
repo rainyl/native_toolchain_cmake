@@ -17,7 +17,7 @@ dependencies:
   change_case: ^2.2.0
   code_assets: ">=1.0.0 <2.0.0"
   glob: ^2.1.3
-  hooks: ">=1.0.0 <2.0.0"
+  hooks: ">=1.0.0 <3.0.0"
   logging: ^1.3.0
   meta: ^1.16.0
   path: ^1.9.1
