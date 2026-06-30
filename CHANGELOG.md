@@ -1,5 +1,9 @@
 # native_toolchain_cmake
 
+## 0.2.6
+
+- bump hooks to 2.0
+
 ## 0.2.5
 
 - fix: add encoding parameter (default is `systemEncoding`) to runProcess for consistent output decoding
