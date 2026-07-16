@@ -122,7 +122,7 @@ Future<Uri> buildLib(
     //         ninja_version: null # "1.10.2"
     // TODO: add more user configs.
     final androidHome = Platform.environment['ANDROID_HOME'];
-    final envFilePath = tempUri.resolve(userDefinedConfig["env_file"] as String).toFilePath();
+    final envFilePath = tempUri.resolve(userDefinedConfig["env_file"]!).toFilePath();
     final envFile = File(envFilePath);
     await envFile.writeAsString('ANDROID_HOME=$androidHome');
   }

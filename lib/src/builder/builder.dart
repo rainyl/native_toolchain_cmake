@@ -110,7 +110,7 @@ class CMakeBuilder implements Builder {
   ///   defaults to `false`.
   CMakeBuilder.create({
     required this.name,
-    required this.sourceDir,
+    required Uri sourceDir,
     this.outDir,
     this.defines = const {},
     this.buildMode = BuildMode.release,
@@ -125,7 +125,8 @@ class CMakeBuilder implements Builder {
     this.useVcvars = true,
     this.parallelJobs,
     this.parallelUseAllProcessors = false,
-  }) : cmakeListsDir = sourceDir;
+  }) : sourceDir = sourceDir.isAbsolute ? sourceDir : Directory.fromUri(sourceDir).absolute.uri,
+       cmakeListsDir = sourceDir.isAbsolute ? sourceDir : Directory.fromUri(sourceDir).absolute.uri;
 
   /// This constructor initializes a new build config by cloning the
   /// repository from [gitUrl] into a subdirectory under [sourceDir].
@@ -159,7 +160,7 @@ class CMakeBuilder implements Builder {
   CMakeBuilder.fromGit({
     required this.name,
     required String gitUrl,
-    required this.sourceDir,
+    required Uri sourceDir,
     this.outDir,
     String gitBranch = 'main',
     String gitCommit = 'FETCH_HEAD',
@@ -177,9 +178,10 @@ class CMakeBuilder implements Builder {
     this.useVcvars = true,
     this.parallelJobs,
     this.parallelUseAllProcessors = false,
-  }) : cmakeListsDir = sourceDir {
+  }) : sourceDir = sourceDir.isAbsolute ? sourceDir : Directory.fromUri(sourceDir).absolute.uri,
+       cmakeListsDir = sourceDir.isAbsolute ? sourceDir : Directory.fromUri(sourceDir).absolute.uri {
     // Some platforms will error if directory does not exist, create it.
-    cmakeListsDir = sourceDir.resolve('external/$name/').normalizePath();
+    cmakeListsDir = this.sourceDir.resolve('external/$name/').normalizePath();
     Directory.fromUri(cmakeListsDir).createSync(recursive: true);
 
     runProcessSync(
@@ -229,18 +231,55 @@ class CMakeBuilder implements Builder {
     Logger? logger,
     bool skipGenerateIfCached = false,
   }) async {
+    await runStandalone(
+      outputDirectory: input.outputDirectory,
+      targetOS: input.config.code.targetOS,
+      targetArchitecture: input.config.code.targetArchitecture,
+      packageRoot: input.packageRoot,
+      android: input.config.code.targetOS == OS.android ? input.config.code.android : null,
+      iOS: input.config.code.targetOS == OS.iOS ? input.config.code.iOS : null,
+      macOS: input.config.code.targetOS == OS.macOS ? input.config.code.macOS : null,
+      logger: logger,
+      userDefines: input.json['user_defines'] as Map<String, dynamic>? ?? const {},
+      input: input,
+      skipGenerateIfCached: skipGenerateIfCached,
+    );
+  }
+
+  /// Runs the CMake generate and build process with explicit arguments instead
+  /// of [BuildInput] or [BuildOutputBuilder].
+  ///
+  /// Useful for standalone build scripts outside of `hook/build.dart`.
+  Future<void> runStandalone({
+    required Uri outputDirectory,
+    OS? targetOS,
+    Architecture? targetArchitecture,
+    Uri? packageRoot,
+    AndroidCodeConfig? android,
+    IOSCodeConfig? iOS,
+    MacOSCodeConfig? macOS,
+    Logger? logger,
+    Map<String, dynamic>? userDefines,
+    BuildInput? input,
+    bool skipGenerateIfCached = false,
+  }) async {
+    targetOS ??= OS.current;
+    targetArchitecture ??= Architecture.current;
+    logger ??= this.logger;
+    userDefines ??= const {};
+
     // do not override user specified output directory if they also set buildLocal to true
     if (outDir == null && buildLocal) {
-      final os = input.config.code.targetOS;
-      var plat = os.name.toLowerCase();
+      var plat = targetOS.name.toLowerCase();
       // ios-simulator has both x86_64 and arm64, ios/arm64 is ambiguous
-      if (os == OS.iOS && input.config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator) {
+      if (targetOS == OS.iOS && iOS?.targetSdk == IOSSdk.iPhoneSimulator) {
         plat = "iossimulator";
       }
-      final arch = input.config.code.targetArchitecture.name.toLowerCase();
+      final arch = targetArchitecture.name.toLowerCase();
       outDir = sourceDir.resolve('build/').resolve('$plat/').resolve(arch).normalizePath();
     }
-    await Directory.fromUri(outDir ?? input.outputDirectory).create(recursive: true);
+    final effectiveOutDir = outDir ?? outputDirectory;
+    await Directory.fromUri(effectiveOutDir).create(recursive: true);
 
     // hooks:
     //   user_defines:
@@ -257,14 +296,14 @@ class CMakeBuilder implements Builder {
     //         ninja_version: null # "1.10.2"
     //       windows:
     //         cmake_version: null # "3.31.6"
-    final androidConfig = input.userDefines["android"] as Map<String, dynamic>?;
-    final iosConfig = input.userDefines["ios"] as Map<String, dynamic>?;
-    final linuxConfig = input.userDefines["linux"] as Map<String, dynamic>?;
-    final macOSConfig = input.userDefines["macos"] as Map<String, dynamic>?;
-    final windowsConfig = input.userDefines["windows"] as Map<String, dynamic>?;
+    final androidConfig = userDefines["android"] as Map<String, dynamic>?;
+    final iosConfig = userDefines["ios"] as Map<String, dynamic>?;
+    final linuxConfig = userDefines["linux"] as Map<String, dynamic>?;
+    final macOSConfig = userDefines["macos"] as Map<String, dynamic>?;
+    final windowsConfig = userDefines["windows"] as Map<String, dynamic>?;
 
-    var cmakeVersion = input.userDefines["cmake_version"] as String?;
-    cmakeVersion = switch (input.config.code.targetOS) {
+    var cmakeVersion = userDefines["cmake_version"] as String?;
+    cmakeVersion = switch (targetOS) {
       OS.android => androidConfig?["cmake_version"] as String? ?? cmakeVersion,
       OS.iOS => iosConfig?["cmake_version"] as String? ?? cmakeVersion,
       OS.linux => linuxConfig?["cmake_version"] as String? ?? cmakeVersion,
@@ -273,8 +312,8 @@ class CMakeBuilder implements Builder {
       _ => cmakeVersion,
     };
 
-    var ninjaVersion = input.userDefines["ninja_version"] as String?;
-    ninjaVersion = switch (input.config.code.targetOS) {
+    var ninjaVersion = userDefines["ninja_version"] as String?;
+    ninjaVersion = switch (targetOS) {
       OS.android => androidConfig?["ninja_version"] as String? ?? ninjaVersion,
       OS.iOS => iosConfig?["ninja_version"] as String? ?? ninjaVersion,
       OS.linux => linuxConfig?["ninja_version"] as String? ?? ninjaVersion,
@@ -284,20 +323,20 @@ class CMakeBuilder implements Builder {
     };
 
     var userConfig = UserConfig(
-      targetOS: input.config.code.targetOS,
+      targetOS: targetOS,
       cmakeVersion: cmakeVersion,
       ninjaVersion: ninjaVersion,
       ndkVersion: androidConfig?["ndk_version"] as String?,
       androidHome: androidConfig?["android_home"] as String?,
-      preferAndroidNinja: input.userDefines["prefer_android_ninja"] as bool?,
-      preferAndroidCmake: input.userDefines["prefer_android_cmake"] as bool?,
+      preferAndroidNinja: userDefines["prefer_android_ninja"] as bool?,
+      preferAndroidCmake: userDefines["prefer_android_cmake"] as bool?,
     );
 
     // optional host specific build config
-    final envFile = input.userDefines["env_file"] as String?;
+    final envFile = userDefines["env_file"] as String?;
 
     if (envFile != null) {
-      final userEnvConfig = await getUserEnvConfig(input: input, envFile: envFile);
+      final userEnvConfig = await getUserEnvConfig(input: input, packageRoot: packageRoot, envFile: envFile);
       final androidHome = userEnvConfig['ANDROID_HOME'];
       if (androidHome != null) {
         final androidHomeEntity = Directory(androidHome);
@@ -312,10 +351,13 @@ class CMakeBuilder implements Builder {
     }
 
     final task = RunCMakeBuilder(
-      input: input,
-      outputDir: outDir,
-      codeConfig: input.config.code,
-      logger: logger ?? this.logger,
+      targetOS: targetOS,
+      targetArchitecture: targetArchitecture,
+      android: android,
+      iOS: iOS,
+      macOS: macOS,
+      outDir: effectiveOutDir,
+      logger: logger,
       sourceDir: cmakeListsDir,
       generator: generator,
       buildMode: buildMode,
@@ -334,8 +376,8 @@ class CMakeBuilder implements Builder {
     if (useVcvars) {
       envVars.addAll(
         await environmentFromVcvars(
-          targetOS: input.config.code.targetOS,
-          targetArchitecture: input.config.code.targetArchitecture,
+          targetOS: targetOS,
+          targetArchitecture: targetArchitecture,
           logger: logger,
         ),
       );

@@ -193,7 +193,7 @@ DynamicLibrary openDynamicLibraryForTest(String path) {
 }
 
 extension UnescapePath on String {
-  String unescape() => replaceAll('\\', '/');
+  String unescape() => replaceAll(r'\', '/');
 }
 
 Future<String> readelfMachine(String path) async {

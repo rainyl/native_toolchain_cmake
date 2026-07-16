@@ -4,18 +4,16 @@ import 'package:hooks/hooks.dart';
 import 'package:path/path.dart' as p;
 
 /// Get host specific build config
-Future<Map<String, String>> getUserEnvConfig({required BuildInput input, required String envFile}) async {
-  final hookInputUserDefines = input.json['user_defines'] as Map<String, dynamic>?;
-  if (hookInputUserDefines == null) return {};
-
-  final workspacePubspec = hookInputUserDefines['workspace_pubspec'] as Map<String, dynamic>?;
-  if (workspacePubspec == null) return {};
-
-  final basePath = workspacePubspec['base_path'] as String?;
-  if (basePath == null) return {};
-
-  // base_path may be a directory when testing.
-  final projectDir = FileSystemEntity.isDirectorySync(basePath) ? basePath : p.dirname(basePath);
+Future<Map<String, String>> getUserEnvConfig({
+  required String envFile,
+  BuildInput? input,
+  Uri? packageRoot,
+}) async {
+  String? projectDir;
+  if (input?.json case {'user_defines': {'workspace_pubspec': {'base_path': final String basePath}}}) {
+    projectDir = FileSystemEntity.isDirectorySync(basePath) ? basePath : p.dirname(basePath);
+  }
+  projectDir ??= (packageRoot ?? Directory.current.uri).toFilePath();
   final envConfigPath = p.join(projectDir, envFile);
   final configFile = File(envConfigPath);
   if (!configFile.existsSync()) return {};

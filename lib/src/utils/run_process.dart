@@ -174,7 +174,8 @@ class RunProcessResult {
 
   @override
   String toString() =>
-      '''command: $command
+      '''
+command: $command
 exitCode: $exitCode
 stdout: $stdout
 stderr: $stderr''';
