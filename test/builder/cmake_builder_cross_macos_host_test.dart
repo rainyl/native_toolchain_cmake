@@ -3,9 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 @TestOn('mac-os')
-@OnPlatform({
-  'mac-os': Timeout.factor(2),
-})
+@OnPlatform({'mac-os': Timeout.factor(2)})
 library;
 
 import 'dart:io';
@@ -24,16 +22,10 @@ void main() {
     return;
   }
 
-  const targets = [
-    Architecture.arm64,
-    Architecture.x64,
-  ];
+  const targets = [Architecture.arm64, Architecture.x64];
 
   // Dont include 'mach-o' or 'Mach-O', different spelling is used.
-  const objdumpFileFormat = {
-    Architecture.arm64: 'arm64',
-    Architecture.x64: '64-bit x86-64',
-  };
+  const objdumpFileFormat = {Architecture.arm64: 'arm64', Architecture.x64: '64-bit x86-64'};
 
   for (final target in targets) {
     test('CMakeBuilder library $target', () async {
@@ -68,13 +60,11 @@ void main() {
         buildMode: BuildMode.release,
         appleArgs: const AppleBuilderArgs(enableArc: false, enableBitcode: false, enableVisibility: true),
       );
-      await builder.run(
-        input: buildInput,
-        output: buildOutput,
-        logger: logger,
-      );
+      await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
-      final libUri = buildInput.outputDirectory.resolve(OS.macOS.libraryFileName(name, DynamicLoadingBundled()));
+      final libUri = buildInput.outputDirectory.resolve(
+        OS.macOS.libraryFileName(name, DynamicLoadingBundled()),
+      );
       final result = await runProcess(
         executable: Uri.file('objdump'),
         arguments: ['-t', libUri.path],
@@ -97,12 +87,7 @@ void main() {
       await Directory.fromUri(out1Uri).create();
       final out2Uri = tempUri.resolve('out2/');
       await Directory.fromUri(out1Uri).create();
-      final lib1Uri = await buildLib(
-        out1Uri,
-        out2Uri,
-        target,
-        macosVersion,
-      );
+      final lib1Uri = await buildLib(out1Uri, out2Uri, target, macosVersion);
 
       final otoolResult = await runProcess(
         executable: Uri.file('otool'),
@@ -149,11 +134,7 @@ Future<Uri> buildLib(
     sourceDir: Directory('test/builder/testfiles/add').absolute.uri,
     buildMode: BuildMode.release,
   );
-  await builder.run(
-    input: buildInput,
-    output: buildOutput,
-    logger: logger,
-  );
+  await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
   final libUri = buildInput.outputDirectory.resolve(OS.iOS.libraryFileName(name, DynamicLoadingBundled()));
   return libUri;

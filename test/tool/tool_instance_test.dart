@@ -10,8 +10,14 @@ import 'package:test/test.dart';
 
 void main() {
   test('equals and hashCode', () {
-    final barToolInstance = ToolInstance(tool: Tool(name: 'bar'), uri: Uri.file('path/to/bar'));
-    final fooToolInstance = ToolInstance(tool: Tool(name: 'foo'), uri: Uri.file('path/to/foo'));
+    final barToolInstance = ToolInstance(
+      tool: Tool(name: 'bar'),
+      uri: Uri.file('path/to/bar'),
+    );
+    final fooToolInstance = ToolInstance(
+      tool: Tool(name: 'foo'),
+      uri: Uri.file('path/to/foo'),
+    );
 
     expect(barToolInstance, barToolInstance);
     expect(barToolInstance != fooToolInstance, true);
@@ -20,9 +26,18 @@ void main() {
     expect(barToolInstance.hashCode != fooToolInstance.hashCode, true);
 
     expect(
-        ToolInstance(tool: Tool(name: 'bar'), version: Version(1, 0, 0), uri: Uri.file('path/to/bar')) !=
-            ToolInstance(tool: Tool(name: 'bar'), version: Version(1, 0, 1), uri: Uri.file('path/to/bar')),
-        true);
+      ToolInstance(
+            tool: Tool(name: 'bar'),
+            version: Version(1, 0, 0),
+            uri: Uri.file('path/to/bar'),
+          ) !=
+          ToolInstance(
+            tool: Tool(name: 'bar'),
+            version: Version(1, 0, 1),
+            uri: Uri.file('path/to/bar'),
+          ),
+      true,
+    );
   });
 
   test('compareTo', () {
@@ -32,7 +47,11 @@ void main() {
         version: Version(2, 0, 0),
         uri: Uri.file('path/to/bar'),
       ),
-      ToolInstance(tool: Tool(name: 'bar'), version: Version(1, 0, 0), uri: Uri.file('path/to/bar')),
+      ToolInstance(
+        tool: Tool(name: 'bar'),
+        version: Version(1, 0, 0),
+        uri: Uri.file('path/to/bar'),
+      ),
       ToolInstance(
         tool: Tool(name: 'bar'),
         uri: Uri.file('path/to/bar'),
@@ -48,10 +67,7 @@ void main() {
     ];
 
     final toolInstancesSorted = [...toolInstances]..sort();
-    expect(
-      const DeepCollectionEquality().equals(toolInstancesSorted, toolInstances),
-      true,
-    );
+    expect(const DeepCollectionEquality().equals(toolInstancesSorted, toolInstances), true);
   });
 
   test('toString', () {

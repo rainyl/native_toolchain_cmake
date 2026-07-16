@@ -57,13 +57,7 @@ void main() {
     assert(cm != null);
     final result = await runProcess(
       executable: cm!.uri,
-      arguments: [
-        "-S",
-        srcDir.path,
-        "-B",
-        dstDir.path,
-        "-DCMAKE_INSTALL_PREFIX=install",
-      ],
+      arguments: ["-S", srcDir.path, "-B", dstDir.path, "-DCMAKE_INSTALL_PREFIX=install"],
       logger: logger,
       captureOutput: true,
       throwOnUnexpectedExitCode: false,

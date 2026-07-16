@@ -3,9 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 @TestOn('mac-os')
-@OnPlatform({
-  'mac-os': Timeout.factor(2),
-})
+@OnPlatform({'mac-os': Timeout.factor(2)})
 library;
 
 import 'dart:io';
@@ -27,16 +25,10 @@ void main() {
     return;
   }
 
-  const targets = [
-    Architecture.arm64,
-    Architecture.x64,
-  ];
+  const targets = [Architecture.arm64, Architecture.x64];
 
   // Dont include 'mach-o' or 'Mach-O', different spelling is used.
-  const objdumpFileFormat = {
-    Architecture.arm64: 'arm64',
-    Architecture.x64: '64-bit x86-64',
-  };
+  const objdumpFileFormat = {Architecture.arm64: 'arm64', Architecture.x64: '64-bit x86-64'};
 
   const name = 'add';
 
@@ -63,10 +55,7 @@ void main() {
               targetOS: OS.iOS,
               targetArchitecture: target,
               linkModePreference: LinkModePreference.dynamic,
-              iOS: IOSCodeConfig(
-                targetSdk: targetIOSSdk,
-                targetVersion: flutteriOSHighestBestEffort,
-              ),
+              iOS: IOSCodeConfig(targetSdk: targetIOSSdk, targetVersion: flutteriOSHighestBestEffort),
               cCompiler: cCompiler,
             ),
           );
@@ -80,11 +69,7 @@ void main() {
           buildMode: BuildMode.release,
           generator: Generator.make,
         );
-        await builder.run(
-          input: buildInput,
-          output: buildOutput,
-          logger: logger,
-        );
+        await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
         final libUri = buildInput.outputDirectory.resolve(libName);
         final objdumpResult = await runProcess(
@@ -120,11 +105,7 @@ void main() {
         final targetInstallName = '@executable_path/Frameworks/$libName';
         await runProcess(
           executable: Uri.file('install_name_tool'),
-          arguments: [
-            '-id',
-            targetInstallName,
-            libUri.toFilePath(),
-          ],
+          arguments: ['-id', targetInstallName, libUri.toFilePath()],
           logger: logger,
         );
         final libInstallName2 = await runOtoolInstallName(libUri, libName);
@@ -141,13 +122,7 @@ void main() {
       await Directory.fromUri(out1Uri).create();
       final out2Uri = tempUri.resolve('out1/');
       await Directory.fromUri(out2Uri).create();
-      final lib1Uri = await buildLib(
-        out1Uri,
-        out2Uri,
-        target,
-        iosVersion,
-        DynamicLoadingBundled(),
-      );
+      final lib1Uri = await buildLib(out1Uri, out2Uri, target, iosVersion, DynamicLoadingBundled());
 
       final otoolResult = await runProcess(
         executable: Uri.file('otool'),
@@ -181,12 +156,10 @@ Future<Uri> buildLib(
       CodeAssetExtension(
         targetOS: OS.iOS,
         targetArchitecture: targetArchitecture,
-        linkModePreference:
-            linkMode == DynamicLoadingBundled() ? LinkModePreference.dynamic : LinkModePreference.static,
-        iOS: IOSCodeConfig(
-          targetSdk: IOSSdk.iPhoneOS,
-          targetVersion: targetIOSVersion,
-        ),
+        linkModePreference: linkMode == DynamicLoadingBundled()
+            ? LinkModePreference.dynamic
+            : LinkModePreference.static,
+        iOS: IOSCodeConfig(targetSdk: IOSSdk.iPhoneOS, targetVersion: targetIOSVersion),
         cCompiler: cCompiler,
       ),
     );
@@ -200,11 +173,7 @@ Future<Uri> buildLib(
     buildMode: BuildMode.release,
     generator: Generator.make,
   );
-  await builder.run(
-    input: buildInput,
-    output: buildOutput,
-    logger: logger,
-  );
+  await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
   final libUri = buildInput.outputDirectory.resolve(OS.iOS.libraryFileName(name, linkMode));
   return libUri;

@@ -14,10 +14,7 @@ final Tool appleClang = Tool(
     wrappedResolver: CliFilter(
       cliArguments: ['--version'],
       keepIf: ({required String stdout}) => stdout.contains('Apple clang'),
-      wrappedResolver: PathToolResolver(
-        toolName: 'Apple Clang',
-        executableName: 'clang',
-      ),
+      wrappedResolver: PathToolResolver(toolName: 'Apple Clang', executableName: 'clang'),
     ),
   ),
 );
@@ -52,9 +49,6 @@ final Tool appleLd = Tool(
 final Tool otool = Tool(
   name: 'otool',
   defaultResolver: CliVersionResolver(
-    wrappedResolver: PathToolResolver(
-      toolName: 'otool',
-      executableName: 'otool',
-    ),
+    wrappedResolver: PathToolResolver(toolName: 'otool', executableName: 'otool'),
   ),
 );

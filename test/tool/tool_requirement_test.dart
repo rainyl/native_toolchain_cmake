@@ -33,15 +33,12 @@ void main() {
       ),
     ];
     final result = requirement.satisfy(toolInstances);
-    expect(
-      result,
-      [
-        ToolInstance(
-          tool: Tool(name: 'bar'),
-          version: Version(10, 0, 0),
-          uri: Uri.file('path/to/bar'),
-        )
-      ],
-    );
+    expect(result, [
+      ToolInstance(
+        tool: Tool(name: 'bar'),
+        version: Version(10, 0, 0),
+        uri: Uri.file('path/to/bar'),
+      ),
+    ]);
   });
 }
