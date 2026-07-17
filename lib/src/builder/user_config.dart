@@ -43,7 +43,8 @@ class UserConfig {
     bool envVarAndroidHomeAsDefault = true,
   }) : preferAndroidCmake = preferAndroidCmake ?? targetOS == OS.android,
        preferAndroidNinja = preferAndroidNinja ?? targetOS == OS.android,
-       androidHome = androidHome ?? (envVarAndroidHomeAsDefault ? Platform.environment['ANDROID_HOME'] : null);
+       androidHome =
+           androidHome ?? (envVarAndroidHomeAsDefault ? Platform.environment['ANDROID_HOME'] : null);
 
   UserConfig copyWith({
     OS? targetOS,

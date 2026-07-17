@@ -3,9 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 @TestOn('windows')
-@OnPlatform({
-  'windows': Timeout.factor(10),
-})
+@OnPlatform({'windows': Timeout.factor(10)})
 library;
 
 import 'dart:io';
@@ -25,11 +23,7 @@ void main() async {
     return;
   }
 
-  const targets = [
-    Architecture.arm64,
-    Architecture.ia32,
-    Architecture.x64,
-  ];
+  const targets = [Architecture.arm64, Architecture.ia32, Architecture.x64];
 
   late Uri dumpbinUri;
 
@@ -37,16 +31,9 @@ void main() async {
     dumpbinUri = (await dumpbin.defaultResolver!.resolve(logger: logger)).first.uri;
   });
 
-  const dumpbinMachine = {
-    Architecture.arm64: 'ARM64',
-    Architecture.ia32: 'x86',
-    Architecture.x64: 'x64',
-  };
+  const dumpbinMachine = {Architecture.arm64: 'ARM64', Architecture.ia32: 'x86', Architecture.x64: 'x64'};
 
-  final dumpbinFileType = {
-    DynamicLoadingBundled(): 'DLL',
-    StaticLinking(): 'LIBRARY',
-  };
+  final dumpbinFileType = {DynamicLoadingBundled(): 'DLL', StaticLinking(): 'LIBRARY'};
 
   for (final linkMode in [DynamicLoadingBundled()]) {
     for (final target in targets) {
@@ -81,16 +68,10 @@ void main() async {
             name: name,
             sourceDir: Directory('test/builder/testfiles/add').absolute.uri,
             buildMode: buildMode,
-            defines: {
-              'CMAKE_INSTALL_PREFIX': buildInput.outputDirectory.resolve('install').toFilePath(),
-            },
+            defines: {'CMAKE_INSTALL_PREFIX': buildInput.outputDirectory.resolve('install').toFilePath()},
             targets: ['install'],
           );
-          await builder.run(
-            input: buildInput,
-            output: buildOutput,
-            logger: logger,
-          );
+          await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
           final libUri = buildInput.outputDirectory.resolve('install/lib/${OS.current.dylibFileName(name)}');
           expect(await File.fromUri(libUri).exists(), true);

@@ -18,7 +18,7 @@ import '../helpers.dart';
 void main() {
   if (Platform.isMacOS ||
       (Platform.isWindows &&
-          Platform.environment['DART_HOOK_TESTING_C_COMPILER__CC']?.endsWith('cl.exe') == true)) {
+          (Platform.environment['DART_HOOK_TESTING_C_COMPILER__CC']?.endsWith('cl.exe') ?? false))) {
     // Avoid needing status files on Dart SDK CI.
     return;
   }

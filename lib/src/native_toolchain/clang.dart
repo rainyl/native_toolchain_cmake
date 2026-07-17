@@ -18,21 +18,13 @@ final Tool clang = Tool(
       cliArguments: ['--version'],
       keepIf: ({required String stdout}) => !stdout.contains('Apple clang'),
       wrappedResolver: ToolResolvers([
-        PathToolResolver(
-          toolName: 'Clang',
-          executableName: OS.current.executableFileName('clang'),
-        ),
+        PathToolResolver(toolName: 'Clang', executableName: OS.current.executableFileName('clang')),
         RelativeToolResolver(
           toolName: 'Clang',
           wrappedResolver: visualStudio.defaultResolver!,
           relativePath: Uri(path: './VC/Tools/Llvm/bin/clang.exe'),
         ),
-        InstallLocationResolver(
-          toolName: 'Clang',
-          paths: [
-            'C:/Program Files/LLVM/bin/clang.exe',
-          ],
-        ),
+        InstallLocationResolver(toolName: 'Clang', paths: ['C:/Program Files/LLVM/bin/clang.exe']),
       ]),
     ),
   ),

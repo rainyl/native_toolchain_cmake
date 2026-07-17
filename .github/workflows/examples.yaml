@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: "stable"
       - name: run dart-cli example
         run: |
           cd ${{github.workspace}}\example\dart_cli
@@ -27,7 +27,6 @@ jobs:
       - name: run flutter example
         run: |
           cd ${{github.workspace}}\example\flutter
-          flutter config --enable-native-assets
           flutter build windows --release
   linux:
     name: linux
@@ -44,7 +43,7 @@ jobs:
             libstdc++-12-dev
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: "stable"
       - name: run dart-cli example
         run: |
           cd "${{github.workspace}}/example/dart_cli"
@@ -52,7 +51,6 @@ jobs:
       - name: run flutter example
         run: |
           cd "${{github.workspace}}/example/flutter"
-          flutter config --enable-native-assets
           flutter build linux --release
   macos:
     name: macos
@@ -61,7 +59,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: "stable"
       - name: run dart-cli example
         run: |
           cd "${{github.workspace}}/example/dart_cli"
@@ -69,7 +67,6 @@ jobs:
       - name: run flutter example
         run: |
           cd "${{github.workspace}}/example/flutter"
-          flutter config --enable-native-assets
           flutter build macos --release
   ios:
     name: ios
@@ -97,7 +94,7 @@ jobs:
             gcc-riscv64-linux-gnu ninja-build
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: "stable"
       - uses: actions/setup-java@v4
         with:
           distribution: "temurin"
@@ -110,5 +107,4 @@ jobs:
       - name: flutter example
         run: |
           cd "${{github.workspace}}/example/flutter"
-          flutter config --enable-native-assets
           flutter build apk --release

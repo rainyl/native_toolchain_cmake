@@ -4,8 +4,8 @@
 
 import 'dart:io';
 
-import 'package:native_toolchain_cmake/src/utils/run_process.dart';
 import 'package:native_toolchain_cmake/src/native_toolchain/cmake.dart';
+import 'package:native_toolchain_cmake/src/utils/run_process.dart';
 import 'package:test/test.dart';
 
 import '../helpers.dart';
@@ -57,13 +57,7 @@ void main() {
     assert(cm != null);
     final result = await runProcess(
       executable: cm!.uri,
-      arguments: [
-        "-S",
-        srcDir.path,
-        "-B",
-        dstDir.path,
-        "-DCMAKE_INSTALL_PREFIX=install",
-      ],
+      arguments: ["-S", srcDir.path, "-B", dstDir.path, "-DCMAKE_INSTALL_PREFIX=install"],
       logger: logger,
       captureOutput: true,
       throwOnUnexpectedExitCode: false,

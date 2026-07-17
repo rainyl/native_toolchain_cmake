@@ -61,10 +61,7 @@ class _AndroidNdkResolver implements ToolResolver {
       ]),
     );
 
-    final ndkInstances = await installLocationResolver.resolve(
-      logger: logger,
-      environment: environment,
-    );
+    final ndkInstances = await installLocationResolver.resolve(logger: logger, environment: environment);
     // sort latest version first
     ndkInstances.sort(
       (a, b) => switch ((a.version, b.version)) {

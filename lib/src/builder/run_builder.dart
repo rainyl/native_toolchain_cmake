@@ -11,7 +11,6 @@ import 'dart:math';
 
 import 'package:change_case/change_case.dart';
 import 'package:code_assets/code_assets.dart';
-import 'package:hooks/hooks.dart';
 import 'package:logging/logging.dart';
 import 'package:pub_semver/pub_semver.dart';
 
@@ -29,8 +28,11 @@ import 'log_level.dart';
 import 'user_config.dart';
 
 class RunCMakeBuilder {
-  final HookInput input;
-  final CodeConfig codeConfig;
+  final OS targetOS;
+  final Architecture targetArchitecture;
+  final AndroidCodeConfig? android;
+  final IOSCodeConfig? iOS;
+  final MacOSCodeConfig? macOS;
   final Logger? logger;
   final Uri sourceDir;
   final Uri outDir;
@@ -70,9 +72,13 @@ class RunCMakeBuilder {
   final bool parallelUseAllProcessors;
 
   RunCMakeBuilder({
-    required this.input,
-    required this.codeConfig,
     required this.sourceDir,
+    required this.outDir,
+    OS? targetOS,
+    Architecture? targetArchitecture,
+    this.android,
+    this.iOS,
+    this.macOS,
     this.logger,
     this.defines = const {},
     this.generator = Generator.defaultGenerator,
@@ -85,10 +91,11 @@ class RunCMakeBuilder {
     this.lastGenStatusFile = 'ntc_last_generate_status.txt',
     this.parallelUseAllProcessors = false,
     int? parallelJobs,
-    Uri? outputDir,
     UserConfig? userConfig,
-  }) : outDir = outputDir ?? input.outputDirectory,
-       userConfig = userConfig ?? UserConfig(targetOS: codeConfig.targetOS),
+    CodeConfig? codeConfig,
+  }) : targetOS = targetOS ?? codeConfig?.targetOS ?? OS.current,
+       targetArchitecture = targetArchitecture ?? codeConfig?.targetArchitecture ?? Architecture.current,
+       userConfig = userConfig ?? UserConfig(targetOS: targetOS ?? codeConfig?.targetOS ?? OS.current),
        parallelJobs = parallelJobs ?? (parallelUseAllProcessors ? Platform.numberOfProcessors : null);
 
   Future<Uri> cmakePath({Map<String, String>? environment}) async {
@@ -128,11 +135,11 @@ class RunCMakeBuilder {
     return Future.value(toolUri);
   }
 
-  Future<Uri> linuxToolchainCmake() async => switch (codeConfig.targetArchitecture) {
+  Future<Uri> linuxToolchainCmake() async => switch (targetArchitecture) {
     Architecture.x64 => (await currentPackageRoot()).resolve('cmake/x86_64-linux-gnu.toolchain.cmake'),
     Architecture.arm64 => (await currentPackageRoot()).resolve('cmake/aarch64-linux-gnu.toolchain.cmake'),
     Architecture.riscv64 => (await currentPackageRoot()).resolve('cmake/riscv64-linux-gnu.toolchain.cmake'),
-    _ => throw UnimplementedError('Unsupported architecture: ${codeConfig.targetArchitecture} for Linux'),
+    _ => throw UnimplementedError('Unsupported architecture: $targetArchitecture for Linux'),
   };
 
   Future<Uri> iosSdk(IOSSdk iosSdk, {required Logger? logger}) async {
@@ -187,13 +194,13 @@ class RunCMakeBuilder {
   }
 
   Future<RunProcessResult> _generate({Map<String, String>? environment}) async {
-    final defs = switch (codeConfig.targetOS) {
+    final defs = switch (targetOS) {
       OS.windows => await _generateWindowsDefines(),
       OS.linux => await _generateLinuxDefines(),
       OS.macOS => await _generateMacosDefines(),
       OS.iOS => await _generateIOSDefines(),
       OS.android => await _generateAndroidDefines(),
-      _ => throw UnimplementedError('Unsupported OS: ${codeConfig.targetOS}'),
+      _ => throw UnimplementedError('Unsupported OS: $targetOS'),
     };
 
     final _defines = <String>[
@@ -281,16 +288,16 @@ class RunCMakeBuilder {
   }
 
   Future<List<String>> _generateMacosDefines() async {
-    if (codeConfig.targetOS != OS.macOS) {
+    if (targetOS != OS.macOS) {
       return [];
     }
     final defs = <String>[];
     final toolchain = await iosToolchainCmake();
     defs.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
-    final platform = macosPlatforms[codeConfig.targetArchitecture];
-    assert(platform != null, 'Unsupported macOS architecture: ${codeConfig.targetArchitecture}');
+    final platform = macosPlatforms[targetArchitecture];
+    assert(platform != null, 'Unsupported macOS architecture: $targetArchitecture');
     defs.add('-DPLATFORM=$platform');
-    defs.add('-DDEPLOYMENT_TARGET=${codeConfig.macOS.targetVersion}');
+    defs.add('-DDEPLOYMENT_TARGET=${macOS?.targetVersion ?? "10.15"}');
     defs.add('-DENABLE_BITCODE=${appleArgs.enableBitcode ? "ON" : "OFF"}');
     defs.add('-DENABLE_ARC=${appleArgs.enableArc ? "ON" : "OFF"}');
     defs.add('-DENABLE_VISIBILITY=${appleArgs.enableVisibility ? "ON" : "OFF"}');
@@ -299,16 +306,16 @@ class RunCMakeBuilder {
   }
 
   Future<List<String>> _generateIOSDefines() async {
-    if (codeConfig.targetOS != OS.iOS) {
+    if (targetOS != OS.iOS) {
       return [];
     }
     final defs = <String>[];
-    final targetIosSdk = codeConfig.iOS.targetSdk;
-    final targetIOSVersion = codeConfig.iOS.targetVersion;
+    final targetIosSdk = iOS?.targetSdk ?? IOSSdk.iPhoneOS;
+    final targetIOSVersion = iOS?.targetVersion ?? '12.0';
     final toolchain = await iosToolchainCmake();
     defs.add('-DCMAKE_TOOLCHAIN_FILE=${toolchain.normalizePath().toFilePath()}');
-    final platform = iosPlatforms[codeConfig.targetArchitecture]?[targetIosSdk];
-    assert(platform != null, 'Unsupported iOS architecture: ${codeConfig.targetArchitecture}');
+    final platform = iosPlatforms[targetArchitecture]?[targetIosSdk];
+    assert(platform != null, 'Unsupported iOS architecture: $targetArchitecture');
     defs.add('-DPLATFORM=$platform');
     defs.add('-DDEPLOYMENT_TARGET=$targetIOSVersion');
     defs.add('-DENABLE_BITCODE=${appleArgs.enableBitcode ? "ON" : "OFF"}');
@@ -319,7 +326,7 @@ class RunCMakeBuilder {
   }
 
   Future<List<String>> _generateAndroidDefines() async {
-    if (codeConfig.targetOS != OS.android) {
+    if (targetOS != OS.android) {
       return [];
     }
     final defs = <String>[];
@@ -331,9 +338,9 @@ class RunCMakeBuilder {
     // The Android Gradle plugin does not honor API level 19 and 20 when
     // invoking clang. Mimic that behavior here.
     // See https://github.com/dart-lang/native/issues/171.
-    final minimumApi = codeConfig.targetArchitecture == Architecture.riscv64 ? 35 : 21;
-    final _androidAPI = androidArgs.androidAPI ?? max(codeConfig.android.targetNdkApi, minimumApi);
-    final _androidABI = androidArgs.androidABI ?? androidAbis[codeConfig.targetArchitecture];
+    final minimumApi = targetArchitecture == Architecture.riscv64 ? 35 : 21;
+    final _androidAPI = androidArgs.androidAPI ?? max(android?.targetNdkApi ?? 21, minimumApi);
+    final _androidABI = androidArgs.androidABI ?? androidAbis[targetArchitecture];
     defs.add('-DANDROID_PLATFORM=android-$_androidAPI');
     defs.add('-DANDROID_ABI=$_androidABI');
     defs.add('-DANDROID_STL=${androidArgs.androidSTL}');
@@ -343,7 +350,7 @@ class RunCMakeBuilder {
   }
 
   Future<List<String>> _generateWindowsDefines() async {
-    if (codeConfig.targetOS != OS.windows) {
+    if (targetOS != OS.windows) {
       return [];
     }
     final defs = <String>[];
@@ -351,15 +358,15 @@ class RunCMakeBuilder {
 
     // Generators besides Visual Studio do not support the -A argument.
     if (generator == Generator.defaultGenerator || generator.name.startsWith("Visual Studio")) {
-      if (codeConfig.targetArchitecture == Architecture.arm64) {
+      if (targetArchitecture == Architecture.arm64) {
         defs.add('-DCMAKE_SYSTEM_PROCESSOR=ARM64');
         defs.addAll(['-A', 'ARM64']);
       }
-      if (codeConfig.targetArchitecture == Architecture.x64) {
+      if (targetArchitecture == Architecture.x64) {
         defs.add('-DCMAKE_SYSTEM_PROCESSOR=AMD64');
         defs.addAll(['-A', 'x64']);
       }
-      if (codeConfig.targetArchitecture == Architecture.ia32) {
+      if (targetArchitecture == Architecture.ia32) {
         defs.add('-DCMAKE_SYSTEM_PROCESSOR=X86');
         defs.addAll(['-A', 'Win32']);
       }
@@ -368,7 +375,7 @@ class RunCMakeBuilder {
   }
 
   Future<List<String>> _generateLinuxDefines() async {
-    if (codeConfig.targetOS != OS.linux) {
+    if (targetOS != OS.linux) {
       return [];
     }
     final defs = <String>[];

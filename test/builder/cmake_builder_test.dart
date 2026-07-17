@@ -1,7 +1,4 @@
-@OnPlatform({
-  'mac-os': Timeout.factor(2),
-  'windows': Timeout.factor(10),
-})
+@OnPlatform({'mac-os': Timeout.factor(2), 'windows': Timeout.factor(10)})
 import 'dart:ffi';
 import 'dart:io';
 
@@ -14,10 +11,7 @@ import 'package:test/test.dart';
 
 import '../helpers.dart';
 
-const sourceDirs = [
-  'test/builder/testfiles/hello_world',
-  'test/builder/testfiles/hello_world_cpp',
-];
+const sourceDirs = ['test/builder/testfiles/hello_world', 'test/builder/testfiles/hello_world_cpp'];
 
 void main() {
   final targetOS = OS.current;
@@ -66,16 +60,14 @@ void main() {
         await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
         final executableUri = switch (targetOS) {
-          OS.macOS => buildInput.outputDirectory
-              .resolve('$name.app/Contents/MacOS/${OS.current.executableFileName(name)}'),
+          OS.macOS => buildInput.outputDirectory.resolve(
+            '$name.app/Contents/MacOS/${OS.current.executableFileName(name)}',
+          ),
           OS.windows => buildInput.outputDirectory.resolve('${buildMode.name.toCapitalCase()}/$name.exe'),
           _ => buildInput.outputDirectory.resolve(OS.current.executableFileName(name)),
         };
         expect(await File.fromUri(executableUri).exists(), true);
-        final result = await runProcess(
-          executable: executableUri,
-          logger: logger,
-        );
+        final result = await runProcess(executable: executableUri, logger: logger);
         expect(result.exitCode, 0);
         if (buildMode == BuildMode.debug) {
           expect(result.stdout.trim(), startsWith('Running in debug mode.'));
@@ -118,9 +110,7 @@ void main() {
         name: name,
         sourceDir: Directory('test/builder/testfiles/add').absolute.uri,
         buildMode: buildMode,
-        defines: {
-          'CMAKE_INSTALL_PREFIX': buildInput.outputDirectory.resolve('install').toFilePath(),
-        },
+        defines: {'CMAKE_INSTALL_PREFIX': buildInput.outputDirectory.resolve('install').toFilePath()},
         targets: ['install'],
         androidArgs: const AndroidBuilderArgs(),
         appleArgs: const AppleBuilderArgs(),
@@ -173,43 +163,25 @@ Future<void> testDefines({BuildMode buildMode = BuildMode.debug}) async {
     androidArgs: const AndroidBuilderArgs(),
     appleArgs: const AppleBuilderArgs(),
   );
-  await builder.run(
-    input: buildInput,
-    output: buildOutput,
-    logger: logger,
-  );
+  await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
   final executableUri = switch (targetOS) {
-    OS.macOS =>
-      buildInput.outputDirectory.resolve('$name.app/Contents/MacOS/${OS.current.executableFileName(name)}'),
+    OS.macOS => buildInput.outputDirectory.resolve(
+      '$name.app/Contents/MacOS/${OS.current.executableFileName(name)}',
+    ),
     OS.windows => buildInput.outputDirectory.resolve('${buildMode.name.toCapitalCase()}/$name.exe'),
     _ => buildInput.outputDirectory.resolve(OS.current.executableFileName(name)),
   };
   expect(await File.fromUri(executableUri).exists(), true);
-  final result = await runProcess(
-    executable: executableUri,
-    logger: logger,
-  );
+  final result = await runProcess(executable: executableUri, logger: logger);
   expect(result.exitCode, 0);
 
   if (buildMode == BuildMode.release) {
-    expect(
-      result.stdout,
-      contains('Macro NDEBUG is defined: 1'),
-    );
+    expect(result.stdout, contains('Macro NDEBUG is defined: 1'));
   } else {
-    expect(
-      result.stdout,
-      contains('Macro NDEBUG is undefined.'),
-    );
-    expect(
-      result.stdout,
-      contains('Macro DEBUG is defined: 1'),
-    );
+    expect(result.stdout, contains('Macro NDEBUG is undefined.'));
+    expect(result.stdout, contains('Macro DEBUG is defined: 1'));
   }
 
-  expect(
-    result.stdout,
-    contains('Macro FOO is defined: BAR'),
-  );
+  expect(result.stdout, contains('Macro FOO is defined: BAR'));
 }

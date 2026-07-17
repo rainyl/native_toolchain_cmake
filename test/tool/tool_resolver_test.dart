@@ -25,9 +25,7 @@ void main() {
     ];
     expect(toolInstances.isNotEmpty, true);
     final toolInstance = toolInstances.first;
-    final versionArguments = [
-      if (toolInstance.tool != cl) '--version',
-    ];
+    final versionArguments = [if (toolInstance.tool != cl) '--version'];
     final version = await CliVersionResolver.executableVersion(
       toolInstance.uri,
       arguments: versionArguments,
@@ -66,25 +64,26 @@ void main() {
     await File.fromUri(bazExeUri).writeAsString('dummy');
     expect(await File.fromUri(barExeUri).exists(), true);
     expect(await File.fromUri(bazExeUri).exists(), true);
-    final barResolver = InstallLocationResolver(
-      toolName: 'bar',
-      paths: [barExeUri.toFilePath().unescape()],
-    );
+    final barResolver = InstallLocationResolver(toolName: 'bar', paths: [barExeUri.toFilePath().unescape()]);
     final bazResolver = RelativeToolResolver(
       toolName: 'baz',
       wrappedResolver: barResolver,
       relativePath: Uri.file(bazExeName),
     );
     final resolvedBarInstances = await barResolver.resolve(logger: logger);
-    expect(
-      resolvedBarInstances,
-      [ToolInstance(tool: Tool(name: 'bar'), uri: barExeUri)],
-    );
+    expect(resolvedBarInstances, [
+      ToolInstance(
+        tool: Tool(name: 'bar'),
+        uri: barExeUri,
+      ),
+    ]);
     final resolvedBazInstances = await bazResolver.resolve(logger: logger);
-    expect(
-      resolvedBazInstances,
-      [ToolInstance(tool: Tool(name: 'baz'), uri: bazExeUri)],
-    );
+    expect(resolvedBazInstances, [
+      ToolInstance(
+        tool: Tool(name: 'baz'),
+        uri: bazExeUri,
+      ),
+    ]);
   });
 
   test('logger', () async {

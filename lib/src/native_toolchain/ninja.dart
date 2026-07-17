@@ -23,25 +23,27 @@ class _NinjaResolver implements ToolResolver {
   final executableName = OS.current.executableFileName('ninja');
 
   CliVersionResolver _getAndroidResolver({UserConfig? userConfig}) {
-    return unitTestNinjaAndroidResolver ?? CliVersionResolver(
-      wrappedResolver: ToolResolvers([
-        InstallLocationResolver(
-          toolName: 'Ninja',
-          paths: [
-            if (userConfig?.androidHome != null) '${userConfig?.androidHome}/cmake/*/bin/$executableName',
-            if (Platform.isLinux) r'$HOME/Android/Sdk/cmake/*/bin/' + executableName,
-            if (Platform.isMacOS) r'$HOME/Library/Android/sdk/cmake/*/bin/' + executableName,
-            if (Platform.isWindows) r'$HOME/AppData/Local/Android/Sdk/cmake/*/bin/' + executableName,
-          ],
-        ),
-      ]),
-    );
+    return unitTestNinjaAndroidResolver ??
+        CliVersionResolver(
+          wrappedResolver: ToolResolvers([
+            InstallLocationResolver(
+              toolName: 'Ninja',
+              paths: [
+                if (userConfig?.androidHome != null) '${userConfig?.androidHome}/cmake/*/bin/$executableName',
+                if (Platform.isLinux) r'$HOME/Android/Sdk/cmake/*/bin/' + executableName,
+                if (Platform.isMacOS) r'$HOME/Library/Android/sdk/cmake/*/bin/' + executableName,
+                if (Platform.isWindows) r'$HOME/AppData/Local/Android/Sdk/cmake/*/bin/' + executableName,
+              ],
+            ),
+          ]),
+        );
   }
 
   CliVersionResolver _getSystemResolver() {
-    return unitTestNinjaSystemResolver ?? CliVersionResolver(
-      wrappedResolver: PathToolResolver(toolName: 'Ninja', executableName: 'ninja'),
-    );
+    return unitTestNinjaSystemResolver ??
+        CliVersionResolver(
+          wrappedResolver: PathToolResolver(toolName: 'Ninja', executableName: 'ninja'),
+        );
   }
 
   @override

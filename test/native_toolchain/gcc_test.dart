@@ -23,17 +23,13 @@ void main() {
 
   void testToolSet(String name, List<Tool> tools) {
     test('gcc cross compilation $name smoke test', () async {
-      final resolver = ToolResolvers([
-        for (final tool in tools) tool.defaultResolver!,
-      ]);
+      final resolver = ToolResolvers([for (final tool in tools) tool.defaultResolver!]);
 
       final resolved = await resolver.resolve(logger: logger);
       printOnFailure(resolved.toString());
       expect(resolved.isNotEmpty, true);
 
-      final requirement = RequireAll([
-        for (final tool in tools) ToolRequirement(tool),
-      ]);
+      final requirement = RequireAll([for (final tool in tools) ToolRequirement(tool)]);
 
       final satisfied = requirement.satisfy(resolved);
       printOnFailure(tools.toString());
@@ -42,33 +38,13 @@ void main() {
     });
   }
 
-  testToolSet('aarch64LinuxGnuGcc', [
-    aarch64LinuxGnuGcc,
-    aarch64LinuxGnuGccAr,
-    aarch64LinuxGnuLd,
-  ]);
+  testToolSet('aarch64LinuxGnuGcc', [aarch64LinuxGnuGcc, aarch64LinuxGnuGccAr, aarch64LinuxGnuLd]);
 
-  testToolSet('armLinuxGnueabihfGcc', [
-    armLinuxGnueabihfGcc,
-    armLinuxGnueabihfGccAr,
-    armLinuxGnueabihfLd,
-  ]);
+  testToolSet('armLinuxGnueabihfGcc', [armLinuxGnueabihfGcc, armLinuxGnueabihfGccAr, armLinuxGnueabihfLd]);
 
-  testToolSet('i686LinuxGnuGcc', [
-    i686LinuxGnuGcc,
-    i686LinuxGnuGccAr,
-    i686LinuxGnuLd,
-  ]);
+  testToolSet('i686LinuxGnuGcc', [i686LinuxGnuGcc, i686LinuxGnuGccAr, i686LinuxGnuLd]);
 
-  testToolSet('x86_64LinuxGnuGcc', [
-    x86_64LinuxGnuGcc,
-    x86_64LinuxGnuGccAr,
-    x86_64LinuxGnuLd,
-  ]);
+  testToolSet('x86_64LinuxGnuGcc', [x86_64LinuxGnuGcc, x86_64LinuxGnuGccAr, x86_64LinuxGnuLd]);
 
-  testToolSet('riscv64LinuxGnuGcc', [
-    riscv64LinuxGnuGcc,
-    riscv64LinuxGnuGccAr,
-    riscv64LinuxGnuLd,
-  ]);
+  testToolSet('riscv64LinuxGnuGcc', [riscv64LinuxGnuGcc, riscv64LinuxGnuGccAr, riscv64LinuxGnuLd]);
 }

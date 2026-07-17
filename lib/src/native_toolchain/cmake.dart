@@ -24,25 +24,27 @@ class _CmakeResolver implements ToolResolver {
   final executableName = OS.current.executableFileName('cmake');
 
   CliVersionResolver _getAndroidResolver({UserConfig? userConfig}) {
-    return unitTestCmakeAndroidResolver ?? CliVersionResolver(
-      wrappedResolver: ToolResolvers([
-        InstallLocationResolver(
-          toolName: 'CMake',
-          paths: [
-            if (userConfig?.androidHome != null) '${userConfig?.androidHome}/cmake/*/bin/$executableName',
-            if (Platform.isLinux) r'$HOME/Android/Sdk/cmake/*/bin/' + executableName,
-            if (Platform.isMacOS) r'$HOME/Library/Android/sdk/cmake/*/bin/' + executableName,
-            if (Platform.isWindows) r'$HOME/AppData/Local/Android/Sdk/cmake/*/bin/' + executableName,
-          ],
-        ),
-      ]),
-    );
+    return unitTestCmakeAndroidResolver ??
+        CliVersionResolver(
+          wrappedResolver: ToolResolvers([
+            InstallLocationResolver(
+              toolName: 'CMake',
+              paths: [
+                if (userConfig?.androidHome != null) '${userConfig?.androidHome}/cmake/*/bin/$executableName',
+                if (Platform.isLinux) r'$HOME/Android/Sdk/cmake/*/bin/' + executableName,
+                if (Platform.isMacOS) r'$HOME/Library/Android/sdk/cmake/*/bin/' + executableName,
+                if (Platform.isWindows) r'$HOME/AppData/Local/Android/Sdk/cmake/*/bin/' + executableName,
+              ],
+            ),
+          ]),
+        );
   }
 
   CliVersionResolver _getSystemResolver() {
-    return unitTestCmakeSystemResolver ?? CliVersionResolver(
-      wrappedResolver: PathToolResolver(toolName: 'CMake', executableName: 'cmake'),
-    );
+    return unitTestCmakeSystemResolver ??
+        CliVersionResolver(
+          wrappedResolver: PathToolResolver(toolName: 'CMake', executableName: 'cmake'),
+        );
   }
 
   @override

@@ -52,9 +52,7 @@ void main() {
           gitSubDir: 'example/add/src',
           buildLocal: buildLocal,
           logger: logger,
-          defines: {
-            'CMAKE_INSTALL_PREFIX': 'install',
-          },
+          defines: {'CMAKE_INSTALL_PREFIX': 'install'},
           targets: ['install'],
         );
 
@@ -86,7 +84,8 @@ void main() {
         final archName = input.config.code.targetArchitecture.name.toLowerCase();
         final buildDir = buildLocal
             ? Directory.fromUri(
-                tempDir.resolve('build/').resolve("$osName/").resolve(archName).normalizePath())
+                tempDir.resolve('build/').resolve("$osName/").resolve(archName).normalizePath(),
+              )
             : Directory.fromUri(input.outputDirectory);
         expect(
           buildDir.existsSync(),

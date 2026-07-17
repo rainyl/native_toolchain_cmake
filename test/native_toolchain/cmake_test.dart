@@ -23,7 +23,7 @@ void main() {
       pathsSearched.add(path);
       return [];
     }
-    
+
     setUp(() {
       mockSystemResolver = MockCliVersionResolver();
       unitTestCmakeSystemResolver = mockSystemResolver;
@@ -32,18 +32,18 @@ void main() {
     });
 
     test('Android home not set', () async {
-      when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-          .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+      when(() => mockSystemResolver.resolve(logger: any(named: 'logger'))).thenAnswer(
+        (_) => Future<List<ToolInstance>>(
+          () => [
             ToolInstance(
               tool: Tool(name: 'CMake'),
               uri: Uri.dataFromString('system_cmake_path_1'),
-              version: Version.parse('4.1.2')
+              version: Version.parse('4.1.2'),
             ),
-          ]));
-      final userConfig = UserConfig(
-        targetOS: OS.android,
-        envVarAndroidHomeAsDefault: false,
+          ],
+        ),
       );
+      final userConfig = UserConfig(targetOS: OS.android, envVarAndroidHomeAsDefault: false);
 
       final executableName = OS.current.executableFileName('cmake');
       String expectedSearchPath = executableName;
@@ -54,7 +54,7 @@ void main() {
       } else if (Platform.isWindows) {
         expectedSearchPath = r'$HOME/AppData/Local/Android/Sdk/cmake/*/bin/' + expectedSearchPath;
       }
-      
+
       final tools = await cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
       expect(pathsSearched.length, equals(1));
@@ -65,14 +65,17 @@ void main() {
     });
 
     test('Android home is set', () async {
-      when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-          .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+      when(() => mockSystemResolver.resolve(logger: any(named: 'logger'))).thenAnswer(
+        (_) => Future<List<ToolInstance>>(
+          () => [
             ToolInstance(
               tool: Tool(name: 'CMake'),
               uri: Uri.dataFromString('system_cmake_path_1'),
-              version: Version.parse('4.1.2')
+              version: Version.parse('4.1.2'),
             ),
-          ]));
+          ],
+        ),
+      );
       final userConfig = UserConfig(
         targetOS: OS.android,
         envVarAndroidHomeAsDefault: false,
@@ -88,7 +91,7 @@ void main() {
       } else if (Platform.isWindows) {
         expectedSearchPath = r'$HOME/AppData/Local/Android/Sdk/cmake/*/bin/' + expectedSearchPath;
       }
-      
+
       final tools = await cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
       expect(pathsSearched.length, equals(2));
@@ -110,20 +113,26 @@ void main() {
 
     group('Android target: ', () {
       test('one Android cmake, any version', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
-        final userConfig = UserConfig(
-          targetOS: OS.android,
-          envVarAndroidHomeAsDefault: false,
+            ],
+          ),
         );
+        when(
+          () => mockSystemResolver.resolve(logger: any(named: 'logger')),
+        ).thenAnswer((_) => Future<List<ToolInstance>>(() => []));
+        final userConfig = UserConfig(targetOS: OS.android, envVarAndroidHomeAsDefault: false);
         final tools = await cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
         expect(tools.length, equals(1));
@@ -132,30 +141,36 @@ void main() {
       });
 
       test('many Android cmake, latest version', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('3.3.2')
+                version: Version.parse('3.3.2'),
               ),
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_2'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_3'),
-                version: Version.parse('4.0.1')
+                version: Version.parse('4.0.1'),
               ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
-        final userConfig = UserConfig(
-          targetOS: OS.android,
-          envVarAndroidHomeAsDefault: false,
+            ],
+          ),
         );
+        when(
+          () => mockSystemResolver.resolve(logger: any(named: 'logger')),
+        ).thenAnswer((_) => Future<List<ToolInstance>>(() => []));
+        final userConfig = UserConfig(targetOS: OS.android, envVarAndroidHomeAsDefault: false);
         final tools = await cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
         expect(tools.length, equals(3));
@@ -164,26 +179,35 @@ void main() {
       });
 
       test('many Android cmake, user defined version', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('3.3.2')
+                version: Version.parse('3.3.2'),
               ),
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_2'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_3'),
-                version: Version.parse('4.0.1')
+                version: Version.parse('4.0.1'),
               ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
+            ],
+          ),
+        );
+        when(
+          () => mockSystemResolver.resolve(logger: any(named: 'logger')),
+        ).thenAnswer((_) => Future<List<ToolInstance>>(() => []));
         final userConfig = UserConfig(
           targetOS: OS.android,
           envVarAndroidHomeAsDefault: false,
@@ -197,40 +221,56 @@ void main() {
       });
 
       test('one Android cmake, no system cmake, prefers system cmake', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
+            ],
+          ),
+        );
+        when(
+          () => mockSystemResolver.resolve(logger: any(named: 'logger')),
+        ).thenAnswer((_) => Future<List<ToolInstance>>(() => []));
         final userConfig = UserConfig(
           targetOS: OS.android,
           envVarAndroidHomeAsDefault: false,
           preferAndroidCmake: false,
         );
 
-        expect(() async => cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig), throwsA(isA<Exception>()));
+        expect(
+          () async => cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig),
+          throwsA(isA<Exception>()),
+        );
       });
 
       test('no Android cmake, has system cmake', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer((_) => Future<List<ToolInstance>>(() => []));
+        when(() => mockSystemResolver.resolve(logger: any(named: 'logger'))).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('system_cmake_path_1'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
-            ]));
-        final userConfig = UserConfig(
-          targetOS: OS.android,
-          envVarAndroidHomeAsDefault: false,
+            ],
+          ),
         );
+        final userConfig = UserConfig(targetOS: OS.android, envVarAndroidHomeAsDefault: false);
         final tools = await cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
         expect(tools.length, equals(1));
@@ -239,16 +279,23 @@ void main() {
       });
 
       test('no Android cmake, has system cmake, prefers Android cmake', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer((_) => Future<List<ToolInstance>>(() => []));
+        when(() => mockSystemResolver.resolve(logger: any(named: 'logger'))).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('system_cmake_path_1'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
-            ]));
+            ],
+          ),
+        );
         final userConfig = UserConfig(
           targetOS: OS.android,
           envVarAndroidHomeAsDefault: false,
@@ -262,36 +309,47 @@ void main() {
       });
 
       test('many Android cmake, has system cmake, user defined version', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('3.3.2')
+                version: Version.parse('3.3.2'),
               ),
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_2'),
-                version: Version.parse('4.2.2')
+                version: Version.parse('4.2.2'),
               ),
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_3'),
-                version: Version.parse('4.0.1')
+                version: Version.parse('4.0.1'),
               ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+            ],
+          ),
+        );
+        when(() => mockSystemResolver.resolve(logger: any(named: 'logger'))).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('system_cmake_path_1'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
-            ]));
+            ],
+          ),
+        );
         final userConfig = UserConfig(
           targetOS: OS.android,
           envVarAndroidHomeAsDefault: false,
-          cmakeVersion: "4.1.2"
+          cmakeVersion: "4.1.2",
         );
         final tools = await cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
@@ -303,55 +361,85 @@ void main() {
 
     group('iOS target: ', () {
       test('one Android cmake, no system cmake', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
-        final userConfig = UserConfig(
-          targetOS: OS.iOS,
-          envVarAndroidHomeAsDefault: false,
+            ],
+          ),
         );
+        when(
+          () => mockSystemResolver.resolve(logger: any(named: 'logger')),
+        ).thenAnswer((_) => Future<List<ToolInstance>>(() => []));
+        final userConfig = UserConfig(targetOS: OS.iOS, envVarAndroidHomeAsDefault: false);
 
-        expect(() async => cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig), throwsA(isA<Exception>()));
+        expect(
+          () async => cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig),
+          throwsA(isA<Exception>()),
+        );
       });
 
       test('one Android cmake, no system cmake, do not prefer Android cmake', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
+            ],
+          ),
+        );
+        when(
+          () => mockSystemResolver.resolve(logger: any(named: 'logger')),
+        ).thenAnswer((_) => Future<List<ToolInstance>>(() => []));
         final userConfig = UserConfig(
           targetOS: OS.iOS,
           envVarAndroidHomeAsDefault: false,
           preferAndroidCmake: false,
         );
 
-        expect(() async => cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig), throwsA(isA<Exception>()));
+        expect(
+          () async => cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig),
+          throwsA(isA<Exception>()),
+        );
       });
 
       test('one Android cmake, no system cmake, prefer Android cmake, any version', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
+            ],
+          ),
+        );
+        when(
+          () => mockSystemResolver.resolve(logger: any(named: 'logger')),
+        ).thenAnswer((_) => Future<List<ToolInstance>>(() => []));
         final userConfig = UserConfig(
           targetOS: OS.iOS,
           envVarAndroidHomeAsDefault: false,
@@ -365,16 +453,25 @@ void main() {
       });
 
       test('one Android cmake, no system cmake, prefer Android cmake, user defined version', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
+            ],
+          ),
+        );
+        when(
+          () => mockSystemResolver.resolve(logger: any(named: 'logger')),
+        ).thenAnswer((_) => Future<List<ToolInstance>>(() => []));
         final userConfig = UserConfig(
           targetOS: OS.iOS,
           envVarAndroidHomeAsDefault: false,
@@ -388,72 +485,112 @@ void main() {
         expect(tools.first.version, equals(Version.parse('4.1.2')));
       });
 
-      test('one Android cmake, no system cmake, prefer Android cmake, user defined version not found', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
-              ToolInstance(
-                tool: Tool(name: 'CMake'),
-                uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('4.1.2')
-              ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => []));
-        final userConfig = UserConfig(
-          targetOS: OS.iOS,
-          envVarAndroidHomeAsDefault: false,
-          preferAndroidCmake: true,
-          cmakeVersion: "4.1.3",
-        );
-        expect(() async => cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig), throwsA(isA<Exception>()));
-      });
+      test(
+        'one Android cmake, no system cmake, prefer Android cmake, user defined version not found',
+        () async {
+          when(
+            () => mockAndroidResolver.resolve(
+              logger: any(named: 'logger'),
+              userConfig: any(named: 'userConfig'),
+            ),
+          ).thenAnswer(
+            (_) => Future<List<ToolInstance>>(
+              () => [
+                ToolInstance(
+                  tool: Tool(name: 'CMake'),
+                  uri: Uri.dataFromString('android_cmake_path_1'),
+                  version: Version.parse('4.1.2'),
+                ),
+              ],
+            ),
+          );
+          when(
+            () => mockSystemResolver.resolve(logger: any(named: 'logger')),
+          ).thenAnswer((_) => Future<List<ToolInstance>>(() => []));
+          final userConfig = UserConfig(
+            targetOS: OS.iOS,
+            envVarAndroidHomeAsDefault: false,
+            preferAndroidCmake: true,
+            cmakeVersion: "4.1.3",
+          );
+          expect(
+            () async => cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig),
+            throwsA(isA<Exception>()),
+          );
+        },
+      );
 
-      test('one Android cmake, one system cmake, do not prefer Android cmake, user defined version', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
-              ToolInstance(
-                tool: Tool(name: 'CMake'),
-                uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('4.1.2')
-              ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
-              ToolInstance(
-                tool: Tool(name: 'CMake'),
-                uri: Uri.dataFromString('system_cmake_path_1'),
-                version: Version.parse('4.1.2')
-              ),
-            ]));
-        final userConfig = UserConfig(
-          targetOS: OS.iOS,
-          envVarAndroidHomeAsDefault: false,
-          cmakeVersion: "4.1.2",
-        );
-        final tools = await cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
+      test(
+        'one Android cmake, one system cmake, do not prefer Android cmake, user defined version',
+        () async {
+          when(
+            () => mockAndroidResolver.resolve(
+              logger: any(named: 'logger'),
+              userConfig: any(named: 'userConfig'),
+            ),
+          ).thenAnswer(
+            (_) => Future<List<ToolInstance>>(
+              () => [
+                ToolInstance(
+                  tool: Tool(name: 'CMake'),
+                  uri: Uri.dataFromString('android_cmake_path_1'),
+                  version: Version.parse('4.1.2'),
+                ),
+              ],
+            ),
+          );
+          when(() => mockSystemResolver.resolve(logger: any(named: 'logger'))).thenAnswer(
+            (_) => Future<List<ToolInstance>>(
+              () => [
+                ToolInstance(
+                  tool: Tool(name: 'CMake'),
+                  uri: Uri.dataFromString('system_cmake_path_1'),
+                  version: Version.parse('4.1.2'),
+                ),
+              ],
+            ),
+          );
+          final userConfig = UserConfig(
+            targetOS: OS.iOS,
+            envVarAndroidHomeAsDefault: false,
+            cmakeVersion: "4.1.2",
+          );
+          final tools = await cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
-        expect(tools.length, equals(1));
-        expect(tools.first.uri, equals(Uri.dataFromString('system_cmake_path_1')));
-        expect(tools.first.version, equals(Version.parse('4.1.2')));
-      });
+          expect(tools.length, equals(1));
+          expect(tools.first.uri, equals(Uri.dataFromString('system_cmake_path_1')));
+          expect(tools.first.version, equals(Version.parse('4.1.2')));
+        },
+      );
 
       test('one Android cmake, one system cmake, prefer Android cmake, user defined version', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+            ],
+          ),
+        );
+        when(() => mockSystemResolver.resolve(logger: any(named: 'logger'))).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('system_cmake_path_1'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
-            ]));
+            ],
+          ),
+        );
         final userConfig = UserConfig(
           targetOS: OS.iOS,
           envVarAndroidHomeAsDefault: false,
@@ -468,32 +605,43 @@ void main() {
       });
 
       test('many Android cmake, one system cmake, prefer Android cmake, latest version', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_2'),
-                version: Version.parse('4.1.5')
+                version: Version.parse('4.1.5'),
               ),
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_3'),
-                version: Version.parse('4.1.4')
+                version: Version.parse('4.1.4'),
               ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+            ],
+          ),
+        );
+        when(() => mockSystemResolver.resolve(logger: any(named: 'logger'))).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('system_cmake_path_1'),
-                version: Version.parse('4.1.3')
+                version: Version.parse('4.1.3'),
               ),
-            ]));
+            ],
+          ),
+        );
         final userConfig = UserConfig(
           targetOS: OS.iOS,
           envVarAndroidHomeAsDefault: false,
@@ -507,36 +655,44 @@ void main() {
       });
 
       test('many Android cmake, one system cmake, do not prefer Android cmake, latest version', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_2'),
-                version: Version.parse('4.1.5')
+                version: Version.parse('4.1.5'),
               ),
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_3'),
-                version: Version.parse('4.1.4')
+                version: Version.parse('4.1.4'),
               ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+            ],
+          ),
+        );
+        when(() => mockSystemResolver.resolve(logger: any(named: 'logger'))).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('system_cmake_path_1'),
-                version: Version.parse('4.1.3')
+                version: Version.parse('4.1.3'),
               ),
-            ]));
-        final userConfig = UserConfig(
-          targetOS: OS.iOS,
-          envVarAndroidHomeAsDefault: false,
+            ],
+          ),
         );
+        final userConfig = UserConfig(targetOS: OS.iOS, envVarAndroidHomeAsDefault: false);
         final tools = await cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
         expect(tools.length, equals(1));
@@ -545,37 +701,48 @@ void main() {
       });
 
       test('many Android cmake, one system cmake, prefer Android cmake, user defined version', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+        when(
+          () => mockAndroidResolver.resolve(
+            logger: any(named: 'logger'),
+            userConfig: any(named: 'userConfig'),
+          ),
+        ).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('4.1.2')
+                version: Version.parse('4.1.2'),
               ),
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_2'),
-                version: Version.parse('4.1.5')
+                version: Version.parse('4.1.5'),
               ),
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('android_cmake_path_3'),
-                version: Version.parse('4.1.4')
+                version: Version.parse('4.1.4'),
               ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
+            ],
+          ),
+        );
+        when(() => mockSystemResolver.resolve(logger: any(named: 'logger'))).thenAnswer(
+          (_) => Future<List<ToolInstance>>(
+            () => [
               ToolInstance(
                 tool: Tool(name: 'CMake'),
                 uri: Uri.dataFromString('system_cmake_path_1'),
-                version: Version.parse('4.1.3')
+                version: Version.parse('4.1.3'),
               ),
-            ]));
+            ],
+          ),
+        );
         final userConfig = UserConfig(
           targetOS: OS.iOS,
           envVarAndroidHomeAsDefault: false,
           preferAndroidCmake: true,
-          cmakeVersion: "4.1.4"
+          cmakeVersion: "4.1.4",
         );
         final tools = await cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
@@ -584,45 +751,59 @@ void main() {
         expect(tools.first.version, equals(Version.parse('4.1.4')));
       });
 
-      test('many Android cmake, one system cmake, prefer Android cmake, user defined dirty version', () async {
-        when(() => mockAndroidResolver.resolve(logger: any(named: 'logger'), userConfig: any(named: 'userConfig')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
-              ToolInstance(
-                tool: Tool(name: 'CMake'),
-                uri: Uri.dataFromString('android_cmake_path_1'),
-                version: Version.parse('4.1.2-rc0')
-              ),
-              ToolInstance(
-                tool: Tool(name: 'CMake'),
-                uri: Uri.dataFromString('android_cmake_path_2'),
-                version: Version.parse('4.1.2-rc4')
-              ),
-              ToolInstance(
-                tool: Tool(name: 'CMake'),
-                uri: Uri.dataFromString('android_cmake_path_3'),
-                version: Version.parse('4.1.4-dirty0')
-              ),
-            ]));
-        when(() => mockSystemResolver.resolve(logger: any(named: 'logger')))
-            .thenAnswer((_) => Future<List<ToolInstance>>(() => [
-              ToolInstance(
-                tool: Tool(name: 'CMake'),
-                uri: Uri.dataFromString('system_cmake_path_1'),
-                version: Version.parse('4.1.3')
-              ),
-            ]));
-        final userConfig = UserConfig(
-          targetOS: OS.iOS,
-          envVarAndroidHomeAsDefault: false,
-          preferAndroidCmake: true,
-          cmakeVersion: "4.1.4"
-        );
-        final tools = await cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
+      test(
+        'many Android cmake, one system cmake, prefer Android cmake, user defined dirty version',
+        () async {
+          when(
+            () => mockAndroidResolver.resolve(
+              logger: any(named: 'logger'),
+              userConfig: any(named: 'userConfig'),
+            ),
+          ).thenAnswer(
+            (_) => Future<List<ToolInstance>>(
+              () => [
+                ToolInstance(
+                  tool: Tool(name: 'CMake'),
+                  uri: Uri.dataFromString('android_cmake_path_1'),
+                  version: Version.parse('4.1.2-rc0'),
+                ),
+                ToolInstance(
+                  tool: Tool(name: 'CMake'),
+                  uri: Uri.dataFromString('android_cmake_path_2'),
+                  version: Version.parse('4.1.2-rc4'),
+                ),
+                ToolInstance(
+                  tool: Tool(name: 'CMake'),
+                  uri: Uri.dataFromString('android_cmake_path_3'),
+                  version: Version.parse('4.1.4-dirty0'),
+                ),
+              ],
+            ),
+          );
+          when(() => mockSystemResolver.resolve(logger: any(named: 'logger'))).thenAnswer(
+            (_) => Future<List<ToolInstance>>(
+              () => [
+                ToolInstance(
+                  tool: Tool(name: 'CMake'),
+                  uri: Uri.dataFromString('system_cmake_path_1'),
+                  version: Version.parse('4.1.3'),
+                ),
+              ],
+            ),
+          );
+          final userConfig = UserConfig(
+            targetOS: OS.iOS,
+            envVarAndroidHomeAsDefault: false,
+            preferAndroidCmake: true,
+            cmakeVersion: "4.1.4",
+          );
+          final tools = await cmake.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
-        expect(tools.length, equals(1));
-        expect(tools.first.uri, equals(Uri.dataFromString('android_cmake_path_3')));
-        expect(tools.first.version, equals(Version.parse('4.1.4-dirty0')));
-      });
+          expect(tools.length, equals(1));
+          expect(tools.first.uri, equals(Uri.dataFromString('android_cmake_path_3')));
+          expect(tools.first.version, equals(Version.parse('4.1.4-dirty0')));
+        },
+      );
     });
   });
 }

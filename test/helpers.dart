@@ -34,9 +34,9 @@ import 'package:test/test.dart';
 /// }
 /// ```
 String testSuffix(List<Object> tags) => switch (tags) {
-      [] => '',
-      _ => ' (${tags.join(', ')})',
-    };
+  [] => '',
+  _ => ' (${tags.join(', ')})',
+};
 
 const keepTempKey = 'KEEP_TEMPORARY_DIRECTORIES';
 
@@ -53,11 +53,11 @@ Future<Uri> tempDirForTest({String? prefix, bool keepTemp = false}) async {
 
 /// Logger that outputs the full trace when a test fails.
 Logger get logger => _logger ??= () {
-      // A new logger is lazily created for each test so that the messages
-      // captured by printOnFailure are scoped to the correct test.
-      addTearDown(() => _logger = null);
-      return _createTestLogger();
-    }();
+  // A new logger is lazily created for each test so that the messages
+  // captured by printOnFailure are scoped to the correct test.
+  addTearDown(() => _logger = null);
+  return _createTestLogger();
+}();
 
 Logger? _logger;
 
@@ -102,10 +102,12 @@ Uri findPackageRoot(String packageName) {
       return cwd;
     }
   }
-  throw StateError("Could not find package root for package '$packageName'. "
-      'Tried finding the package root via Platform.script '
-      "'${Platform.script.toFilePath()}' and Directory.current "
-      "'${Directory.current.uri.toFilePath()}'.");
+  throw StateError(
+    "Could not find package root for package '$packageName'. "
+    'Tried finding the package root via Platform.script '
+    "'${Platform.script.toFilePath()}' and Directory.current "
+    "'${Directory.current.uri.toFilePath()}'.",
+  );
 }
 
 Uri packageUri = findPackageRoot('native_toolchain_c');
@@ -137,8 +139,9 @@ final Uri? _envScript = Platform.environment['DART_HOOK_TESTING_C_COMPILER__ENV_
 /// Arguments for [_envScript] provided by environment.
 ///
 /// Provided on Dart CI.
-final List<String>? _envScriptArgs =
-    Platform.environment['DART_HOOK_TESTING_C_COMPILER__ENV_SCRIPT_ARGUMENTS']?.split(' ');
+final List<String>? _envScriptArgs = Platform
+    .environment['DART_HOOK_TESTING_C_COMPILER__ENV_SCRIPT_ARGUMENTS']
+    ?.split(' ');
 
 /// Configuration for the native toolchain.
 ///
@@ -152,10 +155,7 @@ final cCompiler = (_cc == null || _ar == null || _ld == null)
         windows: WindowsCCompilerConfig(
           developerCommandPrompt: _envScript == null
               ? null
-              : DeveloperCommandPrompt(
-                  script: _envScript!,
-                  arguments: _envScriptArgs ?? [],
-                ),
+              : DeveloperCommandPrompt(script: _envScript!, arguments: _envScriptArgs ?? []),
         ),
       );
 
@@ -193,7 +193,7 @@ DynamicLibrary openDynamicLibraryForTest(String path) {
 }
 
 extension UnescapePath on String {
-  String unescape() => replaceAll('\\', '/');
+  String unescape() => replaceAll(r'\', '/');
 }
 
 Future<String> readelfMachine(String path) async {
@@ -224,10 +224,7 @@ Future<String> nmReadSymbols(CodeAsset asset) async {
   final assetUri = asset.file!;
   final result = await runProcess(
     executable: Uri(path: 'nm'),
-    arguments: [
-      '-D',
-      assetUri.toFilePath(),
-    ],
+    arguments: ['-D', assetUri.toFilePath()],
     logger: logger,
   );
 
@@ -235,17 +232,11 @@ Future<String> nmReadSymbols(CodeAsset asset) async {
   return result.stdout;
 }
 
-Future<void> expectSymbols({
-  required CodeAsset asset,
-  required List<String> symbols,
-}) async {
+Future<void> expectSymbols({required CodeAsset asset, required List<String> symbols}) async {
   if (Platform.isLinux) {
     final nmOutput = await nmReadSymbols(asset);
 
-    expect(
-      nmOutput,
-      stringContainsInOrder(symbols),
-    );
+    expect(nmOutput, stringContainsInOrder(symbols));
   } else {
     throw UnimplementedError();
   }
@@ -282,10 +273,7 @@ Future<int> textSectionAddress(Uri dylib) async {
   throw UnimplementedError();
 }
 
-Future<void> expectPageSize(
-  Uri dylib,
-  int pageSize,
-) async {
+Future<void> expectPageSize(Uri dylib, int pageSize) async {
   if (Platform.isMacOS || Platform.isLinux) {
     // If page size is 16kb, the `.text` section address should be
     // above 0x4000. With smaller page sizes it's above 0x1000.

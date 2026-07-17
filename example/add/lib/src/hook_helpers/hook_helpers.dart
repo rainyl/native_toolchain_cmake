@@ -7,11 +7,7 @@ import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 
 const name = 'add';
 
-Future<void> runBuild(
-  BuildInput input,
-  BuildOutputBuilder output,
-  Uri sourceDir,
-) async {
+Future<void> runBuild(BuildInput input, BuildOutputBuilder output, Uri sourceDir) async {
   final _logger = Logger('')
     ..level = Level.ALL
     // temp fwd to stderr until process logs pass to stdout
@@ -23,9 +19,7 @@ Future<void> runBuild(
       'CMAKE_BUILD_TYPE': 'Release',
       'CMAKE_INSTALL_PREFIX': '${input.outputDirectory.toFilePath()}/install',
     },
-    targets: [
-      'install',
-    ],
+    targets: ['install'],
     buildLocal: true,
     logger: _logger,
   );
@@ -48,11 +42,7 @@ Future<void> runBuild(
   _logger.info('Found libs: $outLibs');
 }
 
-Future<void> runBuildGit(
-  BuildInput input,
-  BuildOutputBuilder output,
-  Uri sourceDir,
-) async {
+Future<void> runBuildGit(BuildInput input, BuildOutputBuilder output, Uri sourceDir) async {
   final logger = Logger('')
     ..level = Level.ALL
     // temp fwd to stderr until process logs pass to stdout
@@ -72,11 +62,7 @@ Future<void> runBuildGit(
     logger: logger,
   );
 
-  await builder.run(
-    input: input,
-    output: output,
-    logger: logger,
-  );
+  await builder.run(input: input, output: output, logger: logger);
 
   // manually add assets
   final libPath = switch (input.config.code.targetOS) {
@@ -85,7 +71,7 @@ Future<void> runBuildGit(
     OS.windows => "install/lib/add.dll",
     OS.android => "install/lib/libadd.so",
     OS.iOS => "install/lib/libadd.dylib",
-    _ => throw UnsupportedError("Unsupported OS")
+    _ => throw UnsupportedError("Unsupported OS"),
   };
   output.assets.code.add(
     CodeAsset(

@@ -39,33 +39,36 @@ void main() {
         flutterAndroidNdkVersionHighestSupported,
       ]) {
         for (final enableUserDefinedConfig in [true, false]) {
-          test('CMakeBuilder $linkMode library $target minSdkVersion $apiLevel enableUserDefinedConfig $enableUserDefinedConfig', () async {
-            final tempUri = await tempDirForTest();
-            final libUri = await buildLib(
-              tempUri,
-              target,
-              apiLevel,
-              linkMode,
-              enableUserDefinedConfig: enableUserDefinedConfig,
-            );
-            if (Platform.isLinux) {
-              final machine = await readelfMachine(libUri.path);
-              expect(machine, contains(readElfMachine[target]));
-            } else if (Platform.isMacOS) {
-              final result = await runProcess(
-                executable: Uri.file('objdump'),
-                arguments: ['-T', libUri.path],
-                logger: logger,
+          test(
+            'CMakeBuilder $linkMode library $target minSdkVersion $apiLevel enableUserDefinedConfig $enableUserDefinedConfig',
+            () async {
+              final tempUri = await tempDirForTest();
+              final libUri = await buildLib(
+                tempUri,
+                target,
+                apiLevel,
+                linkMode,
+                enableUserDefinedConfig: enableUserDefinedConfig,
               );
-              expect(result.exitCode, 0);
-              final machine = result.stdout.split('\n').firstWhere((e) => e.contains('file format'));
-              expect(machine, contains(objdumpFileFormat[target]));
-            }
-            // TODO: failed
-            // if (linkMode == DynamicLoadingBundled()) {
-            //   await expectPageSize(libUri, 16 * 1024);
-            // }
-          });
+              if (Platform.isLinux) {
+                final machine = await readelfMachine(libUri.path);
+                expect(machine, contains(readElfMachine[target]));
+              } else if (Platform.isMacOS) {
+                final result = await runProcess(
+                  executable: Uri.file('objdump'),
+                  arguments: ['-T', libUri.path],
+                  logger: logger,
+                );
+                expect(result.exitCode, 0);
+                final machine = result.stdout.split('\n').firstWhere((e) => e.contains('file format'));
+                expect(machine, contains(objdumpFileFormat[target]));
+              }
+              // TODO: failed
+              // if (linkMode == DynamicLoadingBundled()) {
+              //   await expectPageSize(libUri, 16 * 1024);
+              // }
+            },
+          );
         }
       }
     }
@@ -119,7 +122,7 @@ Future<Uri> buildLib(
     //         ninja_version: null # "1.10.2"
     // TODO: add more user configs.
     final androidHome = Platform.environment['ANDROID_HOME'];
-    final envFilePath = tempUri.resolve(userDefinedConfig["env_file"] as String).toFilePath();
+    final envFilePath = tempUri.resolve(userDefinedConfig["env_file"]!).toFilePath();
     final envFile = File(envFilePath);
     await envFile.writeAsString('ANDROID_HOME=$androidHome');
   }

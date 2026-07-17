@@ -15,13 +15,13 @@ enum LogLevel {
   const LogLevel(this.value);
 
   static LogLevel fromValue(String value) => switch (value) {
-        "ERROR" => ERROR,
-        "WARNING" => WARNING,
-        "NOTICE" => NOTICE,
-        "STATUS" => STATUS,
-        "VERBOSE" => VERBOSE,
-        "DEBUG" => DEBUG,
-        "TRACE" => TRACE,
-        _ => throw ArgumentError("Unknown value for LogLevel: $value"),
-      };
+    "ERROR" => ERROR,
+    "WARNING" => WARNING,
+    "NOTICE" => NOTICE,
+    "STATUS" => STATUS,
+    "VERBOSE" => VERBOSE,
+    "DEBUG" => DEBUG,
+    "TRACE" => TRACE,
+    _ => throw ArgumentError("Unknown value for LogLevel: $value"),
+  };
 }

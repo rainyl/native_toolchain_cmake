@@ -67,7 +67,12 @@ class PathToolResolver extends ToolResolver {
   static Uri get which => Uri.file(Platform.isWindows ? 'where' : 'which');
 
   Future<Uri?> runWhich({required Logger? logger, Map<String, String>? environment}) async {
-    final process = await runProcess(executable: which, arguments: [executableName], logger: logger, environment: environment);
+    final process = await runProcess(
+      executable: which,
+      arguments: [executableName],
+      logger: logger,
+      environment: environment,
+    );
     if (process.exitCode == 0) {
       final file = File(LineSplitter.split(process.stdout).first);
       final uri = File(await file.resolveSymbolicLinks()).uri;
@@ -141,11 +146,7 @@ class CliVersionResolver implements ToolResolver {
     List<String> arguments = const ['--version'],
     int expectedExitCode = 0,
   }) async {
-    final process = await runProcess(
-      executable: executable,
-      arguments: arguments,
-      logger: logger,
-    );
+    final process = await runProcess(executable: executable, arguments: arguments, logger: logger);
     if (process.exitCode != expectedExitCode) {
       final executablePath = executable.toFilePath();
       throw ToolError(
@@ -203,11 +204,8 @@ class ToolResolvers implements ToolResolver {
     UserConfig? userConfig,
     Map<String, String>? environment,
   }) async => [
-    for (final resolver in resolvers) ...await resolver.resolve(
-      logger: logger,
-      userConfig: userConfig,
-      environment: environment,
-    ),
+    for (final resolver in resolvers)
+      ...await resolver.resolve(logger: logger, userConfig: userConfig, environment: environment),
   ];
 }
 

@@ -20,11 +20,7 @@ void main() {
     return;
   }
 
-  const targets = [
-    Architecture.arm64,
-    Architecture.x64,
-    Architecture.riscv64,
-  ];
+  const targets = [Architecture.arm64, Architecture.x64, Architecture.riscv64];
 
   for (final linkMode in [DynamicLoadingBundled()]) {
     for (final target in targets) {
@@ -60,11 +56,7 @@ void main() {
           sourceDir: Directory('test/builder/testfiles/add').absolute.uri,
           buildMode: BuildMode.release,
         );
-        await builder.run(
-          input: buildInput,
-          output: buildOutput,
-          logger: logger,
-        );
+        await builder.run(input: buildInput, output: buildOutput, logger: logger);
 
         final libUri = buildInput.outputDirectory.resolve(OS.linux.libraryFileName(name, linkMode));
         final machine = await readelfMachine(libUri.path);
