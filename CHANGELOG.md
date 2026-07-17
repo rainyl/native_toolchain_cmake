@@ -1,5 +1,9 @@
 # native_toolchain_cmake
 
+## 0.2.7
+
+- new: add `CMakeBuilder.runStandalone` to allow running builder without `BuildInput input` and `BuildOutputBuilder output`
+
 ## 0.2.6
 
 - bump hooks to 2.0
