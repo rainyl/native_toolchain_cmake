@@ -36,22 +36,18 @@ void main() {
   // forward-slash path (other OSes), then asserts the NDK is discovered.
   test('issue-37-windows-backslash', () async {
     // Build a fake SDK layout: <sdk>/ndk/<version>/
-    final sdkDir = await Directory.systemTemp.createTemp('issue37_sdk');
-    addTearDown(() => sdkDir.delete(recursive: true));
+    final tempUri = await tempDirForTest();
+    final sdkDir = await Directory.fromUri(tempUri.resolve("android_sdk")).create(recursive: true);
 
     // Use an obviously-fake, very-high version so this fixture never collides
     // with any real NDK installed under $HOME/AppData/Local/Android/Sdk (which
     // the resolver also searches on Windows regardless of androidHome).
     const ndkVersion = '99.99.99999';
-    final ndkDir = Directory.fromUri(
-      sdkDir.uri.resolve('ndk/').resolve('$ndkVersion/'),
-    );
+    final ndkDir = Directory.fromUri(sdkDir.uri.resolve('ndk/').resolve('$ndkVersion/'));
     await ndkDir.create(recursive: true);
     // tryResolveClang lists `toolchains/llvm/prebuilt/`; create it empty so
     // the resolver returns no clang/ar/lld instances without throwing.
-    await Directory.fromUri(
-      ndkDir.uri.resolve('toolchains/llvm/prebuilt/'),
-    ).create(recursive: true);
+    await Directory.fromUri(ndkDir.uri.resolve('toolchains/llvm/prebuilt/')).create(recursive: true);
 
     // Use the OS-native path which on Windows contains backslashes; on
     // other platforms it is already forward-slash. Either way the test must
@@ -75,10 +71,7 @@ void main() {
     // `Glob('<androidHome>/ndk/*/')` package:glob treats `\` as an escape and
     // the pattern matches nothing under our fixture, so the resolver cannot
     // find an NDK with the requested version and throws.
-    final resolved = await androidNdk.defaultResolver!.resolve(
-      logger: logger,
-      userConfig: userConfig,
-    );
+    final resolved = await androidNdk.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
     final ndkInstances = resolved.where((t) => t.tool == androidNdk).toList();
     expect(ndkInstances, hasLength(1), reason: 'Only the fixture NDK should match ndkVersion filter');
