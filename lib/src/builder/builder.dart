@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:code_assets/code_assets.dart';
 import 'package:hooks/hooks.dart';
 import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 
 import '../native_toolchain/msvc.dart';
 import '../utils/env_from_bat.dart';
@@ -246,6 +247,50 @@ class CMakeBuilder implements Builder {
     );
   }
 
+  /// Unwraps the `workspace_pubspec.defines` envelope that `package:hooks`
+  /// wraps `user_defines` in.
+  ///
+  /// When a build hook is invoked through `flutter build` / `hooks_runner`,
+  /// `input.json['user_defines']` has the shape:
+  ///
+  /// ```json
+  /// {
+  ///   "workspace_pubspec": {
+  ///     "base_path": ".../pubspec.yaml",
+  ///     "defines": { "env_file": ..., "android": {...}, ... }
+  ///   }
+  /// }
+  /// ```
+  ///
+  /// Direct callers of [runStandalone] usually pass the `defines` map directly
+  /// (without the envelope). This helper accepts both shapes and returns the
+  /// inner defines map. Non-Map values are logged and ignored.
+  @visibleForTesting
+  static Map<String, dynamic> unwrapUserDefinesForTesting(
+    Map<String, dynamic>? userDefines, {
+    Logger? logger,
+  }) => _unwrapUserDefines(userDefines, logger: logger);
+
+  static Map<String, dynamic> _unwrapUserDefines(Map<String, dynamic>? userDefines, {Logger? logger}) {
+    if (userDefines == null) return const {};
+    // Workspace envelope (hooks_runner / flutter build path).
+    final workspace = userDefines['workspace_pubspec'];
+    if (workspace is Map<String, dynamic>) {
+      final defines = workspace['defines'];
+      if (defines is Map<String, dynamic>) return defines;
+      if (defines is Map) return defines.cast<String, dynamic>();
+      if (defines != null) {
+        logger?.warning(
+          'user_defines.workspace_pubspec.defines expected Map, '
+          'got ${defines.runtimeType}; ignored.',
+        );
+      }
+      return const {};
+    }
+    // Direct flat defines (manual runStandalone / tests).
+    return userDefines;
+  }
+
   /// Runs the CMake generate and build process with explicit arguments instead
   /// of [BuildInput] or [BuildOutputBuilder].
   ///
@@ -296,59 +341,57 @@ class CMakeBuilder implements Builder {
     //         ninja_version: null # "1.10.2"
     //       windows:
     //         cmake_version: null # "3.31.6"
-    final androidConfig = userDefines["android"] as Map<String, dynamic>?;
-    final iosConfig = userDefines["ios"] as Map<String, dynamic>?;
-    final linuxConfig = userDefines["linux"] as Map<String, dynamic>?;
-    final macOSConfig = userDefines["macos"] as Map<String, dynamic>?;
-    final windowsConfig = userDefines["windows"] as Map<String, dynamic>?;
+    logger?.fine('userDefines: $userDefines');
 
-    var cmakeVersion = userDefines["cmake_version"] as String?;
-    cmakeVersion = switch (targetOS) {
-      OS.android => androidConfig?["cmake_version"] as String? ?? cmakeVersion,
-      OS.iOS => iosConfig?["cmake_version"] as String? ?? cmakeVersion,
-      OS.linux => linuxConfig?["cmake_version"] as String? ?? cmakeVersion,
-      OS.macOS => macOSConfig?["cmake_version"] as String? ?? cmakeVersion,
-      OS.windows => windowsConfig?["cmake_version"] as String? ?? cmakeVersion,
-      _ => cmakeVersion,
-    };
+    // Peel `workspace_pubspec.defines` if present (hooks_runner / flutter
+    // build path). Direct callers passing the flat defines map are unaffected.
+    final userDefinesFlat = _unwrapUserDefines(userDefines, logger: logger);
 
-    var ninjaVersion = userDefines["ninja_version"] as String?;
-    ninjaVersion = switch (targetOS) {
-      OS.android => androidConfig?["ninja_version"] as String? ?? ninjaVersion,
-      OS.iOS => iosConfig?["ninja_version"] as String? ?? ninjaVersion,
-      OS.linux => linuxConfig?["ninja_version"] as String? ?? ninjaVersion,
-      OS.macOS => macOSConfig?["ninja_version"] as String? ?? ninjaVersion,
-      OS.windows => windowsConfig?["ninja_version"] as String? ?? ninjaVersion,
-      _ => ninjaVersion,
-    };
-
-    var userConfig = UserConfig(
+    // Per-OS overrides win over the top-level entries; wrong types are logged
+    // and ignored instead of throwing. See [UserConfig.parseFromUserDefines].
+    var userConfig = UserConfig.parseFromUserDefines(
       targetOS: targetOS,
-      cmakeVersion: cmakeVersion,
-      ninjaVersion: ninjaVersion,
-      ndkVersion: androidConfig?["ndk_version"] as String?,
-      androidHome: androidConfig?["android_home"] as String?,
-      preferAndroidNinja: userDefines["prefer_android_ninja"] as bool?,
-      preferAndroidCmake: userDefines["prefer_android_cmake"] as bool?,
+      userDefines: userDefinesFlat,
+      logger: logger,
     );
 
-    // optional host specific build config
-    final envFile = userDefines["env_file"] as String?;
-
-    if (envFile != null) {
+    // Android-specific fallback chain for android_home:
+    //   1. user_defines.android.android_home  (handled in parseFromUserDefines)
+    //   2. env_file ANDROID_HOME              (handled below)
+    //   3. ANDROID_HOME system env var        (handled below)
+    // Each step only fills in when the previous one is null.
+    final envFile = userDefinesFlat[UserConfigKeys.envFile];
+    if (envFile is String && envFile.isNotEmpty) {
       final userEnvConfig = await getUserEnvConfig(input: input, packageRoot: packageRoot, envFile: envFile);
       final androidHome = userEnvConfig['ANDROID_HOME'];
-      if (androidHome != null) {
+      if (androidHome != null && userConfig.androidHome == null) {
         final androidHomeEntity = Directory(androidHome);
         if (androidHomeEntity.existsSync()) {
           userConfig = userConfig.copyWith(androidHome: androidHomeEntity.absolute.path);
         } else {
           logger?.warning(
-            "ANDROID_HOME=$androidHome is set in envFile=$envFile but does not exist, ignoring",
+            'ANDROID_HOME=$androidHome is set in envFile=$envFile but does not exist, ignoring',
           );
         }
       }
+    } else if (envFile != null) {
+      logger?.warning('user_defines.env_file expected String, got ${envFile.runtimeType}; ignored.');
     }
+
+    // Last-resort fallback to the ANDROID_HOME system environment variable.
+    if (userConfig.androidHome == null) {
+      final envAndroidHome = Platform.environment['ANDROID_HOME'];
+      if (envAndroidHome != null && envAndroidHome.isNotEmpty) {
+        final dir = Directory(envAndroidHome);
+        if (dir.existsSync()) {
+          userConfig = userConfig.copyWith(androidHome: dir.absolute.path);
+        } else {
+          logger?.warning('ANDROID_HOME=$envAndroidHome from environment does not exist, ignoring.');
+        }
+      }
+    }
+
+    logger?.fine('Resolved userConfig: $userConfig');
 
     final task = RunCMakeBuilder(
       targetOS: targetOS,
