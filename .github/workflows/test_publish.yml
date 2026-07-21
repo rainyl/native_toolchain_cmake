@@ -28,7 +28,7 @@ jobs:
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r27c
+          ndk-version: r29
           add-to-path: true
       - uses: subosito/flutter-action@v2
         with:
@@ -47,7 +47,7 @@ jobs:
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r27c
+          ndk-version: r29
           add-to-path: true
       - uses: subosito/flutter-action@v2
         with:
@@ -66,7 +66,7 @@ jobs:
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r27c
+          ndk-version: r29
           add-to-path: true
       - uses: subosito/flutter-action@v2
         with:

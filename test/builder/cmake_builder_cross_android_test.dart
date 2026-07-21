@@ -23,18 +23,14 @@ void main() {
   };
 
   /// From https://docs.flutter.dev/reference/supported-platforms.
-  const flutterAndroidNdkVersionLowestBestEffort = 19;
-
-  /// From https://docs.flutter.dev/reference/supported-platforms.
   const flutterAndroidNdkVersionLowestSupported = 21;
 
   /// From https://docs.flutter.dev/reference/supported-platforms.
-  const flutterAndroidNdkVersionHighestSupported = 34;
+  const flutterAndroidNdkVersionHighestSupported = 35;
 
   for (final linkMode in [DynamicLoadingBundled()]) {
     for (final target in targets) {
       for (final apiLevel in [
-        flutterAndroidNdkVersionLowestBestEffort,
         flutterAndroidNdkVersionLowestSupported,
         flutterAndroidNdkVersionHighestSupported,
       ]) {

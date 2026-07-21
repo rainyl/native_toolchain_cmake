@@ -1,5 +1,9 @@
 # native_toolchain_cmake
 
+## 0.2.8
+
+- fix: properly resolve user-defines for android_home on Windows, [#37](https://github.com/rainyl/native_toolchain_cmake/issues/37)
+
 ## 0.2.7
 
 - new: add `CMakeBuilder.runStandalone` to allow running builder without `BuildInput input` and `BuildOutputBuilder output`
