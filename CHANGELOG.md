@@ -1,8 +1,10 @@
 # native_toolchain_cmake
 
-## 0.2.8
+## 0.3.0
 
 - fix: properly resolve user-defines for android_home on Windows, [#37](https://github.com/rainyl/native_toolchain_cmake/issues/37)
+- feat: align android SDK and NDK resolver with Flutter's implementation, [#31](https://github.com/rainyl/native_toolchain_cmake/issues/31)
+- Breaking change: the Android SDK and NDK resolving logic may be a breaking change
 
 ## 0.2.7
 
