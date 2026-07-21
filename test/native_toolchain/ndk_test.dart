@@ -12,6 +12,23 @@ import 'package:test/test.dart';
 
 import '../helpers.dart';
 
+/// Creates the minimal on-disk layout needed to pass `_validSdkDirectory`.
+///
+/// Returns the [Directory] backing [uri].
+Future<Directory> _createFakeSdk(Uri uri) async {
+  final dir = await Directory.fromUri(uri).create(recursive: true);
+  await Directory.fromUri(uri.resolve('platform-tools/')).create();
+  return dir;
+}
+
+/// Creates a fake NDK version directory under [sdkUri]/ndk/.
+Future<Directory> _createFakeNdk(Uri sdkUri, String version) async {
+  final ndkDir = Directory.fromUri(sdkUri.resolve('ndk/').resolve('$version/'));
+  await ndkDir.create(recursive: true);
+  await Directory.fromUri(ndkDir.uri.resolve('toolchains/llvm/prebuilt/')).create(recursive: true);
+  return ndkDir;
+}
+
 void main() {
   test('NDK smoke test', () async {
     final requirement = RequireAll([
@@ -35,24 +52,12 @@ void main() {
   // on-disk SDK tree via a backslash-laden path (on Windows) or a
   // forward-slash path (other OSes), then asserts the NDK is discovered.
   test('issue-37-windows-backslash', () async {
-    // Build a fake SDK layout: <sdk>/ndk/<version>/
     final tempUri = await tempDirForTest();
-    final sdkDir = await Directory.fromUri(tempUri.resolve("android_sdk")).create(recursive: true);
+    final sdkDir = await _createFakeSdk(tempUri.resolve('android_sdk/'));
 
-    // Use an obviously-fake, very-high version so this fixture never collides
-    // with any real NDK installed under $HOME/AppData/Local/Android/Sdk (which
-    // the resolver also searches on Windows regardless of androidHome).
     const ndkVersion = '99.99.99999';
-    final ndkDir = Directory.fromUri(sdkDir.uri.resolve('ndk/').resolve('$ndkVersion/'));
-    await ndkDir.create(recursive: true);
-    // tryResolveClang lists `toolchains/llvm/prebuilt/`; create it empty so
-    // the resolver returns no clang/ar/lld instances without throwing.
-    await Directory.fromUri(ndkDir.uri.resolve('toolchains/llvm/prebuilt/')).create(recursive: true);
+    await _createFakeNdk(sdkDir.uri, ndkVersion);
 
-    // Use the OS-native path which on Windows contains backslashes; on
-    // other platforms it is already forward-slash. Either way the test must
-    // pass, demonstrating that UserConfig normalisation keeps the glob
-    // pattern valid.
     final rawAndroidHome = sdkDir.absolute.path;
     expect(
       UserConfig(targetOS: OS.android, androidHome: rawAndroidHome).androidHome,
@@ -67,10 +72,6 @@ void main() {
       envVarAndroidHomeAsDefault: false,
     );
 
-    // If the androidHome backslashes are NOT normalised before being fed to
-    // `Glob('<androidHome>/ndk/*/')` package:glob treats `\` as an escape and
-    // the pattern matches nothing under our fixture, so the resolver cannot
-    // find an NDK with the requested version and throws.
     final resolved = await androidNdk.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
 
     final ndkInstances = resolved.where((t) => t.tool == androidNdk).toList();
@@ -79,6 +80,114 @@ void main() {
       ndkInstances.single.uri.toFilePath().replaceAll(r'\', '/'),
       contains('/ndk/$ndkVersion/'),
       reason: 'Resolved NDK URI must point at the fixture we created',
+    );
+  });
+
+  test('env var ANDROID_NDK_HOME is highest priority', () async {
+    final tempUri = await tempDirForTest();
+    final ndkDir = await _createFakeNdk(tempUri.resolve('custom_sdk/'), '99.99.99999');
+
+    final environment = {kAndroidNdkHome: ndkDir.absolute.path};
+    final userConfig = UserConfig(
+      targetOS: OS.android,
+      ndkVersion: '99.99.99999',
+      envVarAndroidHomeAsDefault: false,
+    );
+
+    final resolved = await androidNdk.defaultResolver!.resolve(
+      logger: logger,
+      userConfig: userConfig,
+      environment: environment,
+    );
+
+    final ndkInstances = resolved.where((t) => t.tool == androidNdk).toList();
+    expect(ndkInstances, isNotEmpty, reason: 'NDK must be found via ANDROID_NDK_HOME');
+    expect(
+      ndkInstances.first.uri.toFilePath().replaceAll(r'\', '/'),
+      ndkDir.absolute.uri.toFilePath().replaceAll(r'\', '/'),
+    );
+  });
+
+  test('ndkVersion filter skips env-var roots without parseable basename', () async {
+    final tempUri = await tempDirForTest();
+    // Give the NDK root a non-parseable name, e.g. not a Version.
+    final ndkRoot = await Directory.fromUri(tempUri.resolve('my_ndk_dir/')).create(recursive: true);
+
+    final environment = {kAndroidNdkHome: ndkRoot.absolute.path};
+    final userConfig = UserConfig(
+      targetOS: OS.android,
+      ndkVersion: '99.99.99999',
+      envVarAndroidHomeAsDefault: false,
+    );
+
+    // Skipping to avoid spamming logger output in the test.
+    // Expect an exception, as no candidate's basename matches 99.99.99999.
+    expect(
+      () => androidNdk.defaultResolver!.resolve(
+        logger: logger,
+        userConfig: userConfig,
+        environment: environment,
+      ),
+      throwsA(isA<Exception>()),
+    );
+  });
+
+  test('dir/sdk fallback when androidHome points at parent', () async {
+    final tempUri = await tempDirForTest();
+    // Layout: <home>/sdk/ is the actual SDK.
+    // <home>/ itself does NOT contain platform-tools.
+    final sdkDir = await _createFakeSdk(tempUri.resolve('home/sdk/'));
+    await _createFakeNdk(sdkDir.uri, '99.99.99999');
+
+    // Point androidHome at <home> (not <home>/sdk).
+    final homeDir = Directory.fromUri(tempUri.resolve('home/'));
+
+    final userConfig = UserConfig(
+      targetOS: OS.android,
+      androidHome: homeDir.absolute.path,
+      ndkVersion: '99.99.99999',
+      envVarAndroidHomeAsDefault: false,
+    );
+
+    final resolved = await androidNdk.defaultResolver!.resolve(logger: logger, userConfig: userConfig);
+
+    final ndkInstances = resolved.where((t) => t.tool == androidNdk).toList();
+    expect(ndkInstances, hasLength(1), reason: 'NDK must be found via <home>/sdk fallback');
+    expect(
+      ndkInstances.single.uri.toFilePath().replaceAll(r'\', '/'),
+      contains('/sdk/ndk/99.99.99999/'),
+    );
+  });
+
+  test('ANDROID_NDK_HOME is skipped when nonexistent, falls through to platform', () async {
+    final tempUri = await tempDirForTest();
+    final sdkDir = await _createFakeSdk(tempUri.resolve('android_sdk/'));
+    await _createFakeNdk(sdkDir.uri, '99.99.99999');
+
+    // ANDROID_NDK_HOME points to a non-existent directory; this should be
+    // ignored with a warning, and the platform-default discovery should still
+    // find the real SDK (or the fixture if ANDROID_HOME is set to it).
+    final environment = {
+      kAndroidNdkHome: tempUri.resolve('does_not_exist/').toFilePath(),
+      kAndroidHome: sdkDir.absolute.path,
+    };
+    final userConfig = UserConfig(
+      targetOS: OS.android,
+      ndkVersion: '99.99.99999',
+      envVarAndroidHomeAsDefault: false,
+    );
+
+    final resolved = await androidNdk.defaultResolver!.resolve(
+      logger: logger,
+      userConfig: userConfig,
+      environment: environment,
+    );
+
+    final ndkInstances = resolved.where((t) => t.tool == androidNdk).toList();
+    expect(ndkInstances, hasLength(1), reason: 'Should fall through to ANDROID_HOME');
+    expect(
+      ndkInstances.single.uri.toFilePath().replaceAll(r'\', '/'),
+      contains('/ndk/99.99.99999/'),
     );
   });
 }
