@@ -218,17 +218,29 @@ class _AndroidNdkResolver implements ToolResolver {
   /// Failures (binary not installed) return an empty list so callers can chain
   /// without try/catch.
   Future<List<Uri>> _whichAll(String name, {Logger? logger, Map<String, String>? environment}) async {
-    final executable = Uri.file(Platform.isWindows ? 'where' : 'which');
-    final arguments = [
-      if (!Platform.isWindows) '-a',
-      name,
-    ];
+    final executable = Uri.file(Platform.isWindows ? 'where.exe' : 'which');
+    final arguments = [if (!Platform.isWindows) '-a', name];
     try {
+      // `where` on Windows matches the pattern against the extensions listed in
+      // PATHEXT. Environments passed to build hooks (e.g. by hooks_runner) are
+      // filtered to an allowlist that does not include PATHEXT, so without a
+      // fallback `where cmake` would not match `cmake.exe`.
+      final hasUsablePathext =
+          environment?.entries.any(
+            (entry) => entry.key.toLowerCase() == 'pathext' && entry.value.trim().isNotEmpty,
+          ) ??
+          false;
+      final environmentWithPathext = Platform.isWindows && !hasUsablePathext
+          ? {
+              if (environment != null) ...environment,
+              'PATHEXT': '.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL',
+            }
+          : environment;
       final result = await runProcess(
         executable: executable,
         arguments: arguments,
         logger: logger,
-        environment: environment,
+        environment: environmentWithPathext,
         captureOutput: true,
         throwOnUnexpectedExitCode: false,
       );
@@ -325,10 +337,7 @@ class _AndroidNdkResolver implements ToolResolver {
       toolName: 'ndk-build',
       executableName: Platform.isWindows ? 'ndk-build.cmd' : 'ndk-build',
     );
-    final ndkBuildInstances = await ndkBuildResolver.resolve(
-      logger: logger,
-      environment: environment,
-    );
+    final ndkBuildInstances = await ndkBuildResolver.resolve(logger: logger, environment: environment);
     for (final instance in ndkBuildInstances) {
       // `<ndk>/ndk-build(.cmd)` -> NDK root is parent.
       addIfNew(instance.uri.resolve('..').normalizePath(), version: null);
