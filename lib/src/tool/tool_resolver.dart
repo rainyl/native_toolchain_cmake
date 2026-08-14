@@ -64,14 +64,29 @@ class PathToolResolver extends ToolResolver {
     return toolInstances;
   }
 
-  static Uri get which => Uri.file(Platform.isWindows ? 'where' : 'which');
+  static Uri get which => Uri.file(Platform.isWindows ? 'where.exe' : 'which');
 
   Future<Uri?> runWhich({required Logger? logger, Map<String, String>? environment}) async {
+    // `where` on Windows matches the pattern against the extensions listed in
+    // PATHEXT. Environments passed to build hooks (e.g. by hooks_runner) are
+    // filtered to an allowlist that does not include PATHEXT, so without a
+    // fallback `where cmake` would not match `cmake.exe`.
+    final hasUsablePathext =
+        environment?.entries.any(
+          (entry) => entry.key.toLowerCase() == 'pathext' && entry.value.trim().isNotEmpty,
+        ) ??
+        false;
+    final environmentWithPathext = Platform.isWindows && !hasUsablePathext
+        ? {
+            if (environment != null) ...environment,
+            'PATHEXT': '.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL',
+          }
+        : environment;
     final process = await runProcess(
       executable: which,
       arguments: [executableName],
       logger: logger,
-      environment: environment,
+      environment: environmentWithPathext,
     );
     if (process.exitCode == 0) {
       final file = File(LineSplitter.split(process.stdout).first);

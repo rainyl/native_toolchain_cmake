@@ -86,6 +86,49 @@ void main() {
     ]);
   });
 
+  test('PathToolResolver finds executable without usable PATHEXT', () async {
+    if (!Platform.isWindows) return;
+    final tempUri = await tempDirForTest();
+    final exeUri = tempUri.resolve('bar.exe');
+    await File.fromUri(exeUri).writeAsString('dummy');
+    expect(await File.fromUri(exeUri).exists(), true);
+
+    // Mimic the filtered environment of build hooks (e.g. hooks_runner),
+    // which keeps PATH but drops PATHEXT. An empty PATHEXT behaves like a
+    // missing one for where.exe, and can be set deterministically.
+    final resolver = PathToolResolver(toolName: 'bar', executableName: 'bar');
+    final resolved = await resolver.resolve(
+      logger: logger,
+      environment: {
+        'PATH': tempUri.toFilePath(),
+        'PATHEXT': '',
+      },
+    );
+
+    expect(resolved, hasLength(1));
+    expect(resolved.single.uri.toFilePath().toLowerCase(), endsWith('bar.exe'));
+  });
+
+  test('PathToolResolver respects a provided PATHEXT', () async {
+    if (!Platform.isWindows) return;
+    final tempUri = await tempDirForTest();
+    final exeUri = tempUri.resolve('bar.exe');
+    await File.fromUri(exeUri).writeAsString('dummy');
+    expect(await File.fromUri(exeUri).exists(), true);
+
+    final resolver = PathToolResolver(toolName: 'bar', executableName: 'bar');
+    // PATHEXT without .EXE must not match bar.exe.
+    final resolved = await resolver.resolve(
+      logger: logger,
+      environment: {
+        'PATH': tempUri.toFilePath(),
+        'PATHEXT': '.COM;.BAT;.CMD',
+      },
+    );
+
+    expect(resolved, isEmpty);
+  });
+
   test('logger', () async {
     final tempUri = await tempDirForTest();
     final barExeUri = tempUri.resolve(OS.current.executableFileName('bar'));
