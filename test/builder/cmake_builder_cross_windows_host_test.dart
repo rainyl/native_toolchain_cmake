@@ -31,7 +31,7 @@ void main() async {
     dumpbinUri = (await dumpbin.defaultResolver!.resolve(logger: logger)).first.uri;
   });
 
-  const dumpbinMachine = {Architecture.arm64: 'ARM64', Architecture.ia32: 'x86', Architecture.x64: 'x64'};
+  final dumpbinMachine = {Architecture.arm64: 'ARM64', Architecture.ia32: 'x86', Architecture.x64: 'x64'};
 
   final dumpbinFileType = {DynamicLoadingBundled(): 'DLL', StaticLinking(): 'LIBRARY'};
 

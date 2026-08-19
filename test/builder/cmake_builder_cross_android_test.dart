@@ -15,7 +15,7 @@ import '../helpers.dart';
 void main() {
   const targets = [Architecture.arm, Architecture.arm64, Architecture.ia32, Architecture.x64];
 
-  const objdumpFileFormat = {
+  final objdumpFileFormat = {
     Architecture.arm: 'elf32-littlearm',
     Architecture.arm64: 'elf64-littleaarch64',
     Architecture.ia32: 'elf32-i386',

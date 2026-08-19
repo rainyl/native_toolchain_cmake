@@ -20,7 +20,7 @@ class UserConfigKeys {
   static const preferAndroidNinja = 'prefer_android_ninja';
 
   /// Per-OS sub-map keys indexed by [OS].
-  static const osConfigKey = {
+  static final osConfigKey = {
     OS.android: 'android',
     OS.iOS: 'ios',
     OS.linux: 'linux',
