@@ -201,7 +201,7 @@ Future<String> readelfMachine(String path) async {
   return result.split('\n').firstWhere((e) => e.contains('Machine:'));
 }
 
-const readElfMachine = {
+final readElfMachine = {
   Architecture.arm: 'ARM',
   Architecture.arm64: 'AArch64',
   Architecture.ia32: 'Intel 80386',

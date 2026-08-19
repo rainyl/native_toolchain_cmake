@@ -1,5 +1,9 @@
 # native_toolchain_cmake
 
+## 0.3.2
+
+- widen the `code_assets` constraint to `>=1.0.0 <3.0.0` to allow `code_assets` 2.x, which is compatible with both 1.x and 2.x
+
 ## 0.3.1
 
 - fix: fall back to the default `PATHEXT` when resolving tools with `where` on Windows, fixes CMake/Ninja resolution in filtered environments such as build hooks, [#40](https://github.com/rainyl/native_toolchain_cmake/issues/40)

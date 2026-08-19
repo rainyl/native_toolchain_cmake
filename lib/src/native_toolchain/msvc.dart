@@ -217,7 +217,7 @@ final Tool dumpbin = _msvcTool(
   hostArchitecture: Architecture.current,
 );
 
-const _msvcArchNames = {Architecture.ia32: 'x86', Architecture.x64: 'x64', Architecture.arm64: 'arm64'};
+final _msvcArchNames = {Architecture.ia32: 'x86', Architecture.x64: 'x64', Architecture.arm64: 'arm64'};
 
 Tool _msvcTool({
   required String name,

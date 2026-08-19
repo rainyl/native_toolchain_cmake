@@ -402,16 +402,16 @@ class RunCMakeBuilder {
     return exitCode ?? -1;
   }
 
-  static const androidAbis = {
+  static final androidAbis = {
     Architecture.arm: 'armeabi-v7a',
     Architecture.arm64: 'arm64-v8a',
     Architecture.ia32: 'x86',
     Architecture.x64: 'x86_64',
   };
 
-  static const macosPlatforms = {Architecture.arm64: 'MAC_ARM64', Architecture.x64: 'MAC'};
+  static final macosPlatforms = {Architecture.arm64: 'MAC_ARM64', Architecture.x64: 'MAC'};
 
-  static const iosPlatforms = {
+  static final iosPlatforms = {
     Architecture.arm64: {IOSSdk.iPhoneOS: 'OS64', IOSSdk.iPhoneSimulator: 'SIMULATORARM64'},
     Architecture.x64: {IOSSdk.iPhoneSimulator: 'SIMULATOR64'},
   };

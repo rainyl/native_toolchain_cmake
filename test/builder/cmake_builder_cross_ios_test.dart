@@ -28,7 +28,7 @@ void main() {
   const targets = [Architecture.arm64, Architecture.x64];
 
   // Dont include 'mach-o' or 'Mach-O', different spelling is used.
-  const objdumpFileFormat = {Architecture.arm64: 'arm64', Architecture.x64: '64-bit x86-64'};
+  final objdumpFileFormat = {Architecture.arm64: 'arm64', Architecture.x64: '64-bit x86-64'};
 
   const name = 'add';
 
