@@ -378,6 +378,10 @@ class RunCMakeBuilder {
     if (targetOS != OS.linux) {
       return [];
     }
+    // The toolchain files are for cross-compiling, native builds use the host compiler.
+    if (targetArchitecture == Architecture.current) {
+      return [];
+    }
     final defs = <String>[];
     defs.add('-DCMAKE_SYSTEM_NAME=Linux');
     final toolchain = await linuxToolchainCmake();
