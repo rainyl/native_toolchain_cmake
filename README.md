@@ -26,6 +26,110 @@ be available on `PATH`:
 | `arm64` | `gcc-aarch64-linux-gnu` | `aarch64-linux-gnu-gcc` |
 | `riscv64` | `gcc-riscv64-linux-gnu` | `riscv64-linux-gnu-gcc` |
 
+## WebAssembly (web) builds
+
+`CMakeWasmBuilder` builds CMake projects with [Emscripten](https://emscripten.org)
+and exposes the generated `.js`/`.wasm` files to Dart and Flutter web.
+
+### Requirements
+
+- Emscripten SDK 6.0+ (`emsdk`), required for the `.exe` tool launchers and
+  toolchain file layout. `emcc` is discovered in this order:
+  1. `user_defines.web.emscripten_root`
+  2. `user_defines.web.emsdk_path` (`upstream/emscripten`)
+  3. `PATH`
+  4. `EMSDK` (only available outside filtered hooks)
+  5. common emsdk locations
+  6. system installations / Homebrew.
+
+  Build hooks run with a filtered environment and do not see `EMSDK`, so use
+  `PATH` or `user_defines` there.
+- Ninja and Node (`node` is used by CMake's Emscripten toolchain).
+- CMake targets must be executables (`add_executable(add ...)`) producing
+  `add.js` (and `add.wasm`), e.g. with `-sMODULARIZE=1` and
+  `-sEXPORTED_FUNCTIONS`.
+
+### Flutter / Dart data assets (experimental)
+
+With Flutter tooling that supports data assets (currently the `master` channel
+plus `flutter config --enable-dart-data-assets`), a build hook can emit the
+artifacts as `DataAsset`s:
+
+```dart
+import 'package:code_assets/code_assets.dart';
+import 'package:data_assets/data_assets.dart';
+import 'package:hooks/hooks.dart';
+import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
+
+void main(List<String> args) async {
+  await build(args, (input, output) async {
+    if (input.config.buildCodeAssets) {
+      // Native target: use CMakeBuilder.
+      return;
+    }
+    if (input.config.buildDataAssets) {
+      await CMakeWasmBuilder.create(
+        name: 'add',
+        sourceDir: Uri.directory('src/'),
+        // singleFile: true, // embed the wasm in the JavaScript
+      ).run(input: input, output: output);
+    }
+  });
+}
+```
+
+This emits `wasm/add.js` and `wasm/add.wasm` (or only `wasm/add.js` with
+`singleFile: true`). Flutter bundles them as
+`assets/packages/<package>/wasm/...`.
+
+### Flutter stable / pure Dart web / manual hosting
+
+Use `runStandalone` and expose the files as regular Flutter assets (or serve
+them yourself):
+
+```dart
+final files = await CMakeWasmBuilder.create(
+  name: 'add',
+  sourceDir: Uri.directory('src/'),
+).runStandalone(outputDirectory: Uri.directory('build/wasm/'));
+```
+
+See `example/add/tool/build_wasm.dart` and `example/flutter/lib/web_bootstrap_web.dart`.
+
+### Runtime loading
+
+```dart
+import 'package:native_toolchain_cmake/web.dart';
+
+final module = await loadEmscriptenModule(
+  scriptUrl: scriptUrl,
+  wasmBinary: wasmBytes, // optional; avoids a separate .wasm fetch
+  factoryName: 'addModule',
+);
+final result = module.callNum('math_add', args: [1, 2]);
+```
+
+`loadEmscriptenModule` works with both `flutter build web` (dart2js) and
+`flutter build web --wasm` (dart2wasm). It only uses `package:web` and
+`dart:js_interop`.
+
+The build hook also records the resolved `emcc`, its version and the
+`Emscripten.cmake` path in hook metadata, and adds both files to the hook
+dependencies so an emsdk upgrade invalidates the cached build.
+
+### Emscripten user_defines
+
+```yaml
+hooks:
+  user_defines:
+    <PACKAGE>:
+      web:
+        emsdk_path: null # e.g. "/opt/emsdk" or "C:\emsdk"
+        emscripten_root: null # e.g. "/opt/emsdk/upstream/emscripten"
+        emscripten_toolchain_file: null # explicit Emscripten.cmake
+        emscripten_version: null # e.g. "7.0.0" (>= 6.0.0)
+```
+
 ## Configuration
 
 You can configure some options in your `pubspec.yaml`
@@ -55,6 +159,11 @@ hooks:
       linux:
         cmake_version: null # e.g., "3.22.1"
         ninja_version: null # e.g., "1.10.2"
+      web:
+        emsdk_path: null # e.g., "/opt/emsdk" or "C:\emsdk"
+        emscripten_root: null # e.g., "/opt/emsdk/upstream/emscripten"
+        emscripten_toolchain_file: null # explicit Emscripten.cmake
+        emscripten_version: null # e.g., "7.0.0" (>= 6.0.0)
       macos:
         cmake_version: null # e.g., "3.22.1"
         ninja_version: null # e.g., "1.10.2"

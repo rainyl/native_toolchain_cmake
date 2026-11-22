@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- breaking: requires `hooks` 2.x (needed for `data_assets`)
+- new: the build hook writes the used `emcc` path/version and `Emscripten.cmake` to hook metadata, and adds both as hook dependencies
+- breaking: Emscripten 6.0+ is required (older emsdk releases are rejected)
+- new: `CMakeWasmBuilder` builds CMake projects with Emscripten and emits `.js`/`.wasm` as web data assets (`run`) or to a directory (`runStandalone`)
+- new: `package:native_toolchain_cmake/web.dart` provides `loadEmscriptenModule` / `EmscriptenModule` for calling wasm from Dart and Flutter web
+- new: `singleFile` option embeds the wasm in the JavaScript (`-sSINGLE_FILE=1`)
+- new: `user_defines.web.{emsdk_path,emscripten_root,emscripten_toolchain_file,emscripten_version}`
 - new: support cross-compiling to 32-bit x86 Linux (`Architecture.ia32`) via `cmake/i686-linux-gnu.toolchain.cmake`
 - fix: select the Linux toolchain purely by target architecture; the toolchain files now choose the host compiler only when the host matches the target and otherwise use the matching `*-linux-gnu-gcc` cross compiler, so cross-compiling from e.g. arm64 to x64 no longer picks the native (arm64) `gcc`
 

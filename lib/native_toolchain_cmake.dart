@@ -9,6 +9,8 @@ export 'src/builder/builder.dart' show CMakeBuilder;
 export 'src/builder/builder_args.dart';
 export 'src/builder/generator.dart';
 export 'src/builder/log_level.dart';
+export 'src/builder/wasm_builder.dart';
+export 'src/native_toolchain/emscripten.dart' show emcc, findEmscriptenToolchainFile, resolveEmscripten;
 export 'src/utils/add_assets.dart';
 export 'src/utils/env_from_bat.dart';
 export 'src/utils/package_config_parser.dart';

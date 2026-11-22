@@ -291,4 +291,62 @@ void main() {
       expect(records.where((r) => r.level >= Level.WARNING), isNotEmpty);
     });
   });
+
+  group('web / Emscripten config', () {
+    test('web sub-map populates emscripten fields', () {
+      final cfg = UserConfig.parseFromUserDefines(
+        targetOS: webOS,
+        userDefines: {
+          'web': {
+            UserConfigKeys.emsdkPath: r'C:\emsdk',
+            UserConfigKeys.emscriptenRoot: r'C:\emsdk\upstream\emscripten',
+            UserConfigKeys.emscriptenToolchainFile:
+                r'C:\emsdk\upstream\emscripten\cmake\Modules\Platform\Emscripten.cmake',
+            UserConfigKeys.emscriptenVersion: '3.1.51',
+            UserConfigKeys.cmakeVersion: '3.31.6',
+          },
+        },
+        logger: logger,
+      );
+
+      expect(cfg.targetOS.name, 'web');
+      expect(cfg.emsdkPath, 'C:/emsdk');
+      expect(cfg.emscriptenRoot, 'C:/emsdk/upstream/emscripten');
+      expect(
+        cfg.emscriptenToolchainFile,
+        'C:/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake',
+      );
+      expect(cfg.emscriptenVersion, '3.1.51');
+      expect(cfg.cmakeVersion, '3.31.6');
+      expect(warnings, isEmpty);
+    });
+
+    test('top-level emscripten keys are a fallback', () {
+      final cfg = UserConfig.parseFromUserDefines(
+        targetOS: webOS,
+        userDefines: {UserConfigKeys.emsdkPath: '/opt/emsdk', UserConfigKeys.emscriptenVersion: '4.0.0'},
+        logger: logger,
+      );
+
+      expect(cfg.emsdkPath, '/opt/emsdk');
+      expect(cfg.emscriptenVersion, '4.0.0');
+      expect(warnings, isEmpty);
+    });
+
+    test('wrong-typed emsdk_path logs warning and is ignored', () {
+      final cfg = UserConfig.parseFromUserDefines(
+        targetOS: webOS,
+        userDefines: {
+          'web': {
+            UserConfigKeys.emsdkPath: ['/opt/emsdk'],
+          },
+        },
+        logger: logger,
+      );
+
+      expect(cfg.emsdkPath, isNull);
+      expect(warnings, isNotEmpty);
+      expect(warnings.first.message, contains('emsdk_path'));
+    });
+  });
 }

@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'package:add/add.dart' as add;
 
-void main() {
+import 'web_bootstrap.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initAddForWeb();
   runApp(const MyApp());
 }
 

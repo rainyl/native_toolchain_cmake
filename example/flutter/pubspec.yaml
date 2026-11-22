@@ -103,3 +103,8 @@ hooks:
         ndk_version: null # "28.2.13676358"
         cmake_version: null # "3.22.1"
         ninja_version: null # "1.10.2"
+      web:
+        emsdk_path: null # e.g. "/opt/emsdk" or "C:\emsdk"
+        emscripten_root: null # e.g. "/opt/emsdk/upstream/emscripten"
+        emscripten_toolchain_file: null # explicit path to Emscripten.cmake
+        emscripten_version: null # e.g. "7.0.0" (>= 6.0.0)
