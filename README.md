@@ -10,21 +10,84 @@ This library is experimental and may change without warning, use with caution!
 
 Refer to [example](https://github.com/rainyl/native_toolchain_cmake/tree/main/example)
 
-## Linux cross-compilation
+## Configuration
 
-Linux builds always go through a toolchain file selected by the target
-architecture (`cmake/*-linux-gnu.toolchain.cmake`). When the host already
-targets the requested architecture the toolchain file leaves
-`CMAKE_C_COMPILER`/`CMAKE_CXX_COMPILER` unset, so CMake uses the default host
-compiler (and honors `CC`/`CXX`). Otherwise the matching cross compiler must
-be available on `PATH`:
+You can configure some options in your `pubspec.yaml`
 
-| Target | Debian/Ubuntu package | Compiler |
-| --- | --- | --- |
-| `ia32` (x86) | `gcc-i686-linux-gnu` | `i686-linux-gnu-gcc` |
-| `x64` (x86_64) | `gcc-x86-64-linux-gnu` | `x86_64-linux-gnu-gcc` |
-| `arm64` | `gcc-aarch64-linux-gnu` | `aarch64-linux-gnu-gcc` |
-| `riscv64` | `gcc-riscv64-linux-gnu` | `riscv64-linux-gnu-gcc` |
+```yaml
+hooks:
+  user_defines:
+    <YOUR_PACKAGE_NAME_THAT_USES_NATIVE_TOOLCHAIN_CMAKE>: # e.g., dartcv4
+      env_file: null # e.g., ".env"
+      cmake_version: null # e.g., "3.22.1", if not specified, use the latest
+      ninja_version: null # e.g., "1.10.2", if not specified, use the latest
+      prefer_android_cmake: null # true or false, defaults to true for android
+      prefer_android_ninja: null # true or false, defaults to true for android
+      android:
+        android_home: null # e.g., "C:\\Android\\Sdk" # can be set in .env file
+        ndk_version: null # e.g., "28.2.13676358"
+        cmake_version: null # e.g., "3.22.1", if not specified, fallback to global cmake_version
+        # NOTE: Ninja is the default and only generator for Android
+        ninja_version: null # e.g., "1.10.2", if not specified, fallback to global ninja_version
+      ios:
+        cmake_version: null # e.g., "3.22.1"
+        # NOTE: you need to use Generator.ninja if you want to use Ninja for platforms except Android
+        ninja_version: null # e.g., "1.10.2"
+      windows:
+        cmake_version: null # e.g., "3.22.1"
+        ninja_version: null # e.g., "1.10.2"
+      linux:
+        cmake_version: null # e.g., "3.22.1"
+        ninja_version: null # e.g., "1.10.2"
+      web:
+        emsdk_path: null # e.g., "/opt/emsdk" or "C:\emsdk"
+        emscripten_root: null # e.g., "/opt/emsdk/upstream/emscripten"
+        emscripten_toolchain_file: null # explicit Emscripten.cmake
+        emscripten_version: null # e.g., "7.0.0" (>= 6.0.0)
+      macos:
+        cmake_version: null # e.g., "3.22.1"
+        ninja_version: null # e.g., "1.10.2"
+```
+
+## NDK Discovery
+
+When targeting Android, the NDK root directory is resolved in the following
+order (aligned with the Flutter tool's
+[AndroidSdk.locateAndroidSdk](https://github.com/flutter/flutter/blob/master/packages/flutter_tools/lib/src/android/android_sdk.dart)):
+
+### SDK Root
+
+1. `user_defines.android.android_home` (if set in `pubspec.yaml`)
+2. `ANDROID_HOME` environment variable
+3. Platform-default install location:
+   - Linux:   `$HOME/Android/Sdk`
+   - macOS:   `$HOME/Library/Android/sdk`
+   - Windows: `%USERPROFILE%\AppData\Local\Android\Sdk`
+4. `<dir>/sdk` fallback (for each hit above: if the directory itself is not a
+   valid SDK but `<dir>/sdk` is, that subdirectory is used).
+5. `aapt` on PATH → `parent.parent.parent` if it looks like an SDK root.
+6. `adb` on PATH → `parent.parent` if it looks like an SDK root.
+
+A directory qualifies as an SDK root if it contains a `platform-tools/` or
+`licenses/` subdirectory.
+
+### NDK Root
+
+For each SDK root found above:
+
+1. `ANDROID_NDK_HOME` (exact NDK root — highest priority)
+2. `ANDROID_NDK_PATH` (fallback when `ANDROID_NDK_HOME` is unset)
+3. `ANDROID_NDK_ROOT` (additional fallback)
+4. `<sdk>/ndk/<version>/` directories sorted by `Version.parse` in descending
+   order (latest first; entries that cannot be parsed as a [Version] are
+   skipped).
+5. Linux-only legacy `<sdk>/ndk-bundle/` (single-NDK layout).
+6. `ndk-build` on PATH → parent directory (lowest priority).
+
+If `user_defines.android.ndk_version` is specified, only NDK roots whose
+basename parses to the requested version are kept; candidates without a
+parseable basename (e.g. `ANDROID_NDK_HOME` pointing at a custom-named
+directory, or `ndk-bundle`) are skipped.
 
 ## WebAssembly (web) builds
 
@@ -130,84 +193,65 @@ hooks:
         emscripten_version: null # e.g. "7.0.0" (>= 6.0.0)
 ```
 
-## Configuration
 
-You can configure some options in your `pubspec.yaml`
+## Tree-shaking with a link hook
 
-```yaml
-hooks:
-  user_defines:
-    <YOUR_PACKAGE_NAME_THAT_USES_NATIVE_TOOLCHAIN_CMAKE>: # e.g., dartcv4
-      env_file: null # e.g., ".env"
-      cmake_version: null # e.g., "3.22.1", if not specified, use the latest
-      ninja_version: null # e.g., "1.10.2", if not specified, use the latest
-      prefer_android_cmake: null # true or false, defaults to true for android
-      prefer_android_ninja: null # true or false, defaults to true for android
-      android:
-        android_home: null # e.g., "C:\\Android\\Sdk" # can be set in .env file
-        ndk_version: null # e.g., "28.2.13676358"
-        cmake_version: null # e.g., "3.22.1", if not specified, fallback to global cmake_version
-        # NOTE: Ninja is the default and only generator for Android
-        ninja_version: null # e.g., "1.10.2", if not specified, fallback to global ninja_version
-      ios:
-        cmake_version: null # e.g., "3.22.1"
-        # NOTE: you need to use Generator.ninja if you want to use Ninja for platforms except Android
-        ninja_version: null # e.g., "1.10.2"
-      windows:
-        cmake_version: null # e.g., "3.22.1"
-        ninja_version: null # e.g., "1.10.2"
-      linux:
-        cmake_version: null # e.g., "3.22.1"
-        ninja_version: null # e.g., "1.10.2"
-      web:
-        emsdk_path: null # e.g., "/opt/emsdk" or "C:\emsdk"
-        emscripten_root: null # e.g., "/opt/emsdk/upstream/emscripten"
-        emscripten_toolchain_file: null # explicit Emscripten.cmake
-        emscripten_version: null # e.g., "7.0.0" (>= 6.0.0)
-      macos:
-        cmake_version: null # e.g., "3.22.1"
-        ninja_version: null # e.g., "1.10.2"
+Linker dead-code elimination needs to know which native functions the compiled
+Dart code calls. Only the **link hook** gets that information
+(`input.recordedUses`), so the restricted link cannot happen in the build hook:
+on a clean build there is nothing recorded yet, and a keep-list left over from
+an earlier build strips symbols the new code needs.
+
+`CMakeBuilder.runLink()` does that link hook work; the CMake project only has to
+opt in:
+
+```cmake
+# CMakeLists.txt - after the shared library target is fully configured
+include(${DNTCM_CMAKE_DIR}/treeshake.cmake)   # passed by CMakeBuilder
+add_library(mylib SHARED src/lib.c)
+target_link_libraries(mylib PRIVATE ...)
+install(TARGETS mylib DESTINATION lib)
+dntcm_add_treeshake_target(NAME mylib TARGET mylib)
 ```
 
-## NDK Discovery
+```dart
+// hook/build.dart - unchanged; on AOT builds the library and the build info of
+// this build are handed to the link hook (routing: ToLinkHook).
+await CMakeBuilder.create(name: 'mylib', sourceDir: ...).run(input: input, output: output);
 
-When targeting Android, the NDK root directory is resolved in the following
-order (aligned with the Flutter tool's
-[AndroidSdk.locateAndroidSdk](https://github.com/flutter/flutter/blob/master/packages/flutter_tools/lib/src/android/android_sdk.dart)):
+// hook/link.dart
+await link(args, (input, output) async {
+  final symbols = symbolsFromRecordedUses(input); // empty without record-use
+  if (symbols.isEmpty) {
+    // No recorded usages (every SDK before the record-use experiment): ship the
+    // library the build hook produced instead.
+    // ...
+    return;
+  }
+  await CMakeBuilder.forLink(name: 'mylib').runLink(
+    input: input,
+    output: output,
+    assetName: 'mylib.dart',
+    symbolsToKeep: symbols,
+  );
+});
+```
 
-### SDK Root
+`runLink()` writes the keep-list to `<build dir>/dntcm_keep_symbols_<lib>.txt`,
+builds `mylib_treeshake` (`cmake --build ... --target mylib_treeshake`, no
+reconfigure), copies the staged library from `<build dir>/dntcm_treeshake/` into
+the link hook's output directory and registers it as the code asset. Every file
+is per library and per build directory (`dntcm_build_info_<lib>.json`,
+`dntcm_keep_symbols_<lib>.txt`, `dntcm_treeshake/<lib>`), so several libraries -
+and several packages - never share one.
 
-1. `user_defines.android.android_home` (if set in `pubspec.yaml`)
-2. `ANDROID_HOME` environment variable
-3. Platform-default install location:
-   - Linux:   `$HOME/Android/Sdk`
-   - macOS:   `$HOME/Library/Android/sdk`
-   - Windows: `%USERPROFILE%\AppData\Local\Android\Sdk`
-4. `<dir>/sdk` fallback (for each hit above: if the directory itself is not a
-   valid SDK but `<dir>/sdk` is, that subdirectory is used).
-5. `aapt` on PATH → `parent.parent.parent` if it looks like an SDK root.
-6. `adb` on PATH → `parent.parent` if it looks like an SDK root.
-
-A directory qualifies as an SDK root if it contains a `platform-tools/` or
-`licenses/` subdirectory.
-
-### NDK Root
-
-For each SDK root found above:
-
-1. `ANDROID_NDK_HOME` (exact NDK root — highest priority)
-2. `ANDROID_NDK_PATH` (fallback when `ANDROID_NDK_HOME` is unset)
-3. `ANDROID_NDK_ROOT` (additional fallback)
-4. `<sdk>/ndk/<version>/` directories sorted by `Version.parse` in descending
-   order (latest first; entries that cannot be parsed as a [Version] are
-   skipped).
-5. Linux-only legacy `<sdk>/ndk-bundle/` (single-NDK layout).
-6. `ndk-build` on PATH → parent directory (lowest priority).
-
-If `user_defines.android.ndk_version` is specified, only NDK roots whose
-basename parses to the requested version are kept; candidates without a
-parseable basename (e.g. `ANDROID_NDK_HOME` pointing at a custom-named
-directory, or `ndk-bundle`) are skipped.
+`DNTCM` is the prefix of everything this package puts into a CMake project:
+**D**art **N**ative **T**oolchain **CM**ake. It returns
+`false` (after logging why) when the build info, the keep-list or the staged
+library is missing, and throws when the build fails, so a link hook can fall
+back to the build hook's library. Symbols used through `@Native.addressOf`
+(e.g. `NativeFinalizer` callbacks) are not recorded by the compiler - add them
+to the keep-list yourself.
 
 ## Acknowledgements
 

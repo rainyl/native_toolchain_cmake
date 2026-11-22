@@ -14,6 +14,13 @@ Future<String> getPackagePath(String packageName) async {
   throw Exception('Package "$packageName" not found');
 }
 
+/// Directory of the CMake modules shipped with this package, e.g.
+/// `treeshake.cmake` (`include(${DNTCM_CMAKE_DIR}/treeshake.cmake)`).
+///
+/// `CMakeBuilder` passes it to CMake as `DNTCM_CMAKE_DIR` automatically.
+Future<Uri> dntcmCmakeDir() async =>
+    Directory(await getPackagePath('native_toolchain_cmake')).uri.resolve('cmake/');
+
 class PackageConfig {
   final List<Package> packages;
   PackageConfig(this.packages);

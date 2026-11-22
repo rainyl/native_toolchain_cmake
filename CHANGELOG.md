@@ -1,5 +1,16 @@
 # native_toolchain_cmake
 
+## 0.4.0-beta.1
+
+- new: `CMakeBuilder.runLink()` links the final library in a link hook (`hook/link.dart`) with only the native symbols the compiled Dart code uses, which is the only hook that knows them (`symbolsFromRecordedUses()`, or a keep-list of your own). The build hook records where it built (`CMakeBuildInfo`), so the link hook does not need to know how to build anything.
+- new: `cmake/treeshake.cmake`: `dntcm_add_treeshake_target(NAME <lib> TARGET <shared lib>)` adds a `<lib>_treeshake` variant that exports only the keep-list symbols (Apple `-exported_symbols_list` + `-dead_strip`, ELF `--version-script` + `--gc-sections`, MSVC `/DEF:` + `/OPT:REF`) and stages it in `<build dir>/dntcm_treeshake/` for `runLink`. `CMakeBuilder` passes the module directory as `-DDNTCM_CMAKE_DIR`; `DNTCM` is the prefix of everything this package puts into a CMake project (Dart Native Toolchain CMake), and the files it writes (`dntcm_build_info_<lib>.json`, `dntcm_keep_symbols_<lib>.txt`, `dntcm_treeshake/<lib>`) are per library and per build directory.
+- new: `RunCMakeBuilder.buildTarget()` builds targets of an already generated tree without re-running the generate step.
+- new: `symbolsFromFunctionNames()` / `symbolsFromRecordedUses()` map recorded `@ffi.Native` usages to a keep-list.
+- new: `dntcmCmakeDir()`, and `RunCMakeBuilder` is exported so `buildTarget()` is reachable from outside the package.
+- change: the `CMakeBuildInfo.buildMode` of the record `CMakeBuilder.run()` writes is the `BuildMode` name (`release` / `debug`) instead of the display string (`Release`). The file-name helpers of that record are `@visibleForTesting`.
+- fix: `getUserEnvConfig()` accepts any `HookInput`, not only a `BuildInput`.
+- breaking: requires `hooks` 2.1+ (`LinkInput.recordedUses`)
+
 ## 0.4.0-beta.0
 
 - breaking: requires `hooks` 2.x (needed for `data_assets`)

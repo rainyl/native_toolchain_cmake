@@ -201,6 +201,28 @@ class RunCMakeBuilder {
     }
   }
 
+  /// Builds [targets] in the already generated build directory, without
+  /// running the CMake generate step.
+  ///
+  /// The link hook uses this to build a target of the build hook's tree (see
+  /// `cmake/treeshake.cmake`), which requires that the tree was configured
+  /// before - the generate step belongs to the build hook.
+  ///
+  /// - [environment] additional environment variables to pass to CMake.
+  Future<void> buildTarget({required List<String> targets, Map<String, String>? environment}) async {
+    final cacheFile = File.fromUri(outDir.resolve('CMakeCache.txt'));
+    if (!cacheFile.existsSync()) {
+      throw Exception(
+        'CMake project is not generated in ${outDir.toFilePath()}: '
+        'build the package before building a target of its tree.',
+      );
+    }
+    final result = await _build(environment: environment, targetsOverride: targets);
+    if (result.exitCode != 0) {
+      throw Exception('Failed to build CMake target(s) ${targets.join(', ')}: ${result.stderr}');
+    }
+  }
+
   Future<RunProcessResult> _generate({Map<String, String>? environment}) async {
     final defs = switch (targetOS) {
       OS.windows => await _generateWindowsDefines(),
@@ -218,6 +240,15 @@ class RunCMakeBuilder {
       ...defs,
     ];
     defines.forEach((k, v) => _defines.add('-D$k=${v ?? "1"}'));
+
+    // The CMake modules of this package (treeshake.cmake, toolchain files, ...),
+    // so a project can `include(${DNTCM_CMAKE_DIR}/treeshake.cmake)` without
+    // knowing where the package lives. Consumers may override it in [defines].
+    if (!defines.containsKey('DNTCM_CMAKE_DIR')) {
+      // Forward slashes: the value is used in `include(${DNTCM_CMAKE_DIR}/...)`.
+      final moduleDir = (await dntcmCmakeDir()).toFilePath().replaceAll(r'\', '/');
+      _defines.add('-DDNTCM_CMAKE_DIR=$moduleDir');
+    }
 
     if (generator == Generator.ninja) {
       final ninjaBinUri = await ninjaPath(environment: environment);
@@ -258,7 +289,7 @@ class RunCMakeBuilder {
     return results;
   }
 
-  Future<RunProcessResult> _build({Map<String, String>? environment}) async {
+  Future<RunProcessResult> _build({Map<String, String>? environment, List<String>? targetsOverride}) async {
     final cmakeTools = await cmake.defaultResolver?.resolve(
       logger: logger,
       userConfig: userConfig,
@@ -269,6 +300,7 @@ class RunCMakeBuilder {
       throw Exception('Failed to resolve CMake path.');
     }
 
+    final _targets = targetsOverride ?? targets ?? const <String>[];
     final _parallelJobs = <String>[];
     // https://cmake.org/cmake/help/latest/manual/cmake.1.html#cmdoption-cmake-build-j
     // --parallel added in CMake 3.12.0
@@ -283,8 +315,8 @@ class RunCMakeBuilder {
         outDir.normalizePath().toFilePath(),
         '--config',
         buildMode.name.toCapitalCase(),
-        if (targets?.isNotEmpty ?? false) '--target',
-        if (targets?.isNotEmpty ?? false) ...targets!,
+        if (_targets.isNotEmpty) '--target',
+        if (_targets.isNotEmpty) ..._targets,
         ..._parallelJobs,
       ],
       logger: logger,

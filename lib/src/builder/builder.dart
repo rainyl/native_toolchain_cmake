@@ -15,8 +15,8 @@ import 'package:meta/meta.dart';
 
 import '../native_toolchain/msvc.dart';
 import '../utils/env_from_bat.dart';
-import '../utils/env_from_native_config.dart';
 import '../utils/run_process.dart';
+import 'build_info.dart';
 import 'build_mode.dart';
 import 'builder_args.dart';
 import 'generator.dart';
@@ -129,6 +129,30 @@ class CMakeBuilder implements Builder {
   }) : sourceDir = sourceDir.isAbsolute ? sourceDir : Directory.fromUri(sourceDir).absolute.uri,
        cmakeListsDir = sourceDir.isAbsolute ? sourceDir : Directory.fromUri(sourceDir).absolute.uri;
 
+  /// Creates a builder for the link hook, the counterpart of [run].
+  ///
+  /// Nothing is compiled here: `runLink()` builds a target of the build hook's
+  /// CMake tree, so only [name] (and the environment options that affect how
+  /// CMake is invoked) matter. [sourceDir] is unused and left empty.
+  CMakeBuilder.forLink({
+    required this.name,
+    this.buildMode = BuildMode.release,
+    this.logger,
+    this.defines = const {},
+    this.generator = Generator.defaultGenerator,
+    this.logLevel = LogLevel.STATUS,
+    this.useVcvars = true,
+    this.parallelJobs,
+    this.parallelUseAllProcessors = false,
+    this.androidArgs = const AndroidBuilderArgs(),
+    this.appleArgs = const AppleBuilderArgs(),
+  }) : sourceDir = Uri(),
+       cmakeListsDir = Uri(),
+       outDir = null,
+       buildLocal = false,
+       targets = null,
+       toolset = null;
+
   /// This constructor initializes a new build config by cloning the
   /// repository from [gitUrl] into a subdirectory under [sourceDir].
   ///
@@ -232,6 +256,12 @@ class CMakeBuilder implements Builder {
     Logger? logger,
     bool skipGenerateIfCached = false,
   }) async {
+    if (sourceDir.path.isEmpty) {
+      throw StateError(
+        'This CMakeBuilder was created with CMakeBuilder.forLink(), which only supports '
+        'runLink(): it has no sources to build.',
+      );
+    }
     // Web builds (and other invocations that only request data assets) have no
     // CodeConfig. Accessing `input.config.code` would throw, so skip instead of
     // failing the whole hook invocation.
@@ -316,98 +346,104 @@ class CMakeBuilder implements Builder {
     final effectiveOutDir = outDir ?? outputDirectory;
     await Directory.fromUri(effectiveOutDir).create(recursive: true);
 
-    // hooks:
-    //   user_defines:
-    //     <package_name_that_use_native_toolchain_cmake>:
-    //       env_file: ".env"
-    //       cmake_version: "3.22.1"
-    //       ninja_version: "1.10.2"
-    //       prefer_android_cmake: false # defaults to true for android
-    //       prefer_android_ninja: false # defaults to true for android
-    //       android:
-    //         android_home: "C:\\Android\\Sdk" # can be set in .env file
-    //         ndk_version: "28.2.13676358"
-    //         cmake_version: null # "3.22.1"
-    //         ninja_version: null # "1.10.2"
-    //       windows:
-    //         cmake_version: null # "3.31.6"
-    logger?.fine('userDefines: $userDefines');
-
-    // Peel `workspace_pubspec.defines` if present (hooks_runner / flutter
-    // build path). Direct callers passing the flat defines map are unaffected.
-    final userDefinesFlat = unwrapUserDefines(userDefines, logger: logger);
-
-    // Per-OS overrides win over the top-level entries; wrong types are logged
-    // and ignored instead of throwing. See [UserConfig.parseFromUserDefines].
-    var userConfig = UserConfig.parseFromUserDefines(
-      targetOS: targetOS,
-      userDefines: userDefinesFlat,
-      logger: logger,
-    );
-
-    // Android-specific fallback chain for android_home:
-    //   1. user_defines.android.android_home  (handled in parseFromUserDefines)
-    //   2. env_file ANDROID_HOME              (handled below)
-    //   3. ANDROID_HOME system env var        (handled below)
-    // Each step only fills in when the previous one is null.
-    final envFile = userDefinesFlat[UserConfigKeys.envFile];
-    if (envFile is String && envFile.isNotEmpty) {
-      final userEnvConfig = await getUserEnvConfig(input: input, packageRoot: packageRoot, envFile: envFile);
-      final androidHome = userEnvConfig['ANDROID_HOME'];
-      if (androidHome != null && userConfig.androidHome == null) {
-        final androidHomeEntity = Directory(androidHome);
-        if (androidHomeEntity.existsSync()) {
-          userConfig = userConfig.copyWith(androidHome: androidHomeEntity.absolute.path);
-        } else {
-          logger?.warning(
-            'ANDROID_HOME=$androidHome is set in envFile=$envFile but does not exist, ignoring',
-          );
-        }
-      }
-    } else if (envFile != null) {
-      logger?.warning('user_defines.env_file expected String, got ${envFile.runtimeType}; ignored.');
-    }
-
-    // Last-resort fallback to the ANDROID_HOME system environment variable.
-    if (userConfig.androidHome == null) {
-      final envAndroidHome = Platform.environment['ANDROID_HOME'];
-      if (envAndroidHome != null && envAndroidHome.isNotEmpty) {
-        final dir = Directory(envAndroidHome);
-        if (dir.existsSync()) {
-          userConfig = userConfig.copyWith(androidHome: dir.absolute.path);
-        } else {
-          logger?.warning('ANDROID_HOME=$envAndroidHome from environment does not exist, ignoring.');
-        }
-      }
-    }
-
-    logger?.fine('Resolved userConfig: $userConfig');
-
-    final task = RunCMakeBuilder(
+    final task = await createTask(
+      outDir: effectiveOutDir,
       targetOS: targetOS,
       targetArchitecture: targetArchitecture,
       android: android,
       iOS: iOS,
       macOS: macOS,
-      outDir: effectiveOutDir,
-      logger: logger,
-      sourceDir: cmakeListsDir,
-      generator: generator,
-      buildMode: buildMode,
-      defines: defines,
+      buildModeName: buildMode.name,
       targets: targets,
-      appleArgs: appleArgs,
-      androidArgs: androidArgs,
-      logLevel: logLevel,
-      userConfig: userConfig,
-      parallelJobs: parallelJobs,
-      parallelUseAllProcessors: parallelUseAllProcessors,
+      userDefines: userDefines,
+      input: input,
+      packageRoot: packageRoot,
+      logger: logger,
     );
 
-    // Do not remove this line for potential extra variables in the future
-    final Map<String, String> envVars = Map.from(Platform.environment);
+    await task.run(
+      environment: await buildEnvironment(
+        targetOS: targetOS,
+        targetArchitecture: targetArchitecture,
+        logger: logger,
+      ),
+      skipGenerateIfCached: skipGenerateIfCached,
+    );
+
+    // Record where this build happened: the link hook's own output directory has
+    // a different checksum, so [runLink] finds the build directory through this
+    // record, next to the artifacts it is handed.
+    final installPrefix = defines['CMAKE_INSTALL_PREFIX'];
+    final buildInfo = CMakeBuildInfo(
+      buildDir: effectiveOutDir,
+      installDir: installPrefix != null && File(installPrefix).isAbsolute
+          ? Uri.directory(installPrefix)
+          : effectiveOutDir,
+      buildMode: buildMode.name,
+    );
+    await buildInfo.write(directory: effectiveOutDir, name: name);
+    if (installPrefix != null && File(installPrefix).isAbsolute) {
+      await buildInfo.write(directory: buildInfo.installDir, name: name);
+    }
+  }
+
+  /// Creates the CMake task for a directory this builder writes to.
+  ///
+  /// Shared by [run] and `runLink` (see `link_builder.dart`): the link hook runs
+  /// the same task on the build hook's tree, only for another directory, build
+  /// mode and target.
+  @internal
+  Future<RunCMakeBuilder> createTask({
+    required Uri outDir,
+    required OS targetOS,
+    required Architecture targetArchitecture,
+    required String buildModeName,
+    AndroidCodeConfig? android,
+    IOSCodeConfig? iOS,
+    MacOSCodeConfig? macOS,
+    List<String>? targets,
+    Map<String, dynamic> userDefines = const {},
+    HookInput? input,
+    Uri? packageRoot,
+    Logger? logger,
+  }) async => RunCMakeBuilder(
+    targetOS: targetOS,
+    targetArchitecture: targetArchitecture,
+    android: android,
+    iOS: iOS,
+    macOS: macOS,
+    outDir: outDir,
+    logger: logger,
+    sourceDir: cmakeListsDir,
+    generator: generator,
+    buildMode: BuildMode.fromString(buildModeName),
+    defines: defines,
+    targets: targets,
+    appleArgs: appleArgs,
+    androidArgs: androidArgs,
+    logLevel: logLevel,
+    userConfig: await resolveUserConfig(
+      targetOS: targetOS,
+      userDefines: userDefines,
+      input: input,
+      packageRoot: packageRoot,
+      logger: logger,
+    ),
+    parallelJobs: parallelJobs,
+    parallelUseAllProcessors: parallelUseAllProcessors,
+  );
+
+  /// The environment CMake runs in: the hook's own environment, plus the MSVC
+  /// variables of [environmentFromVcvars] when [useVcvars] is set.
+  @internal
+  Future<Map<String, String>> buildEnvironment({
+    required OS targetOS,
+    Architecture? targetArchitecture,
+    Logger? logger,
+  }) async {
+    final environment = Map<String, String>.from(Platform.environment);
     if (useVcvars) {
-      envVars.addAll(
+      environment.addAll(
         await environmentFromVcvars(
           targetOS: targetOS,
           targetArchitecture: targetArchitecture,
@@ -415,8 +451,7 @@ class CMakeBuilder implements Builder {
         ),
       );
     }
-
-    await task.run(environment: envVars, skipGenerateIfCached: skipGenerateIfCached);
+    return environment;
   }
 
   /// Get environment variables from vcvarsXXX.bat
