@@ -151,8 +151,10 @@ function(dntcm_add_treeshake_target)
 
   if (NOT _arg_NO_TRIM)
     if (MSVC)
-      # /Gy: function-level linking, so /OPT:REF can remove unreferenced ones.
-      target_compile_options(${_target} PRIVATE /Gy)
+      # /Gy puts functions in COMDATs, /Gw does the same for data. Both are
+      # needed so /OPT:REF can remove unreferenced functions *and* the data
+      # they reference (e.g. large constant blobs).
+      target_compile_options(${_target} PRIVATE /Gy /Gw)
     else ()
       target_compile_options(${_target} PRIVATE -ffunction-sections -fdata-sections)
     endif ()

@@ -34,7 +34,7 @@ void main() {
     );
 
     // Loading it proves the exports are complete: only the kept symbol resolves.
-    final library = DynamicLibrary.open(linkedFile.path);
+    final library = openDynamicLibraryForTest(linkedFile.path);
     expect(library.lookup<NativeFunction<Int32 Function()>>('used_function'), isNotNull);
     expect(
       () => library.lookup<NativeFunction<Int32 Function()>>('unused_function'),
@@ -50,7 +50,7 @@ void main() {
     for (final MapEntry(key: library, value: keep) in symbols.entries) {
       final result = await fixture.link(library, symbolsToKeep: [keep]);
       expect(result.linked, isTrue, reason: 'linking $library');
-      final dynamicLibrary = DynamicLibrary.open(result.linkedFile!.path);
+      final dynamicLibrary = openDynamicLibraryForTest(result.linkedFile!.path);
       expect(dynamicLibrary.lookup<NativeFunction<Int32 Function()>>(keep), isNotNull);
       final other = symbols.entries.firstWhere((e) => e.key != library).value;
       expect(
