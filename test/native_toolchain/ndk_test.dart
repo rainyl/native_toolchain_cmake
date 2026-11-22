@@ -153,10 +153,7 @@ void main() {
 
     final ndkInstances = resolved.where((t) => t.tool == androidNdk).toList();
     expect(ndkInstances, hasLength(1), reason: 'NDK must be found via <home>/sdk fallback');
-    expect(
-      ndkInstances.single.uri.toFilePath().replaceAll(r'\', '/'),
-      contains('/sdk/ndk/99.99.99999/'),
-    );
+    expect(ndkInstances.single.uri.toFilePath().replaceAll(r'\', '/'), contains('/sdk/ndk/99.99.99999/'));
   });
 
   test('ANDROID_NDK_HOME is skipped when nonexistent, falls through to platform', () async {
@@ -185,9 +182,6 @@ void main() {
 
     final ndkInstances = resolved.where((t) => t.tool == androidNdk).toList();
     expect(ndkInstances, hasLength(1), reason: 'Should fall through to ANDROID_HOME');
-    expect(
-      ndkInstances.single.uri.toFilePath().replaceAll(r'\', '/'),
-      contains('/ndk/99.99.99999/'),
-    );
+    expect(ndkInstances.single.uri.toFilePath().replaceAll(r'\', '/'), contains('/ndk/99.99.99999/'));
   });
 }
