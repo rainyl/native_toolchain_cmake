@@ -124,13 +124,17 @@ void main() {
   });
 
   test('keepSymbolsFileUri and treeshakeStageDirectory', () {
+    // Compared as Uris: `toFilePath()` spells the separators differently per OS.
+    final buildDir = Directory.systemTemp.uri.resolve('dntcm-build/');
     final info = CMakeBuildInfo(
-      buildDir: Uri.directory('/tmp/build'),
-      installDir: Uri.directory('/tmp/build/install'),
+      buildDir: buildDir,
+      installDir: buildDir.resolve('install/'),
       buildMode: 'release',
     );
-    expect(info.keepSymbolsFileUri('foo').toFilePath(), '/tmp/build/dntcm_keep_symbols_foo.txt');
-    expect(info.treeshakeStageDirectory.toFilePath(), '/tmp/build/dntcm_treeshake/');
+    expect(info.keepSymbolsFileUri('foo'), buildDir.resolve('dntcm_keep_symbols_foo.txt'));
+    expect(info.treeshakeStageDirectory, buildDir.resolve('dntcm_treeshake/'));
+    // The name the CMake module expects, independent of the directory.
+    expect(info.keepSymbolsFileUri('foo').pathSegments.last, 'dntcm_keep_symbols_foo.txt');
   });
 
   test('the file names match cmake/treeshake.cmake', () async {

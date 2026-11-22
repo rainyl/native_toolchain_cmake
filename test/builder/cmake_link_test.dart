@@ -26,7 +26,7 @@ void main() {
     expect(result.linked, isTrue);
 
     final linkedFile = result.linkedFile!;
-    expect(linkedFile.path, startsWith(result.outputDirectory));
+    expect(linkedFile.parent.uri.normalizePath(), result.outputDirectory.normalizePath());
     expect(
       linkedFile.lengthSync(),
       lessThan(fixture.unrestricted(_withUsedFunction).lengthSync()),
@@ -145,12 +145,13 @@ void main() {
 class _LinkResult {
   final bool linked;
   final LinkOutputBuilder output;
+  final Uri outputDirectoryUri;
 
-  _LinkResult(this.linked, this.output);
+  _LinkResult(this.linked, this.output, this.outputDirectoryUri);
 
   List<CodeAsset> get assets => LinkOutput(output.json).assets.code;
   File? get linkedFile => assets.isEmpty ? null : File.fromUri(assets.single.file!);
-  String get outputDirectory => output.json['out_dir'] as String? ?? '';
+  Uri get outputDirectory => outputDirectoryUri;
 }
 
 /// A build hook run of `testfiles/treeshake` (two libraries, one build directory).
@@ -210,7 +211,7 @@ class _Fixture {
       treeshakeTarget: treeshakeTarget,
       logger: logger,
     );
-    return _LinkResult(linked, output);
+    return _LinkResult(linked, output, input.outputDirectory);
   }
 }
 

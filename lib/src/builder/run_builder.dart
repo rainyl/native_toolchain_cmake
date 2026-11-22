@@ -245,7 +245,9 @@ class RunCMakeBuilder {
     // so a project can `include(${DNTCM_CMAKE_DIR}/treeshake.cmake)` without
     // knowing where the package lives. Consumers may override it in [defines].
     if (!defines.containsKey('DNTCM_CMAKE_DIR')) {
-      _defines.add('-DDNTCM_CMAKE_DIR=${(await dntcmCmakeDir()).toFilePath()}');
+      // Forward slashes: the value is used in `include(${DNTCM_CMAKE_DIR}/...)`.
+      final moduleDir = (await dntcmCmakeDir()).toFilePath().replaceAll(r'\', '/');
+      _defines.add('-DDNTCM_CMAKE_DIR=$moduleDir');
     }
 
     if (generator == Generator.ninja) {
