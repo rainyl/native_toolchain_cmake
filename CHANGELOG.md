@@ -1,6 +1,6 @@
 # native_toolchain_cmake
 
-## Unreleased
+## 0.3.3
 
 - breaking: requires `hooks` 2.x (needed for `data_assets`)
 - new: the build hook writes the used `emcc` path/version and `Emscripten.cmake` to hook metadata, and adds both as hook dependencies
