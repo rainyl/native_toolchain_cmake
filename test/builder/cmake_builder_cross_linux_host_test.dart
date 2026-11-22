@@ -20,7 +20,7 @@ void main() {
     return;
   }
 
-  const targets = [Architecture.arm64, Architecture.x64, Architecture.riscv64];
+  const targets = [Architecture.arm64, Architecture.x64, Architecture.riscv64, Architecture.ia32];
 
   for (final linkMode in [DynamicLoadingBundled()]) {
     for (final target in targets) {

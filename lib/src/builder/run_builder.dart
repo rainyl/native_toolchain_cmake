@@ -135,7 +135,15 @@ class RunCMakeBuilder {
     return Future.value(toolUri);
   }
 
+  /// The CMake toolchain file for the current [targetArchitecture].
+  ///
+  /// The toolchain files are picked purely by target architecture. Each file
+  /// decides whether to use the host compiler (when the host already targets
+  /// the requested architecture) or the `*-linux-gnu-gcc` cross compiler
+  /// wrapper, so cross-compiling from e.g. arm64 to x64 never falls back to
+  /// the host compiler.
   Future<Uri> linuxToolchainCmake() async => switch (targetArchitecture) {
+    Architecture.ia32 => (await currentPackageRoot()).resolve('cmake/i686-linux-gnu.toolchain.cmake'),
     Architecture.x64 => (await currentPackageRoot()).resolve('cmake/x86_64-linux-gnu.toolchain.cmake'),
     Architecture.arm64 => (await currentPackageRoot()).resolve('cmake/aarch64-linux-gnu.toolchain.cmake'),
     Architecture.riscv64 => (await currentPackageRoot()).resolve('cmake/riscv64-linux-gnu.toolchain.cmake'),
@@ -378,10 +386,11 @@ class RunCMakeBuilder {
     if (targetOS != OS.linux) {
       return [];
     }
-    // The toolchain files are for cross-compiling, native builds use the host compiler.
-    if (targetArchitecture == Architecture.current) {
-      return [];
-    }
+    // Always select the toolchain by target architecture. The toolchain file
+    // itself picks the host compiler (when host and target architecture
+    // match) or the matching `*-linux-gnu-gcc` cross compiler, so native and
+    // cross builds share the same code path and both are explicit about the
+    // compiler that gets used.
     final defs = <String>[];
     defs.add('-DCMAKE_SYSTEM_NAME=Linux');
     final toolchain = await linuxToolchainCmake();
