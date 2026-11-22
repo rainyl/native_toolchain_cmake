@@ -1,6 +1,6 @@
 # native_toolchain_cmake
 
-## Unreleased
+## 0.4.0-beta.0
 
 - breaking: requires `hooks` 2.x (needed for `data_assets`)
 - breaking: Emscripten 6.0+ is required (older emsdk releases are rejected)
