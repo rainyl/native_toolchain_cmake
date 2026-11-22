@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 /// Get host specific build config
 Future<Map<String, String>> getUserEnvConfig({
   required String envFile,
-  BuildInput? input,
+  HookInput? input,
   Uri? packageRoot,
 }) async {
   String? projectDir;

@@ -4,7 +4,10 @@
 import 'dart:io';
 
 import 'package:code_assets/code_assets.dart';
+import 'package:hooks/hooks.dart';
 import 'package:logging/logging.dart';
+
+import '../utils/env_from_native_config.dart';
 
 /// The [OS] used for WebAssembly / web builds.
 ///
@@ -313,4 +316,80 @@ class UserConfig {
       'emscriptenToolchainFile: $emscriptenToolchainFile, '
       'emscriptenVersion: $emscriptenVersion'
       ')';
+}
+
+/// Parses the `hooks.user_defines` of this package into a [UserConfig], with
+/// the same fallbacks for `AndroidCodeConfig`/`env_file` in both hooks.
+Future<UserConfig> resolveUserConfig({
+  required OS targetOS,
+  required Map<String, dynamic> userDefines,
+  HookInput? input,
+  Uri? packageRoot,
+  Logger? logger,
+}) async {
+  // hooks:
+  //   user_defines:
+  //     <package_name_that_use_native_toolchain_cmake>:
+  //       env_file: ".env"
+  //       cmake_version: "3.22.1"
+  //       ninja_version: "1.10.2"
+  //       prefer_android_cmake: false # defaults to true for android
+  //       prefer_android_ninja: false # defaults to true for android
+  //       android:
+  //         android_home: "C:\\Android\\Sdk" # can be set in .env file
+  //         ndk_version: "28.2.13676358"
+  //         cmake_version: null # "3.22.1"
+  //         ninja_version: null # "1.10.2"
+  //       windows:
+  //         cmake_version: null # "3.31.6"
+  logger?.fine('userDefines: $userDefines');
+
+  // Peel `workspace_pubspec.defines` if present (hooks_runner / flutter
+  // build path). Direct callers passing the flat defines map are unaffected.
+  final userDefinesFlat = unwrapUserDefines(userDefines, logger: logger);
+
+  // Per-OS overrides win over the top-level entries; wrong types are logged
+  // and ignored instead of throwing. See [UserConfig.parseFromUserDefines].
+  var userConfig = UserConfig.parseFromUserDefines(
+    targetOS: targetOS,
+    userDefines: userDefinesFlat,
+    logger: logger,
+  );
+
+  // Android-specific fallback chain for android_home:
+  //   1. user_defines.android.android_home  (handled in parseFromUserDefines)
+  //   2. env_file ANDROID_HOME              (handled below)
+  //   3. ANDROID_HOME system env var        (handled below)
+  // Each step only fills in when the previous one is null.
+  final envFile = userDefinesFlat[UserConfigKeys.envFile];
+  if (envFile is String && envFile.isNotEmpty) {
+    final userEnvConfig = await getUserEnvConfig(input: input, packageRoot: packageRoot, envFile: envFile);
+    final androidHome = userEnvConfig['ANDROID_HOME'];
+    if (androidHome != null && userConfig.androidHome == null) {
+      final androidHomeEntity = Directory(androidHome);
+      if (androidHomeEntity.existsSync()) {
+        userConfig = userConfig.copyWith(androidHome: androidHomeEntity.absolute.path);
+      } else {
+        logger?.warning('ANDROID_HOME=$androidHome is set in envFile=$envFile but does not exist, ignoring');
+      }
+    }
+  } else if (envFile != null) {
+    logger?.warning('user_defines.env_file expected String, got ${envFile.runtimeType}; ignored.');
+  }
+
+  // Last-resort fallback to the ANDROID_HOME system environment variable.
+  if (userConfig.androidHome == null) {
+    final envAndroidHome = Platform.environment['ANDROID_HOME'];
+    if (envAndroidHome != null && envAndroidHome.isNotEmpty) {
+      final dir = Directory(envAndroidHome);
+      if (dir.existsSync()) {
+        userConfig = userConfig.copyWith(androidHome: dir.absolute.path);
+      } else {
+        logger?.warning('ANDROID_HOME=$envAndroidHome from environment does not exist, ignoring.');
+      }
+    }
+  }
+
+  logger?.fine('Resolved userConfig: $userConfig');
+  return userConfig;
 }
