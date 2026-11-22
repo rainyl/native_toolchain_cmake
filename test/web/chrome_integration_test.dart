@@ -15,6 +15,7 @@ void main() {
   Directory? work;
   HttpServer? server;
   String? chrome;
+  final requests = <String>[];
   var available = false;
 
   setUpAll(() async {
@@ -54,7 +55,10 @@ void main() {
 
     await File.fromUri(work!.uri.resolve('index.html')).writeAsString(_html);
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    server!.listen((request) => _serve(request, work!));
+    server!.listen((request) {
+      requests.add('${request.method} ${request.uri}');
+      _serve(request, work!);
+    });
     available = true;
   });
 
@@ -99,7 +103,12 @@ const _html = '''
 <!doctype html>
 <html>
   <head><meta charset="utf-8"><title>native_toolchain_cmake wasm test</title></head>
-  <body><script src="main.dart.js"></script></body>
+  <body>
+    <!-- Preload the Emscripten factory; the loader below detects it and skips
+         dynamic script injection, which makes headless runs deterministic. -->
+    <script src="add.js"></script>
+    <script src="main.dart.js"></script>
+  </body>
 </html>
 ''';
 

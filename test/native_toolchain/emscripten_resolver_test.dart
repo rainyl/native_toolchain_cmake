@@ -53,13 +53,18 @@ void main() {
       },
     );
 
-    final found = candidates.map((e) => e.uri).toList();
-    expect(found, containsAll(<Uri>[explicitRoot, emsdkRoot, pathRoot, envEmsdk]));
+    // Resolve symlinks before comparing: on Windows the temp directory can be
+    // exposed as an 8.3 short name (RUNNER~1) and on macOS /var is a symlink
+    // to /private/var, so raw URIs legitimately differ.
+    Future<String> canonical(Uri uri) async {
+      final path = await File.fromUri(uri).resolveSymbolicLinks();
+      return Platform.isWindows ? path.toLowerCase() : path;
+    }
 
-    final firstFour = found.take(4).toList();
-    expect(firstFour[0], explicitRoot);
-    expect(firstFour[1], emsdkRoot);
-    expect(firstFour[2], pathRoot);
-    expect(firstFour[3], envEmsdk);
+    final found = await Future.wait(candidates.map((e) => canonical(e.uri)));
+    final expected = await Future.wait([explicitRoot, emsdkRoot, pathRoot, envEmsdk].map(canonical));
+    expect(found, containsAll(expected));
+    expect(found.length, greaterThanOrEqualTo(expected.length));
+    expect(found.sublist(0, expected.length), expected);
   });
 }
