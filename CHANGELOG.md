@@ -1,5 +1,10 @@
 # native_toolchain_cmake
 
+## Unreleased
+
+- new: support cross-compiling to 32-bit x86 Linux (`Architecture.ia32`) via `cmake/i686-linux-gnu.toolchain.cmake`
+- fix: select the Linux toolchain purely by target architecture; the toolchain files now choose the host compiler only when the host matches the target and otherwise use the matching `*-linux-gnu-gcc` cross compiler, so cross-compiling from e.g. arm64 to x64 no longer picks the native (arm64) `gcc`
+
 ## 0.3.2
 
 - widen the `code_assets` constraint to `>=1.0.0 <3.0.0` to allow `code_assets` 2.x, which is compatible with both 1.x and 2.x

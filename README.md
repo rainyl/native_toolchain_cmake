@@ -10,6 +10,22 @@ This library is experimental and may change without warning, use with caution!
 
 Refer to [example](https://github.com/rainyl/native_toolchain_cmake/tree/main/example)
 
+## Linux cross-compilation
+
+Linux builds always go through a toolchain file selected by the target
+architecture (`cmake/*-linux-gnu.toolchain.cmake`). When the host already
+targets the requested architecture the toolchain file leaves
+`CMAKE_C_COMPILER`/`CMAKE_CXX_COMPILER` unset, so CMake uses the default host
+compiler (and honors `CC`/`CXX`). Otherwise the matching cross compiler must
+be available on `PATH`:
+
+| Target | Debian/Ubuntu package | Compiler |
+| --- | --- | --- |
+| `ia32` (x86) | `gcc-i686-linux-gnu` | `i686-linux-gnu-gcc` |
+| `x64` (x86_64) | `gcc-x86-64-linux-gnu` | `x86_64-linux-gnu-gcc` |
+| `arm64` | `gcc-aarch64-linux-gnu` | `aarch64-linux-gnu-gcc` |
+| `riscv64` | `gcc-riscv64-linux-gnu` | `riscv64-linux-gnu-gcc` |
+
 ## Configuration
 
 You can configure some options in your `pubspec.yaml`
