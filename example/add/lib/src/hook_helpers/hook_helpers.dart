@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:code_assets/code_assets.dart';
+import 'package:data_assets/data_assets.dart';
 import 'package:hooks/hooks.dart';
 import 'package:logging/logging.dart';
 import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
@@ -8,6 +9,10 @@ import 'package:native_toolchain_cmake/native_toolchain_cmake.dart';
 const name = 'add';
 
 Future<void> runBuild(BuildInput input, BuildOutputBuilder output, Uri sourceDir) async {
+  if (!input.config.buildCodeAssets) {
+    // Web and other data-asset-only invocations have no CodeConfig.
+    return;
+  }
   final _logger = Logger('')
     ..level = Level.ALL
     // temp fwd to stderr until process logs pass to stdout
@@ -42,7 +47,28 @@ Future<void> runBuild(BuildInput input, BuildOutputBuilder output, Uri sourceDir
   _logger.info('Found libs: $outLibs');
 }
 
+Future<void> runWasmBuild(BuildInput input, BuildOutputBuilder output, Uri sourceDir) async {
+  if (!input.config.buildDataAssets) {
+    return;
+  }
+  final logger = Logger('')
+    ..level = Level.ALL
+    ..onRecord.listen((record) => stderr.writeln(record));
+
+  final builder = CMakeWasmBuilder.create(
+    name: name,
+    sourceDir: sourceDir,
+    logger: logger,
+    // Set user_defines.web.emsdk_path (or add emsdk to PATH) when emcc is not
+    // discoverable automatically.
+  );
+  await builder.run(input: input, output: output, logger: logger);
+}
+
 Future<void> runBuildGit(BuildInput input, BuildOutputBuilder output, Uri sourceDir) async {
+  if (!input.config.buildCodeAssets) {
+    return;
+  }
   final logger = Logger('')
     ..level = Level.ALL
     // temp fwd to stderr until process logs pass to stdout

@@ -1,5 +1,14 @@
 # native_toolchain_cmake
 
+## 0.4.0-beta.0
+
+- breaking: requires `hooks` 2.x (needed for `data_assets`)
+- breaking: Emscripten 6.0+ is required (older emsdk releases are rejected)
+- new: `CMakeWasmBuilder` builds CMake projects with Emscripten and emits `.js`/`.wasm` as web data assets (`run`) or to a directory (`runStandalone`)
+- new: `package:native_toolchain_cmake/web.dart` provides `loadEmscriptenModule` / `EmscriptenModule` for calling wasm from Dart and Flutter web
+- new: `singleFile` option embeds the wasm in the JavaScript (`-sSINGLE_FILE=1`)
+- new: `user_defines.web.{emsdk_path,emscripten_root,emscripten_toolchain_file,emscripten_version}`
+
 ## 0.3.3
 
 - new: support cross-compiling to 32-bit x86 Linux (`Architecture.ia32`) via `cmake/i686-linux-gnu.toolchain.cmake`

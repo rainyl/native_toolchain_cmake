@@ -19,6 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 7.0.0
+      - name: verify emsdk
+        run: emcc --version
       - name: setup
         run: |
           sudo apt-get update
@@ -41,6 +46,11 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 7.0.0
+      - name: verify emsdk
+        run: emcc --version
       - name: setup
         run: |
           choco install ninja
@@ -60,6 +70,11 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 7.0.0
+      - name: verify emsdk
+        run: emcc --version
       - name: setup
         run: |
           brew install ninja
@@ -109,3 +124,28 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+
+  chrome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 7.0.0
+      - name: verify emsdk
+        run: emcc --version
+      - name: setup
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
+      - name: expose Chrome
+        run: echo "CHROME_EXECUTABLE=${{ steps.setup-chrome.outputs.chrome-path }}" >> "$GITHUB_ENV"
+      - name: install dependencies
+        run: dart pub get
+      - name: Chrome integration test
+        env:
+          NTC_REQUIRE_CHROME: "1"
+        run: dart test test/web/chrome_integration_test.dart -r expanded

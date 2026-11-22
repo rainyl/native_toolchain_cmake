@@ -232,6 +232,16 @@ class CMakeBuilder implements Builder {
     Logger? logger,
     bool skipGenerateIfCached = false,
   }) async {
+    // Web builds (and other invocations that only request data assets) have no
+    // CodeConfig. Accessing `input.config.code` would throw, so skip instead of
+    // failing the whole hook invocation.
+    if (!input.config.buildCodeAssets) {
+      logger?.info(
+        'No code assets requested (buildCodeAssets=false); '
+        'skipping native CMake build.',
+      );
+      return;
+    }
     await runStandalone(
       outputDirectory: input.outputDirectory,
       targetOS: input.config.code.targetOS,
@@ -269,27 +279,7 @@ class CMakeBuilder implements Builder {
   static Map<String, dynamic> unwrapUserDefinesForTesting(
     Map<String, dynamic>? userDefines, {
     Logger? logger,
-  }) => _unwrapUserDefines(userDefines, logger: logger);
-
-  static Map<String, dynamic> _unwrapUserDefines(Map<String, dynamic>? userDefines, {Logger? logger}) {
-    if (userDefines == null) return const {};
-    // Workspace envelope (hooks_runner / flutter build path).
-    final workspace = userDefines['workspace_pubspec'];
-    if (workspace is Map<String, dynamic>) {
-      final defines = workspace['defines'];
-      if (defines is Map<String, dynamic>) return defines;
-      if (defines is Map) return defines.cast<String, dynamic>();
-      if (defines != null) {
-        logger?.warning(
-          'user_defines.workspace_pubspec.defines expected Map, '
-          'got ${defines.runtimeType}; ignored.',
-        );
-      }
-      return const {};
-    }
-    // Direct flat defines (manual runStandalone / tests).
-    return userDefines;
-  }
+  }) => unwrapUserDefines(userDefines, logger: logger);
 
   /// Runs the CMake generate and build process with explicit arguments instead
   /// of [BuildInput] or [BuildOutputBuilder].
@@ -345,7 +335,7 @@ class CMakeBuilder implements Builder {
 
     // Peel `workspace_pubspec.defines` if present (hooks_runner / flutter
     // build path). Direct callers passing the flat defines map are unaffected.
-    final userDefinesFlat = _unwrapUserDefines(userDefines, logger: logger);
+    final userDefinesFlat = unwrapUserDefines(userDefines, logger: logger);
 
     // Per-OS overrides win over the top-level entries; wrong types are logged
     // and ignored instead of throwing. See [UserConfig.parseFromUserDefines].

@@ -6,6 +6,37 @@ import 'dart:io';
 import 'package:code_assets/code_assets.dart';
 import 'package:logging/logging.dart';
 
+/// The [OS] used for WebAssembly / web builds.
+///
+/// `code_assets` does not define a web OS (web builds only support data
+/// assets), so the builder uses a name-based [OS] value internally.
+final OS webOS = OS.fromString('web');
+
+/// Unwraps the `workspace_pubspec.defines` envelope that `package:hooks`
+/// wraps `user_defines` in.
+///
+/// Accepts both the hooks envelope and a flat defines map. Non-map values are
+/// logged and ignored.
+Map<String, dynamic> unwrapUserDefines(Map<String, dynamic>? userDefines, {Logger? logger}) {
+  if (userDefines == null) return const {};
+  // Workspace envelope (hooks_runner / flutter build path).
+  final workspace = userDefines['workspace_pubspec'];
+  if (workspace is Map<String, dynamic>) {
+    final defines = workspace['defines'];
+    if (defines is Map<String, dynamic>) return defines;
+    if (defines is Map) return defines.cast<String, dynamic>();
+    if (defines != null) {
+      logger?.warning(
+        'user_defines.workspace_pubspec.defines expected Map, '
+        'got ${defines.runtimeType}; ignored.',
+      );
+    }
+    return const {};
+  }
+  // Direct flat defines (manual runStandalone / tests).
+  return userDefines;
+}
+
 /// Keys allowed under the top-level `user_defines` map and (where applicable)
 /// the per-OS sub-maps (`android`, `ios`, `linux`, `macos`, `windows`).
 class UserConfigKeys {
@@ -19,6 +50,12 @@ class UserConfigKeys {
   static const preferAndroidCmake = 'prefer_android_cmake';
   static const preferAndroidNinja = 'prefer_android_ninja';
 
+  /// Emscripten / web build configuration.
+  static const emsdkPath = 'emsdk_path';
+  static const emscriptenRoot = 'emscripten_root';
+  static const emscriptenToolchainFile = 'emscripten_toolchain_file';
+  static const emscriptenVersion = 'emscripten_version';
+
   /// Per-OS sub-map keys indexed by [OS].
   static final osConfigKey = {
     OS.android: 'android',
@@ -26,6 +63,7 @@ class UserConfigKeys {
     OS.linux: 'linux',
     OS.macOS: 'macos',
     OS.windows: 'windows',
+    webOS: 'web',
   };
 }
 
@@ -65,6 +103,22 @@ class UserConfig {
   /// explicitly set it to true for other platforms if you still want to use android ninja.
   final bool preferAndroidNinja;
 
+  /// Root of an emsdk checkout, e.g. `/opt/emsdk`.
+  ///
+  /// Only used for web builds. Stored with forward slashes like
+  /// [androidHome].
+  final String? emsdkPath;
+
+  /// Root of an Emscripten installation, i.e. the directory containing
+  /// `emcc` and `cmake/Modules/Platform/Emscripten.cmake`.
+  final String? emscriptenRoot;
+
+  /// Explicit path to `Emscripten.cmake`.
+  final String? emscriptenToolchainFile;
+
+  /// Optional Emscripten version pin, e.g. `3.1.51`.
+  final String? emscriptenVersion;
+
   UserConfig({
     required this.targetOS,
     this.cmakeVersion,
@@ -73,12 +127,27 @@ class UserConfig {
     String? androidHome,
     bool? preferAndroidCmake,
     bool? preferAndroidNinja,
+    String? emsdkPath,
+    String? emscriptenRoot,
+    String? emscriptenToolchainFile,
+    this.emscriptenVersion,
     bool envVarAndroidHomeAsDefault = true,
   }) : preferAndroidCmake = preferAndroidCmake ?? targetOS == OS.android,
        preferAndroidNinja = preferAndroidNinja ?? targetOS == OS.android,
        androidHome =
            _normalizeAndroidHome(androidHome) ??
-           (envVarAndroidHomeAsDefault ? _normalizeAndroidHome(Platform.environment['ANDROID_HOME']) : null);
+           (envVarAndroidHomeAsDefault ? _normalizeAndroidHome(Platform.environment['ANDROID_HOME']) : null),
+       emsdkPath = _normalizePath(emsdkPath),
+       emscriptenRoot = _normalizePath(emscriptenRoot),
+       emscriptenToolchainFile = _normalizePath(emscriptenToolchainFile);
+
+  /// Normalises a path for safe interpolation into glob patterns and URIs:
+  /// backslashes become forward slashes and trailing slashes are removed.
+  static String? _normalizePath(String? path) {
+    if (path == null) return null;
+    final normalized = path.replaceAll(r'\', '/').replaceFirst(RegExp(r'/+$'), '');
+    return normalized.isEmpty ? null : normalized;
+  }
 
   /// Normalises an [androidHome] path for safe interpolation into glob
   /// patterns: backslashes become forward slashes and trailing slashes are
@@ -135,6 +204,21 @@ class UserConfig {
         _optBool(osConfig, UserConfigKeys.preferAndroidNinja, logger: logger) ??
         _optBool(userDefines, UserConfigKeys.preferAndroidNinja, logger: logger);
 
+    // Emscripten / web keys. Read from the per-OS (web) sub-map first, then
+    // from the top level for convenience.
+    final emsdkPath =
+        _optString(osConfig, UserConfigKeys.emsdkPath, logger: logger) ??
+        _optString(userDefines, UserConfigKeys.emsdkPath, logger: logger);
+    final emscriptenRoot =
+        _optString(osConfig, UserConfigKeys.emscriptenRoot, logger: logger) ??
+        _optString(userDefines, UserConfigKeys.emscriptenRoot, logger: logger);
+    final emscriptenToolchainFile =
+        _optString(osConfig, UserConfigKeys.emscriptenToolchainFile, logger: logger) ??
+        _optString(userDefines, UserConfigKeys.emscriptenToolchainFile, logger: logger);
+    final emscriptenVersion =
+        _optString(osConfig, UserConfigKeys.emscriptenVersion, logger: logger) ??
+        _optString(userDefines, UserConfigKeys.emscriptenVersion, logger: logger);
+
     return UserConfig(
       targetOS: targetOS,
       cmakeVersion: cmakeVersion,
@@ -143,6 +227,10 @@ class UserConfig {
       androidHome: androidHome,
       preferAndroidCmake: preferCmake,
       preferAndroidNinja: preferNinja,
+      emsdkPath: emsdkPath,
+      emscriptenRoot: emscriptenRoot,
+      emscriptenToolchainFile: emscriptenToolchainFile,
+      emscriptenVersion: emscriptenVersion,
       envVarAndroidHomeAsDefault: false,
     );
   }
@@ -191,6 +279,10 @@ class UserConfig {
     String? androidHome,
     bool? preferAndroidCmake,
     bool? preferAndroidNinja,
+    String? emsdkPath,
+    String? emscriptenRoot,
+    String? emscriptenToolchainFile,
+    String? emscriptenVersion,
   }) => UserConfig(
     targetOS: targetOS ?? this.targetOS,
     androidHome: androidHome ?? this.androidHome,
@@ -199,6 +291,10 @@ class UserConfig {
     ninjaVersion: ninjaVersion ?? this.ninjaVersion,
     preferAndroidNinja: preferAndroidNinja ?? this.preferAndroidNinja,
     ndkVersion: ndkVersion ?? this.ndkVersion,
+    emsdkPath: emsdkPath ?? this.emsdkPath,
+    emscriptenRoot: emscriptenRoot ?? this.emscriptenRoot,
+    emscriptenToolchainFile: emscriptenToolchainFile ?? this.emscriptenToolchainFile,
+    emscriptenVersion: emscriptenVersion ?? this.emscriptenVersion,
     envVarAndroidHomeAsDefault: false,
   );
 
@@ -211,6 +307,10 @@ class UserConfig {
       'ndkVersion: $ndkVersion, '
       'androidHome: $androidHome, '
       'preferAndroidCmake: $preferAndroidCmake, '
-      'preferAndroidNinja: $preferAndroidNinja'
+      'preferAndroidNinja: $preferAndroidNinja, '
+      'emsdkPath: $emsdkPath, '
+      'emscriptenRoot: $emscriptenRoot, '
+      'emscriptenToolchainFile: $emscriptenToolchainFile, '
+      'emscriptenVersion: $emscriptenVersion'
       ')';
 }

@@ -1,8 +1,17 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:add/add.dart' as add;
 
-void main() {
+import 'web_bootstrap.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // for master channel with `flutter config --enable-dart-data-assets`
+  await initAddForWeb();
+  // for stable channel with `dart run tool/build_wasm.dart`,
+  // copy the generated `wasm/add.js` and `wasm/add.wasm` to `web/wasm/`
+  // flutter run -d chrome
+  // await add.initAdd(scriptUrl: Uri.base.resolve('wasm/add.js'));
   runApp(const MyApp());
 }
 
