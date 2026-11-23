@@ -223,6 +223,52 @@ class RunCMakeBuilder {
     }
   }
 
+  /// Installs [component] of the already built tree
+  /// (`cmake --install <build dir> --component <component>`).
+  ///
+  /// Used to stage artifacts: `install(TARGETS ...)` resolves the platform's
+  /// product path itself, which a POST_BUILD copy cannot do on the Xcode
+  /// generator.
+  ///
+  /// - [environment] additional environment variables to pass to CMake.
+  Future<void> installComponent({required String component, Map<String, String>? environment}) async {
+    final cacheFile = File.fromUri(outDir.resolve('CMakeCache.txt'));
+    if (!cacheFile.existsSync()) {
+      throw Exception(
+        'CMake project is not generated in ${outDir.toFilePath()}: '
+        'build the package before installing a component of its tree.',
+      );
+    }
+    final cmakeTools = await cmake.defaultResolver?.resolve(
+      logger: logger,
+      userConfig: userConfig,
+      environment: environment,
+    );
+    final _cmake = cmakeTools?.first;
+    if (_cmake == null) {
+      throw Exception('Failed to resolve CMake path.');
+    }
+    final result = await runProcess(
+      executable: _cmake.uri,
+      arguments: [
+        '--install',
+        outDir.normalizePath().toFilePath(),
+        '--config',
+        buildMode.name.toCapitalCase(),
+        '--component',
+        component,
+      ],
+      logger: logger,
+      workingDirectory: outDir,
+      captureOutput: true,
+      throwOnUnexpectedExitCode: false,
+      environment: environment,
+    );
+    if (result.exitCode != 0) {
+      throw Exception('Failed to install the CMake component $component: ${result.stderr}');
+    }
+  }
+
   Future<RunProcessResult> _generate({Map<String, String>? environment}) async {
     final defs = switch (targetOS) {
       OS.windows => await _generateWindowsDefines(),

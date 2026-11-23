@@ -205,14 +205,25 @@ function(dntcm_add_treeshake_target)
       "LINKER:--gc-sections")
   endif ()
 
-  # Stage the library under the name `runLink` looks for: the platform's
-  # library file name of OUTPUT_NAME.
-  set(_staged "${_stage_dir}/${CMAKE_SHARED_LIBRARY_PREFIX}${_output_name}${CMAKE_SHARED_LIBRARY_SUFFIX}")
-  add_custom_command(TARGET ${_target} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "${_stage_dir}"
-    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "$<TARGET_FILE:${_target}>" "${_staged}"
-    COMMENT "Staging the tree-shaken library in ${_stage_dir}"
-    VERBATIM
+  # Stage the library in ${_stage_dir} as `<OUTPUT_NAME>_treeshake` (the file
+  # name `runLink` looks for).
+  #
+  # Staged with install(TARGETS) and not with a POST_BUILD copy: on the Xcode
+  # generator (iOS, macOS) a POST_BUILD script receives `$<TARGET_FILE:...>` with
+  # the platform name escaped, i.e. a literal `${EFFECTIVE_PLATFORM_NAME}` in the
+  # path, so the copy fails and the tree-shaken link silently falls back to the
+  # unrestricted library. The install machinery resolves the product path for
+  # every generator; `runLink` triggers it with
+  # `cmake --install --component` after building the target.
+  #
+  # One component per target: several tree-shaken libraries can live in one build
+  # directory, and `runLink` installs one at a time. EXCLUDE_FROM_ALL keeps the
+  # build hook's plain `--target install` (where this target is not built) from
+  # trying to install it.
+  install(TARGETS ${_target}
+    DESTINATION "${_stage_dir}"
+    COMPONENT "DNTCM_TREESHAKE_${_target}"
+    EXCLUDE_FROM_ALL
   )
   message(STATUS "dntcm: ${_target} exports only the symbols listed in ${_keep_symbols}")
 endfunction()
