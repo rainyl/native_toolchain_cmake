@@ -120,17 +120,20 @@ extension CMakeLinkBuilder on CMakeBuilder {
       packageRoot: input.packageRoot,
       logger: logger,
     );
-    await task.buildTarget(
-      targets: [target],
-      environment: await buildEnvironment(
-        targetOS: code.targetOS,
-        targetArchitecture: code.targetArchitecture,
-        logger: logger,
-      ),
+    final environment = await buildEnvironment(
+      targetOS: code.targetOS,
+      targetArchitecture: code.targetArchitecture,
+      logger: logger,
     );
+    await task.buildTarget(targets: [target], environment: environment);
+    // `dntcm_add_treeshake_target` stages its library with install(TARGETS), the
+    // only generator-independent way to locate the product (see the module).
+    await task.installComponent(component: 'DNTCM_TREESHAKE_$target', environment: environment);
 
     final staged = File.fromUri(
-      info.treeshakeStageDirectory.resolve(code.targetOS.libraryFileName(baseName, DynamicLoadingBundled())),
+      info.treeshakeStageDirectory.resolve(
+        code.targetOS.libraryFileName('${baseName}_treeshake', DynamicLoadingBundled()),
+      ),
     );
     if (!staged.existsSync()) {
       logger?.warning(
