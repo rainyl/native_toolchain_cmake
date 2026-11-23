@@ -90,41 +90,6 @@ jobs:
         run: |
           cd "${{github.workspace}}"
           dart test
-  publish:
-    name: Publish
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [linux, windows, macos]
-    permissions:
-      id-token: write # Required for authentication using OIDC
-    runs-on: ubuntu-latest
-    environment: pub.dev
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
-      - name: Install dependencies
-        run: dart pub get
-      - name: Publish
-        run: dart pub publish --force
-
-  release:
-    name: Release
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [linux, windows, macos]
-    permissions:
-      contents: write # https://github.com/softprops/action-gh-release/issues/236
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout
-        uses: actions/checkout@v4
-      - name: release
-        uses: softprops/action-gh-release@v1
-        with:
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-
   chrome:
     runs-on: ubuntu-latest
     steps:
@@ -147,5 +112,40 @@ jobs:
         run: dart pub get
       - name: Chrome integration test
         env:
-          NTC_REQUIRE_CHROME: "1"
+          DNTCM_REQUIRE_CHROME: "1"
         run: dart test test/web/chrome_integration_test.dart -r expanded
+
+  publish:
+    name: Publish
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows, macos, chrome]
+    permissions:
+      id-token: write # Required for authentication using OIDC
+    runs-on: ubuntu-latest
+    environment: pub.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Install dependencies
+        run: dart pub get
+      - name: Publish
+        run: dart pub publish --force
+
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows, macos, chrome]
+    permissions:
+      contents: write # https://github.com/softprops/action-gh-release/issues/236
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: false
+          prerelease: false
+          generate_release_notes: true

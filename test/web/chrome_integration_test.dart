@@ -22,7 +22,7 @@ void main() {
     chrome = _findChrome();
     final emccInstances = await emcc.defaultResolver!.resolve(logger: null);
     if (chrome == null || emccInstances.isEmpty) {
-      if (Platform.environment['NTC_REQUIRE_CHROME'] == '1') {
+      if (Platform.environment['DNTCM_REQUIRE_CHROME'] == '1') {
         throw StateError(
           'Chrome integration test requires both Chrome and emcc. '
           'Chrome: ${chrome ?? 'not found'}. emcc candidates: ${emccInstances.length}.',
