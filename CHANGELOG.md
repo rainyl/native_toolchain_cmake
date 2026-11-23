@@ -1,5 +1,10 @@
 # native_toolchain_cmake
 
+## 0.4.0-beta.2
+
+- fix: tree-shaking on Apple platforms (iOS, macOS): the tree-shaken library is staged with `install(TARGETS ...)` and installed by `runLink`, because a POST_BUILD copy of `$<TARGET_FILE:...>` fails on the Xcode generator
+- fix: require `code_assets` 2.x; with 1.x every hook invocation threw `FormatException: The OS "web" is not known`
+
 ## 0.4.0-beta.1
 
 - new: `CMakeBuilder.runLink()` links the final library in a link hook (`hook/link.dart`) with only the native symbols the compiled Dart code uses, which is the only hook that knows them (`symbolsFromRecordedUses()`, or a keep-list of your own). The build hook records where it built (`CMakeBuildInfo`), so the link hook does not need to know how to build anything.
