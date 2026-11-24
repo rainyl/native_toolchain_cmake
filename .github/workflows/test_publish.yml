@@ -61,10 +61,16 @@ jobs:
         include:
           - name: linux
             os: ubuntu-latest
+            concurrency: 4
+          # Windows builds are far slower per test (MSVC + CMake try_compile
+          # per target): four suites at once pushed tests past the 30s default
+          # timeout, so it keeps the default `numberOfProcessors ~/ 2`.
           - name: windows
             os: windows-latest
+            concurrency: 2
           - name: macos
             os: macos-latest
+            concurrency: 2
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     steps:
@@ -97,10 +103,10 @@ jobs:
         with:
           sdk: stable
       # `package:test` defaults to `numberOfProcessors ~/ 2` concurrent suites,
-      # which collapses to 1 on the 3-core macOS runners (3.5x slower). Pin it
-      # so the runtime does not depend on the size of the host.
+      # which collapses to 1 on a 3-core macOS runner (3.5x slower). Pin it per
+      # OS so the runtime does not depend on the size of the host.
       - name: test
-        run: dart test -j 4
+        run: dart test -j ${{ matrix.concurrency }}
 
   chrome:
     runs-on: ubuntu-latest
