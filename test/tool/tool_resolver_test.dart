@@ -99,10 +99,7 @@ void main() {
     final resolver = PathToolResolver(toolName: 'bar', executableName: 'bar');
     final resolved = await resolver.resolve(
       logger: logger,
-      environment: {
-        'PATH': tempUri.toFilePath(),
-        'PATHEXT': '',
-      },
+      environment: {'PATH': tempUri.toFilePath(), 'PATHEXT': ''},
     );
 
     expect(resolved, hasLength(1));
@@ -120,10 +117,7 @@ void main() {
     // PATHEXT without .EXE must not match bar.exe.
     final resolved = await resolver.resolve(
       logger: logger,
-      environment: {
-        'PATH': tempUri.toFilePath(),
-        'PATHEXT': '.COM;.BAT;.CMD',
-      },
+      environment: {'PATH': tempUri.toFilePath(), 'PATHEXT': '.COM;.BAT;.CMD'},
     );
 
     expect(resolved, isEmpty);

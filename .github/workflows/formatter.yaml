@@ -1,24 +1,37 @@
 on:
   push:
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
 
 name: Format Code
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   build:
     name: format code
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: actions/checkout@v4
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
         with:
-          channel: "master"
+          sdk: stable
+      # Check only: formatting is the author's job, and committing from CI
+      # rewrites reviewed commits and hides the drift.
       - name: Format code
-        run: |
-          dart format
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "dart format ✅"
-          branch: ${{ github.head_ref }}
+        run: dart format --output=none --set-exit-if-changed .

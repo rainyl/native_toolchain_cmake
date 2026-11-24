@@ -2,9 +2,11 @@
 
 # https://github.com/solid-software/solid_lints/blob/master/lib/analysis_options.yaml
 analyzer:
-  plugins:
-    - custom_lint
   exclude:
+    # Examples are separate packages with their own pubspec/analysis options;
+    # analyzing them from the root reports unresolved imports.
+    - 'example/**'
+
     # General generated files
     - '**/*.g.dart'
     - '**/*.gr.dart'

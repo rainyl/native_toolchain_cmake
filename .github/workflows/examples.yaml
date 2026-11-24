@@ -1,36 +1,56 @@
 name: Example
 on:
   push:
-    paths-ignore:
-      - "**.md"
-      - "LICENSE"
+    paths:
+      - "lib/**"
+      - "cmake/**"
+      - "example/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "analysis_options.yaml"
+      - ".github/workflows/examples.yaml"
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - "**.md"
-      - "LICENSE"
+    paths:
+      - "lib/**"
+      - "cmake/**"
+      - "example/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "analysis_options.yaml"
+      - ".github/workflows/examples.yaml"
+
+# Six full Flutter builds are expensive: superseded runs are cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  EMSDK_VERSION: 7.0.0
+  NDK_VERSION: r29
 
 jobs:
   windows:
     name: windows
     runs-on: windows-2022
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: "stable"
+          cache: true
       - name: run dart-cli example
-        run: |
-          cd ${{github.workspace}}\example\dart_cli
-          dart run
+        working-directory: example/dart_cli
+        run: dart run
       - name: run flutter example
-        run: |
-          cd ${{github.workspace}}\example\flutter
-          flutter build windows --release
+        working-directory: example/flutter
+        run: flutter build windows --release
   linux:
     name: linux
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - name: setup
@@ -44,46 +64,48 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: "stable"
+          cache: true
       - name: run dart-cli example
-        run: |
-          cd "${{github.workspace}}/example/dart_cli"
-          dart run
+        working-directory: example/dart_cli
+        run: dart run
       - name: run flutter example
-        run: |
-          cd "${{github.workspace}}/example/flutter"
-          flutter build linux --release
+        working-directory: example/flutter
+        run: flutter build linux --release
   macos:
     name: macos
     runs-on: macos-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: "stable"
+          cache: true
       - name: run dart-cli example
-        run: |
-          cd "${{github.workspace}}/example/dart_cli"
-          dart run
+        working-directory: example/dart_cli
+        run: dart run
       - name: run flutter example
-        run: |
-          cd "${{github.workspace}}/example/flutter"
-          flutter build macos --release
+        working-directory: example/flutter
+        run: flutter build macos --release
   ios:
     name: ios
     runs-on: macos-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: "master"
+          cache: true
       - name: flutter example
+        working-directory: example/flutter
         run: |
-          cd "${{github.workspace}}/example/flutter"
           flutter config --enable-native-assets
           flutter build ios --release --no-codesign
   android:
     name: android
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - name: setup
@@ -95,6 +117,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: "stable"
+          cache: true
       - uses: actions/setup-java@v4
         with:
           distribution: "temurin"
@@ -102,21 +125,21 @@ jobs:
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r29
+          ndk-version: ${{ env.NDK_VERSION }}
           add-to-path: true
       - name: flutter example
-        run: |
-          cd "${{github.workspace}}/example/flutter"
-          flutter build apk --release
+        working-directory: example/flutter
+        run: flutter build apk --release
 
   web:
     name: web (master)
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 7.0.0
+          version: ${{ env.EMSDK_VERSION }}
       - name: verify emsdk
         run: emcc --version
       - name: setup
@@ -124,18 +147,19 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: "master"
+          cache: true
       - name: enable data assets
         run: flutter config --enable-dart-data-assets
       - name: flutter web (dart2js)
+        working-directory: example/flutter
         run: |
-          cd "${{github.workspace}}/example/flutter"
           flutter build web --release
           find build/web/assets/packages/add -type f | sort
           test -n "$(find build/web/assets/packages/add -name 'add*.wasm')"
           test -n "$(find build/web/assets/packages/add -name 'add*.js')"
       - name: flutter web (dart2wasm)
+        working-directory: example/flutter
         run: |
-          cd "${{github.workspace}}/example/flutter"
           flutter build web --wasm --release
           find build/web/assets/packages/add -type f | sort
           test -n "$(find build/web/assets/packages/add -name 'add*.wasm')"

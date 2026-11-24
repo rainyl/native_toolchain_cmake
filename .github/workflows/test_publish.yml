@@ -14,14 +14,37 @@ on:
       - "**.md"
       - "LICENSE"
 
+# A new push to the same branch makes the previous run obsolete: cancel it
+# instead of paying for both.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  EMSDK_VERSION: 7.0.0
+  NDK_VERSION: r29
+
 jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - name: analyze
+        run: dart analyze
+
   linux:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 7.0.0
+          version: ${{ env.EMSDK_VERSION }}
       - name: verify emsdk
         run: emcc --version
       - name: setup
@@ -33,70 +56,69 @@ jobs:
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r29
+          ndk-version: ${{ env.NDK_VERSION }}
           add-to-path: true
-      - uses: subosito/flutter-action@v2
+      # The package is pure Dart: `dart test` needs a Dart SDK, not Flutter.
+      - uses: dart-lang/setup-dart@v1
         with:
-          channel: "stable"
+          sdk: stable
       - name: test
-        run: |
-          cd "${{github.workspace}}"
-          dart test
+        run: dart test
+
   windows:
     runs-on: windows-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 7.0.0
+          version: ${{ env.EMSDK_VERSION }}
       - name: verify emsdk
         run: emcc --version
       - name: setup
-        run: |
-          choco install ninja
+        run: choco install ninja -y --no-progress
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r29
+          ndk-version: ${{ env.NDK_VERSION }}
           add-to-path: true
-      - uses: subosito/flutter-action@v2
+      - uses: dart-lang/setup-dart@v1
         with:
-          channel: "stable"
+          sdk: stable
       - name: test
-        run: |
-          cd "${{github.workspace}}"
-          dart test
+        run: dart test
+
   macos:
     runs-on: macos-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 7.0.0
+          version: ${{ env.EMSDK_VERSION }}
       - name: verify emsdk
         run: emcc --version
       - name: setup
-        run: |
-          brew install ninja
+        run: command -v ninja >/dev/null || brew install ninja
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r29
+          ndk-version: ${{ env.NDK_VERSION }}
           add-to-path: true
-      - uses: subosito/flutter-action@v2
+      - uses: dart-lang/setup-dart@v1
         with:
-          channel: "stable"
+          sdk: stable
       - name: test
-        run: |
-          cd "${{github.workspace}}"
-          dart test
+        run: dart test
+
   chrome:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 7.0.0
+          version: ${{ env.EMSDK_VERSION }}
       - name: verify emsdk
         run: emcc --version
       - name: setup
@@ -108,8 +130,6 @@ jobs:
         id: setup-chrome
       - name: expose Chrome
         run: echo "CHROME_EXECUTABLE=${{ steps.setup-chrome.outputs.chrome-path }}" >> "$GITHUB_ENV"
-      - name: install dependencies
-        run: dart pub get
       - name: Chrome integration test
         env:
           DNTCM_REQUIRE_CHROME: "1"
@@ -118,10 +138,12 @@ jobs:
   publish:
     name: Publish
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [linux, windows, macos, chrome]
+    needs: [analyze, linux, windows, macos, chrome]
     permissions:
       id-token: write # Required for authentication using OIDC
+      contents: read
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: pub.dev
     steps:
       - uses: actions/checkout@v4
@@ -130,21 +152,31 @@ jobs:
           sdk: stable
       - name: Install dependencies
         run: dart pub get
+      # A tag that disagrees with pubspec.yaml would publish the wrong version.
+      - name: Check the tag matches the pubspec version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(sed -n 's/^version: *//p' pubspec.yaml | head -n1)"
+          echo "tag=$tag pubspec=$version"
+          test "$tag" = "$version"
+      - name: Validate the package
+        run: dart pub publish --dry-run
       - name: Publish
         run: dart pub publish --force
 
   release:
     name: Release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [linux, windows, macos, chrome]
+    needs: [publish]
     permissions:
       contents: write # https://github.com/softprops/action-gh-release/issues/236
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: checkout
         uses: actions/checkout@v4
       - name: release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           draft: false
           prerelease: false

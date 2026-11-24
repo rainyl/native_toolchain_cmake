@@ -93,13 +93,19 @@ void main() {
       }
 
       final toolchainFile = await findEmscriptenToolchainFile(
-        emccInstance: ToolInstance(tool: Tool(name: 'Emscripten emcc'), uri: emccUri),
+        emccInstance: ToolInstance(
+          tool: Tool(name: 'Emscripten emcc'),
+          uri: emccUri,
+        ),
       );
       return toolchainFile.normalizePath();
     }
 
     test('emsdk layout (root next to emcc)', () async {
-      final found = await resolve('emsdk/upstream/emscripten/emcc', 'emsdk/upstream/emscripten/$toolchainSuffix');
+      final found = await resolve(
+        'emsdk/upstream/emscripten/emcc',
+        'emsdk/upstream/emscripten/$toolchainSuffix',
+      );
       expect(found.pathSegments.last, 'Emscripten.cmake');
       expect(found.path, endsWith('upstream/emscripten/$toolchainSuffix'));
     });
@@ -107,7 +113,10 @@ void main() {
     test('Homebrew layout (root is libexec)', () async {
       // Homebrew: Cellar/emscripten/<version>/bin/emcc wrapper next to
       // Cellar/emscripten/<version>/libexec/cmake/Modules/Platform/Emscripten.cmake.
-      final found = await resolve('Cellar/emscripten/7.0.1/bin/emcc', 'Cellar/emscripten/7.0.1/libexec/$toolchainSuffix');
+      final found = await resolve(
+        'Cellar/emscripten/7.0.1/bin/emcc',
+        'Cellar/emscripten/7.0.1/libexec/$toolchainSuffix',
+      );
       expect(found.path, endsWith('Cellar/emscripten/7.0.1/libexec/$toolchainSuffix'));
     });
 
