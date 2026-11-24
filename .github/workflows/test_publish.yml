@@ -98,6 +98,15 @@ jobs:
           ndk-version: ${{ env.NDK_VERSION }}
           add-to-path: true
           local-cache: true
+      # `add-to-path` only prepends the NDK to PATH, while the resolver gives
+      # `ANDROID_NDK_HOME` the highest priority - and the Windows image sets it
+      # to a much older NDK (27.3, which does not work with the CMake 4.x that
+      # ships with the Android SDK). Pin it to the NDK this workflow installs.
+      - name: pin the NDK the resolver picks
+        shell: bash
+        run: |
+          echo "ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=${{ steps.setup-ndk.outputs.ndk-path }}" >> "$GITHUB_ENV"
       # The package is pure Dart: `dart test` needs a Dart SDK, not Flutter.
       - uses: dart-lang/setup-dart@v1
         with:
