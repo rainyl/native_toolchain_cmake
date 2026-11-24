@@ -30,8 +30,6 @@ permissions:
 env:
   EMSDK_VERSION: 7.0.0
   NDK_VERSION: r29
-  EM_CACHE_FOLDER: emsdk-cache
-  APT_PKGS_VERSION: "1.0"
 
 jobs:
   analyze:
@@ -79,15 +77,15 @@ jobs:
         uses: mymindstorm/setup-emsdk@v16
         with:
           version: ${{ env.EMSDK_VERSION }}
-          actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
       - name: verify emsdk
         run: emcc --version
       - name: setup (linux)
         if: runner.os == 'Linux'
-        uses: awalsh128/cache-apt-pkgs-action@v1
-        with:
-          packages: gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf gcc-i686-linux-gnu gcc-riscv64-linux-gnu ninja-build
-          version: ${{ env.APT_PKGS_VERSION }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu \
+            gcc-arm-linux-gnueabihf gcc-i686-linux-gnu \
+            gcc-riscv64-linux-gnu ninja-build
       - name: setup (macos)
         if: runner.os == 'macOS'
         run: command -v ninja >/dev/null || brew install ninja
@@ -97,7 +95,6 @@ jobs:
         with:
           ndk-version: ${{ env.NDK_VERSION }}
           add-to-path: true
-          local-cache: true
       # `add-to-path` only prepends the NDK to PATH, while the resolver gives
       # `ANDROID_NDK_HOME` the highest priority - and the Windows image sets it
       # to a much older NDK (27.3, which does not work with the CMake 4.x that
@@ -130,14 +127,10 @@ jobs:
         uses: mymindstorm/setup-emsdk@v16
         with:
           version: ${{ env.EMSDK_VERSION }}
-          actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
       - name: verify emsdk
         run: emcc --version
       - name: setup
-        uses: awalsh128/cache-apt-pkgs-action@v1
-        with:
-          packages: ninja-build
-          version: ${{ env.APT_PKGS_VERSION }}
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
