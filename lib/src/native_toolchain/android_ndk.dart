@@ -46,6 +46,11 @@ const kAndroidNdkHome = 'ANDROID_NDK_HOME';
 const kAndroidNdkPath = 'ANDROID_NDK_PATH';
 const kAndroidNdkRoot = 'ANDROID_NDK_ROOT';
 
+/// The number of `toolchains/llvm/prebuilt/<host>/bin/` executables
+/// [_AndroidNdkResolver] expects for an NDK to count as complete: `clang`,
+/// `llvm-ar` and `ld.lld`.
+const int _ndkToolCount = 3;
+
 /// Host directory name under `<ndk>/toolchains/llvm/prebuilt/` for each
 /// supported host OS.
 ///
@@ -112,19 +117,29 @@ class _AndroidNdkResolver implements ToolResolver {
 
     final ndkInstances = <ToolInstance>[];
     var toolInstances = const <ToolInstance>[];
+    var partialToolInstances = const <ToolInstance>[];
     for (final c in filtered) {
       ndkInstances.add(ToolInstance(tool: androidNdk, uri: c.uri, version: c.version));
-      if (toolInstances.isEmpty) {
-        // `getNdkBinaryPath` semantics: tools come from the first NDK that
-        // actually contains them. Stop probing once any tools are found.
-        final tools = await _resolveToolsForNdk(c.uri, logger: logger);
-        if (tools.isNotEmpty) {
-          toolInstances = tools;
-        }
+      if (toolInstances.isNotEmpty) continue;
+      // `getNdkBinaryPath` semantics: tools come from the first NDK that
+      // contains them. Prefer an NDK that provides the complete tool set: a
+      // partially populated NDK must not shadow a complete installation. This
+      // happens in practice, because `clang` and `ld.lld` are symlinks in the
+      // official NDK, and an archive that loses them (or an install that only
+      // unpacks part of the tree) still contains the `llvm-ar` binary.
+      final tools = await _resolveToolsForNdk(c.uri, logger: logger);
+      if (tools.length == _ndkToolCount) {
+        toolInstances = tools;
+      } else if (tools.isNotEmpty && partialToolInstances.isEmpty) {
+        partialToolInstances = tools;
+        logger?.warning(
+          'NDK ${c.uri} only provides ${tools.length} of $_ndkToolCount tools; '
+          'continuing with the remaining candidates.',
+        );
       }
     }
 
-    return [...ndkInstances, ...toolInstances];
+    return [...ndkInstances, ...(toolInstances.isNotEmpty ? toolInstances : partialToolInstances)];
   }
 
   /// Builds the ordered, de-duplicated list of Android SDK root candidates.

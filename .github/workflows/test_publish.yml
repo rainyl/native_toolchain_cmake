@@ -102,7 +102,11 @@ jobs:
       # `ANDROID_NDK_HOME` the highest priority - and the Windows image sets it
       # to a much older NDK (27.3, which does not work with the CMake 4.x that
       # ships with the Android SDK). Pin it to the NDK this workflow installs.
+      # Windows only: the POSIX NDK archives ship `clang` and `ld.lld` as
+      # symlinks, which do not survive this action's extraction, so that tree
+      # is incomplete (the resolver now skips it instead of failing).
       - name: pin the NDK the resolver picks
+        if: runner.os == 'Windows'
         shell: bash
         run: |
           echo "ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> "$GITHUB_ENV"
