@@ -130,7 +130,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: setup emsdk
-        uses: mymindstorm/setup-emsdk@v14
+        uses: mymindstorm/setup-emsdk@v16
         with:
           version: ${{ env.EMSDK_VERSION }}
           actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
