@@ -96,8 +96,11 @@ jobs:
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
+      # `package:test` defaults to `numberOfProcessors ~/ 2` concurrent suites,
+      # which collapses to 1 on the 3-core macOS runners (3.5x slower). Pin it
+      # so the runtime does not depend on the size of the host.
       - name: test
-        run: dart test
+        run: dart test -j 4
 
   chrome:
     runs-on: ubuntu-latest
