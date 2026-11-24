@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:code_assets/code_assets.dart';
 import 'package:native_toolchain_cmake/src/builder/user_config.dart';
 import 'package:native_toolchain_cmake/src/native_toolchain/android_ndk.dart';
+import 'package:native_toolchain_cmake/src/tool/tool_instance.dart';
 import 'package:native_toolchain_cmake/src/tool/tool_requirement.dart';
 import 'package:test/test.dart';
 
@@ -183,5 +184,47 @@ void main() {
     final ndkInstances = resolved.where((t) => t.tool == androidNdk).toList();
     expect(ndkInstances, hasLength(1), reason: 'Should fall through to ANDROID_HOME');
     expect(ndkInstances.single.uri.toFilePath().replaceAll(r'\', '/'), contains('/ndk/99.99.99999/'));
+  });
+
+  group('tools come from a complete NDK', () {
+    // The stubs below are shell scripts, which the Windows test host cannot run.
+    final isPosix = !Platform.isWindows;
+
+    /// Creates `<sdk>/ndk/<version>/toolchains/llvm/prebuilt/<host>/bin/` with
+    /// executable [tools], each printing a parseable version.
+    Future<void> createNdk(Directory sdkDir, String version, List<String> tools) async {
+      final ndkUri = sdkDir.uri.resolve('ndk/$version/');
+      final bin = Directory.fromUri(ndkUri.resolve('toolchains/llvm/prebuilt/host/bin/'));
+      await bin.create(recursive: true);
+      for (final tool in tools) {
+        final file = File.fromUri(bin.uri.resolve(tool));
+        await file.writeAsString('#!/bin/sh\necho "LLVM version 1.0.0"\n');
+        await Process.run('chmod', ['+x', file.path]);
+      }
+    }
+
+    Future<List<ToolInstance>> resolveTools(Directory sdkDir) async {
+      final resolved = await androidNdk.defaultResolver!.resolve(
+        logger: logger,
+        userConfig: UserConfig(targetOS: OS.android, envVarAndroidHomeAsDefault: false),
+        environment: {kAndroidHome: sdkDir.absolute.path},
+      );
+      return resolved.where((t) => t.tool != androidNdk).toList();
+    }
+
+    test('skips a partial NDK in favour of a complete one', () async {
+      final tempUri = await tempDirForTest();
+      final sdkDir = await _createFakeSdk(tempUri.resolve('sdk/'));
+      // The partial NDK has the higher version, so it is probed first.
+      await createNdk(sdkDir, '9.0.0', ['llvm-ar']);
+      await createNdk(sdkDir, '8.0.0', ['clang', 'llvm-ar', 'ld.lld']);
+
+      final tools = await resolveTools(sdkDir);
+
+      expect(tools.map((t) => t.tool), containsAll([androidNdkClang, androidNdkLlvmAr, androidNdkLld]));
+      for (final tool in tools) {
+        expect(tool.uri.toFilePath().replaceAll(r'\', '/'), contains('/ndk/8.0.0/'));
+      }
+    }, skip: isPosix ? null : 'shell script stubs need a POSIX host');
   });
 }

@@ -1,5 +1,9 @@
 # native_toolchain_cmake
 
+## 0.4.0-beta.3
+
+- fix: locate `Emscripten.cmake` for Homebrew installs, whose Emscripten tree and `emcc` wrapper live in `libexec/`
+
 ## 0.4.0-beta.2
 
 - fix: tree-shaking on Apple platforms (iOS, macOS): the tree-shaken library is staged with `install(TARGETS ...)` and installed by `runLink`, because a POST_BUILD copy of `$<TARGET_FILE:...>` fails on the Xcode generator

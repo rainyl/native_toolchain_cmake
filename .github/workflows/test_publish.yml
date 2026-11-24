@@ -1,12 +1,16 @@
 name: test + publish + release
 
 on:
+  # Pushes to branches are covered by the pull_request event; running both
+  # would execute the whole matrix twice per push.
   push:
+    branches:
+      - main
+    tags:
+      - "v*"
     paths-ignore:
       - "**.md"
       - "LICENSE"
-    # tags:
-    #   - 'v[0-9]+.[0-9]+.[0-9]+*' # tag pattern on pub.dev: 'v{{version}'
   pull_request:
     branches:
       - main
@@ -14,102 +18,133 @@ on:
       - "**.md"
       - "LICENSE"
 
+# A new push to the same branch makes the previous run obsolete: cancel it
+# instead of paying for both.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  EMSDK_VERSION: 7.0.0
+  NDK_VERSION: r29
+  EM_CACHE_FOLDER: emsdk-cache
+  APT_PKGS_VERSION: "1.0"
+
 jobs:
-  linux:
+  analyze:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: mymindstorm/setup-emsdk@v14
-        with:
-          version: 7.0.0
-      - name: verify emsdk
-        run: emcc --version
-      - name: setup
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu \
-            gcc-arm-linux-gnueabihf gcc-i686-linux-gnu \
-            gcc-riscv64-linux-gnu ninja-build
-      - uses: nttld/setup-ndk@v1
-        id: setup-ndk
-        with:
-          ndk-version: r29
-          add-to-path: true
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: "stable"
-      - name: test
-        run: |
-          cd "${{github.workspace}}"
-          dart test
-  windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: mymindstorm/setup-emsdk@v14
-        with:
-          version: 7.0.0
-      - name: verify emsdk
-        run: emcc --version
-      - name: setup
-        run: |
-          choco install ninja
-      - uses: nttld/setup-ndk@v1
-        id: setup-ndk
-        with:
-          ndk-version: r29
-          add-to-path: true
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: "stable"
-      - name: test
-        run: |
-          cd "${{github.workspace}}"
-          dart test
-  macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: mymindstorm/setup-emsdk@v14
-        with:
-          version: 7.0.0
-      - name: verify emsdk
-        run: emcc --version
-      - name: setup
-        run: |
-          brew install ninja
-      - uses: nttld/setup-ndk@v1
-        id: setup-ndk
-        with:
-          ndk-version: r29
-          add-to-path: true
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: "stable"
-      - name: test
-        run: |
-          cd "${{github.workspace}}"
-          dart test
-  chrome:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: mymindstorm/setup-emsdk@v14
-        with:
-          version: 7.0.0
-      - name: verify emsdk
-        run: emcc --version
-      - name: setup
-        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
-      - uses: browser-actions/setup-chrome@v1
+      - run: dart pub get
+      - name: analyze
+        run: dart analyze
+      # Catches packaging problems (missing files, stale CHANGELOG version)
+      # before a tag is pushed, not while publishing it.
+      - name: validate the package
+        run: dart pub publish --dry-run
+
+  # One definition for every host OS: the steps only differ in how ninja and
+  # the cross compilers are installed. Ninja ships with the Windows and macOS
+  # images, only Linux has to install it.
+  test:
+    name: test (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux
+            os: ubuntu-latest
+            concurrency: 4
+          # Windows builds are far slower per test (MSVC + CMake try_compile
+          # per target): four suites at once pushed tests past the 30s default
+          # timeout, so it keeps the default `numberOfProcessors ~/ 2`.
+          - name: windows
+            os: windows-latest
+            concurrency: 2
+          - name: macos
+            os: macos-latest
+            concurrency: 2
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - name: setup emsdk
+        uses: mymindstorm/setup-emsdk@v16
+        with:
+          version: ${{ env.EMSDK_VERSION }}
+          actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
+      - name: verify emsdk
+        run: emcc --version
+      - name: setup (linux)
+        if: runner.os == 'Linux'
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf gcc-i686-linux-gnu gcc-riscv64-linux-gnu ninja-build
+          version: ${{ env.APT_PKGS_VERSION }}
+      - name: setup (macos)
+        if: runner.os == 'macOS'
+        run: command -v ninja >/dev/null || brew install ninja
+      - name: setup ndk
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: true
+          local-cache: true
+      # `add-to-path` only prepends the NDK to PATH, while the resolver gives
+      # `ANDROID_NDK_HOME` the highest priority - and the Windows image sets it
+      # to a much older NDK (27.3, which does not work with the CMake 4.x that
+      # ships with the Android SDK). Pin it to the NDK this workflow installs.
+      # Windows only: the POSIX NDK archives ship `clang` and `ld.lld` as
+      # symlinks, which do not survive this action's extraction, so that tree
+      # is incomplete (the resolver now skips it instead of failing).
+      - name: pin the NDK the resolver picks
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=${{ steps.setup-ndk.outputs.ndk-path }}" >> "$GITHUB_ENV"
+      # The package is pure Dart: `dart test` needs a Dart SDK, not Flutter.
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      # `package:test` defaults to `numberOfProcessors ~/ 2` concurrent suites,
+      # which collapses to 1 on a 3-core macOS runner (3.5x slower). Pin it per
+      # OS so the runtime does not depend on the size of the host.
+      - name: test
+        run: dart test -j ${{ matrix.concurrency }}
+
+  chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: setup emsdk
+        uses: mymindstorm/setup-emsdk@v16
+        with:
+          version: ${{ env.EMSDK_VERSION }}
+          actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
+      - name: verify emsdk
+        run: emcc --version
+      - name: setup
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: ninja-build
+          version: ${{ env.APT_PKGS_VERSION }}
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - uses: browser-actions/setup-chrome@v2
         id: setup-chrome
       - name: expose Chrome
         run: echo "CHROME_EXECUTABLE=${{ steps.setup-chrome.outputs.chrome-path }}" >> "$GITHUB_ENV"
-      - name: install dependencies
-        run: dart pub get
       - name: Chrome integration test
         env:
           DNTCM_REQUIRE_CHROME: "1"
@@ -118,33 +153,45 @@ jobs:
   publish:
     name: Publish
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [linux, windows, macos, chrome]
+    needs: [analyze, test, chrome]
     permissions:
       id-token: write # Required for authentication using OIDC
+      contents: read
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: pub.dev
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
       - name: Install dependencies
         run: dart pub get
+      # A tag that disagrees with pubspec.yaml would publish the wrong version.
+      - name: Check the tag matches the pubspec version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(sed -n 's/^version: *//p' pubspec.yaml | head -n1)"
+          echo "tag=$tag pubspec=$version"
+          test "$tag" = "$version"
+      - name: Validate the package
+        run: dart pub publish --dry-run
       - name: Publish
         run: dart pub publish --force
 
   release:
     name: Release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [linux, windows, macos, chrome]
+    needs: [publish]
     permissions:
       contents: write # https://github.com/softprops/action-gh-release/issues/236
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           draft: false
           prerelease: false

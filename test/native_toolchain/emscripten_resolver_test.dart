@@ -9,6 +9,8 @@ import 'dart:io';
 import 'package:code_assets/code_assets.dart';
 import 'package:native_toolchain_cmake/src/builder/user_config.dart';
 import 'package:native_toolchain_cmake/src/native_toolchain/emscripten.dart';
+import 'package:native_toolchain_cmake/src/tool/tool.dart';
+import 'package:native_toolchain_cmake/src/tool/tool_instance.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -66,5 +68,61 @@ void main() {
     expect(found, containsAll(expected));
     expect(found.length, greaterThanOrEqualTo(expected.length));
     expect(found.sublist(0, expected.length), expected);
+  });
+
+  group('finds Emscripten.cmake', () {
+    const toolchainSuffix = 'cmake/Modules/Platform/Emscripten.cmake';
+
+    /// Creates a fake installation with [emccRelative] as the emcc binary and
+    /// [toolchainRelative] as Emscripten.cmake, then resolves the toolchain
+    /// file from that emcc.
+    Future<Uri> resolve(String emccRelative, String? toolchainRelative) async {
+      final temp = await Directory.systemTemp.createTemp('ntc_emcc_layout_');
+      addTearDown(() => temp.delete(recursive: true));
+
+      Future<Uri> write(String relative) async {
+        final file = File.fromUri(temp.uri.resolve(relative));
+        await file.parent.create(recursive: true);
+        await file.writeAsString('stub');
+        return file.uri;
+      }
+
+      final emccUri = await write(emccRelative);
+      if (toolchainRelative != null) {
+        await write(toolchainRelative);
+      }
+
+      final toolchainFile = await findEmscriptenToolchainFile(
+        emccInstance: ToolInstance(
+          tool: Tool(name: 'Emscripten emcc'),
+          uri: emccUri,
+        ),
+      );
+      return toolchainFile.normalizePath();
+    }
+
+    test('emsdk layout (root next to emcc)', () async {
+      final found = await resolve(
+        'emsdk/upstream/emscripten/emcc',
+        'emsdk/upstream/emscripten/$toolchainSuffix',
+      );
+      expect(found.pathSegments.last, 'Emscripten.cmake');
+      expect(found.path, endsWith('upstream/emscripten/$toolchainSuffix'));
+    });
+
+    test('Homebrew layout (root is libexec)', () async {
+      // Homebrew: Cellar/emscripten/<version>/bin/emcc wrapper next to
+      // Cellar/emscripten/<version>/libexec/cmake/Modules/Platform/Emscripten.cmake.
+      final found = await resolve(
+        'Cellar/emscripten/7.0.1/bin/emcc',
+        'Cellar/emscripten/7.0.1/libexec/$toolchainSuffix',
+      );
+      expect(found.path, endsWith('Cellar/emscripten/7.0.1/libexec/$toolchainSuffix'));
+    });
+
+    test('library layout (root under lib/emscripten)', () async {
+      final found = await resolve('usr/bin/emcc', 'usr/lib/emscripten/$toolchainSuffix');
+      expect(found.path, endsWith('usr/lib/emscripten/$toolchainSuffix'));
+    });
   });
 }
