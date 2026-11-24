@@ -23,6 +23,8 @@ concurrency:
 env:
   EMSDK_VERSION: 7.0.0
   NDK_VERSION: r29
+  EM_CACHE_FOLDER: emsdk-cache
+  APT_PKGS_VERSION: "1.0"
 
 jobs:
   analyze:
@@ -37,74 +39,51 @@ jobs:
       - name: analyze
         run: dart analyze
 
-  linux:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: mymindstorm/setup-emsdk@v14
-        with:
-          version: ${{ env.EMSDK_VERSION }}
-      - name: verify emsdk
-        run: emcc --version
-      - name: setup
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu \
-            gcc-arm-linux-gnueabihf gcc-i686-linux-gnu \
-            gcc-riscv64-linux-gnu ninja-build
-      - uses: nttld/setup-ndk@v1
-        id: setup-ndk
-        with:
-          ndk-version: ${{ env.NDK_VERSION }}
-          add-to-path: true
-      # The package is pure Dart: `dart test` needs a Dart SDK, not Flutter.
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
-      - name: test
-        run: dart test
-
-  windows:
-    runs-on: windows-latest
+  # One definition for every host OS: the steps only differ in how ninja and
+  # the cross compilers are installed.
+  test:
+    name: test (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux
+            os: ubuntu-latest
+          - name: windows
+            os: windows-latest
+          - name: macos
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-      - uses: mymindstorm/setup-emsdk@v14
+      - name: setup emsdk
+        uses: mymindstorm/setup-emsdk@v14
         with:
           version: ${{ env.EMSDK_VERSION }}
+          actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
       - name: verify emsdk
         run: emcc --version
-      - name: setup
+      - name: setup (linux)
+        if: runner.os == 'Linux'
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf gcc-i686-linux-gnu gcc-riscv64-linux-gnu ninja-build
+          version: ${{ env.APT_PKGS_VERSION }}
+      - name: setup (windows)
+        if: runner.os == 'Windows'
         run: choco install ninja -y --no-progress
-      - uses: nttld/setup-ndk@v1
-        id: setup-ndk
-        with:
-          ndk-version: ${{ env.NDK_VERSION }}
-          add-to-path: true
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
-      - name: test
-        run: dart test
-
-  macos:
-    runs-on: macos-latest
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v4
-      - uses: mymindstorm/setup-emsdk@v14
-        with:
-          version: ${{ env.EMSDK_VERSION }}
-      - name: verify emsdk
-        run: emcc --version
-      - name: setup
+      - name: setup (macos)
+        if: runner.os == 'macOS'
         run: command -v ninja >/dev/null || brew install ninja
-      - uses: nttld/setup-ndk@v1
+      - name: setup ndk
+        uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
           ndk-version: ${{ env.NDK_VERSION }}
           add-to-path: true
+          local-cache: true
+      # The package is pure Dart: `dart test` needs a Dart SDK, not Flutter.
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
@@ -116,13 +95,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - uses: mymindstorm/setup-emsdk@v14
+      - name: setup emsdk
+        uses: mymindstorm/setup-emsdk@v14
         with:
           version: ${{ env.EMSDK_VERSION }}
+          actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
       - name: verify emsdk
         run: emcc --version
       - name: setup
-        run: sudo apt-get update && sudo apt-get install -y ninja-build
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: ninja-build
+          version: ${{ env.APT_PKGS_VERSION }}
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
@@ -138,7 +122,7 @@ jobs:
   publish:
     name: Publish
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [analyze, linux, windows, macos, chrome]
+    needs: [analyze, test, chrome]
     permissions:
       id-token: write # Required for authentication using OIDC
       contents: read
