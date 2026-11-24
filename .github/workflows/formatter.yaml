@@ -33,7 +33,13 @@ jobs:
         uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
+      # `dart format` derives the language version (and therefore the format
+      # style) from the package config; without it the check flags files that
+      # are already formatted. The examples are separate packages with their
+      # own analysis options, so they are not part of this check.
+      - name: Install dependencies
+        run: dart pub get
       # Check only: formatting is the author's job, and committing from CI
       # rewrites reviewed commits and hides the drift.
       - name: Format code
-        run: dart format --output=none --set-exit-if-changed .
+        run: dart format --output=none --set-exit-if-changed lib test
