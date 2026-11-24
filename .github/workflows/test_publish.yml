@@ -1,12 +1,16 @@
 name: test + publish + release
 
 on:
+  # Pushes to branches are covered by the pull_request event; running both
+  # would execute the whole matrix twice per push.
   push:
+    branches:
+      - main
+    tags:
+      - "v*"
     paths-ignore:
       - "**.md"
       - "LICENSE"
-    # tags:
-    #   - 'v[0-9]+.[0-9]+.[0-9]+*' # tag pattern on pub.dev: 'v{{version}'
   pull_request:
     branches:
       - main
@@ -20,6 +24,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 env:
   EMSDK_VERSION: 7.0.0
   NDK_VERSION: r29
@@ -31,16 +38,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
       - run: dart pub get
       - name: analyze
         run: dart analyze
+      # Catches packaging problems (missing files, stale CHANGELOG version)
+      # before a tag is pushed, not while publishing it.
+      - name: validate the package
+        run: dart pub publish --dry-run
 
   # One definition for every host OS: the steps only differ in how ninja and
-  # the cross compilers are installed.
+  # the cross compilers are installed. Ninja ships with the Windows and macOS
+  # images, only Linux has to install it.
   test:
     name: test (${{ matrix.name }})
     strategy:
@@ -56,9 +68,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: setup emsdk
-        uses: mymindstorm/setup-emsdk@v14
+        uses: mymindstorm/setup-emsdk@v16
         with:
           version: ${{ env.EMSDK_VERSION }}
           actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
@@ -66,13 +78,10 @@ jobs:
         run: emcc --version
       - name: setup (linux)
         if: runner.os == 'Linux'
-        uses: awalsh128/cache-apt-pkgs-action@latest
+        uses: awalsh128/cache-apt-pkgs-action@v1
         with:
           packages: gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf gcc-i686-linux-gnu gcc-riscv64-linux-gnu ninja-build
           version: ${{ env.APT_PKGS_VERSION }}
-      - name: setup (windows)
-        if: runner.os == 'Windows'
-        run: choco install ninja -y --no-progress
       - name: setup (macos)
         if: runner.os == 'macOS'
         run: command -v ninja >/dev/null || brew install ninja
@@ -94,23 +103,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: setup emsdk
-        uses: mymindstorm/setup-emsdk@v14
+        uses: mymindstorm/setup-emsdk@v16
         with:
           version: ${{ env.EMSDK_VERSION }}
           actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
       - name: verify emsdk
         run: emcc --version
       - name: setup
-        uses: awalsh128/cache-apt-pkgs-action@latest
+        uses: awalsh128/cache-apt-pkgs-action@v1
         with:
           packages: ninja-build
           version: ${{ env.APT_PKGS_VERSION }}
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
-      - uses: browser-actions/setup-chrome@v1
+      - uses: browser-actions/setup-chrome@v2
         id: setup-chrome
       - name: expose Chrome
         run: echo "CHROME_EXECUTABLE=${{ steps.setup-chrome.outputs.chrome-path }}" >> "$GITHUB_ENV"
@@ -130,7 +139,7 @@ jobs:
     timeout-minutes: 20
     environment: pub.dev
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
@@ -158,9 +167,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           draft: false
           prerelease: false

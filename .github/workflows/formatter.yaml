@@ -1,5 +1,7 @@
 on:
   push:
+    branches:
+      - main
     paths-ignore:
       - "**.md"
       - "LICENSE"
@@ -26,7 +28,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Dart
         uses: dart-lang/setup-dart@v1
         with:
