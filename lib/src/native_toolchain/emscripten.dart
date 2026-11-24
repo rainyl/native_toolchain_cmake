@@ -264,6 +264,10 @@ Future<Uri> findEmscriptenToolchainFile({
     addCandidate('$emccDir/../lib/emscripten/cmake/Modules/Platform/Emscripten.cmake');
     addCandidate('$emccDir/../share/emscripten/cmake/Modules/Platform/Emscripten.cmake');
     addCandidate('$emccDir/../libexec/emscripten/cmake/Modules/Platform/Emscripten.cmake');
+    // Homebrew installs the whole Emscripten tree into `libexec`, and `bin/emcc`
+    // is a wrapper script that execs `libexec/emcc` (not a symlink, so symlink
+    // resolution cannot reach the real root either).
+    addCandidate('$emccDir/../libexec/cmake/Modules/Platform/Emscripten.cmake');
   }
 
   addFromEmccDir(File.fromUri(emccInstance.uri).parent.path);
@@ -281,6 +285,9 @@ Future<Uri> findEmscriptenToolchainFile({
     '/usr/local/share/emscripten/cmake/Modules/Platform/Emscripten.cmake',
     '/opt/homebrew/share/emscripten/cmake/Modules/Platform/Emscripten.cmake',
     '/opt/homebrew/opt/emscripten/libexec/emscripten/cmake/Modules/Platform/Emscripten.cmake',
+    '/opt/homebrew/opt/emscripten/libexec/cmake/Modules/Platform/Emscripten.cmake',
+    '/usr/local/opt/emscripten/libexec/emscripten/cmake/Modules/Platform/Emscripten.cmake',
+    '/usr/local/opt/emscripten/libexec/cmake/Modules/Platform/Emscripten.cmake',
   ]) {
     addCandidate(path);
   }
